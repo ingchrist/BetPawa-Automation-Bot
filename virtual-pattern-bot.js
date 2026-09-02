@@ -197,15 +197,30 @@ async function main() {
         if (!nextInfo) return;
 
         const { round: nextRound, index } = nextInfo;
-        if (state.seasonId !== nextRound.seasonId) log(`season: ${state.seasonId ?? '(none)'} -> ${nextRound.seasonId}`);
-        state.seasonId = nextRound.seasonId;
 
-        // roundsAsc[index-1] is the CURRENTLY LIVE round (started, not yet
-        // ended) — confirmed live against the real API that a round's result
-        // only posts within seconds of its own window closing, i.e. right as
-        // it would stop being "index-1" and roll into "index-2". It can never
-        // be observed as finalized while still occupying index-1, so the two
-        // truly-completed rounds for the pattern are one slot further back.
+        // roundsAsc[index] is the first round whose OWN trading window hasn't
+        // started yet — but the real site is NOT open for new bets on that
+        // round. Confirmed live (matched the site's on-screen row-1 fixture
+        // against exact round timestamps): the site is still showing/taking
+        // bets on roundsAsc[index-1] — the round that started but hasn't
+        // ended — right up until its tradingTime.end (which equals
+        // roundsAsc[index].tradingTime.start, so the "Starts in" countdown
+        // the site displays next to that fixture is really counting down to
+        // THIS round's own close, not to when betting opens). So the round
+        // to actually act on — fetch row-1 for, and place the bet on — is
+        // index-1, not index.
+        const bettingRound = roundsAsc[index - 1];
+        if (!bettingRound) return; // nothing open for betting yet (e.g. very start of a fresh round list)
+
+        if (state.seasonId !== bettingRound.seasonId) log(`season: ${state.seasonId ?? '(none)'} -> ${bettingRound.seasonId}`);
+        state.seasonId = bettingRound.seasonId;
+
+        // The two truly-completed rounds for the pattern are the two rounds
+        // immediately before bettingRound (index-1) — confirmed live that a
+        // round's result only posts within seconds of its own window
+        // closing, i.e. right as it would stop being "index-1" and roll into
+        // "index-2", so it can never be observed as finalized while still
+        // occupying index-1.
         const prev1 = roundsAsc[index - 2];
         const prev2 = roundsAsc[index - 3];
         if (!prev1 || !prev2) return;
@@ -232,7 +247,7 @@ async function main() {
         state.lastPatternSums[prev1.id] = s1;
         state.lastPatternSums[prev2.id] = s2;
         pruneOldSums(state);
-        state.lastEvaluatedNextRoundId = nextRound.id;
+        state.lastEvaluatedNextRoundId = bettingRound.id;
 
         // prev1/prev2 stay constant for an entire ~5min round window, so
         // without this guard the same line (and any FIRE/cap/already-bet
@@ -250,13 +265,13 @@ async function main() {
         const fires = evaluatePattern({ sum1: s1, sum2: s2 });
         if (!fires) return saveState(state);
 
-        const alreadyAnnouncedThisFire = lastFireAnnouncedForRound === nextRound.id;
+        const alreadyAnnouncedThisFire = lastFireAnnouncedForRound === bettingRound.id;
         if (isNewResult || !alreadyAnnouncedThisFire) {
-            lastFireAnnouncedForRound = nextRound.id;
+            lastFireAnnouncedForRound = bettingRound.id;
             log(`PATTERN FIRE: two consecutive rounds >=4 (sum=${s2}, sum=${s1}) -> betting on next round`);
         }
 
-        if (state.betRoundIds.includes(nextRound.id)) {
+        if (state.betRoundIds.includes(bettingRound.id)) {
             return saveState(state); // already handled (bet placed or failed) — stay quiet on repeat polls
         }
 
@@ -267,13 +282,13 @@ async function main() {
             return saveState(state);
         }
 
-        const evNext = await retry(() => fetchRoundEvents(apiPage, nextRound.id));
+        const evNext = await retry(() => fetchRoundEvents(apiPage, bettingRound.id));
         const fxNext = getRowOneFixture(evNext);
-        if (!fxNext) return log(`no row-1 English League fixture yet for round ${nextRound.id}, will retry next poll`);
+        if (!fxNext) return log(`no row-1 English League fixture yet for round ${bettingRound.id}, will retry next poll`);
 
         // Mark attempted BEFORE clicking, so a crash mid-click can never
         // result in a retry that double-bets the same round.
-        state.betRoundIds.push(nextRound.id);
+        state.betRoundIds.push(bettingRound.id);
         saveState(state);
 
         try {
@@ -287,7 +302,7 @@ async function main() {
             betsPlacedThisRun++;
             appendJsonl(AUDIT_LOG_PATH, {
                 timestamp: new Date().toISOString(),
-                roundId: nextRound.id,
+                roundId: bettingRound.id,
                 fixture: fxNext.name,
                 market: 'Over/Under Full Time',
                 selection: 'Under 3.5',
@@ -295,11 +310,11 @@ async function main() {
                 success: true,
                 ...result,
             });
-            log(`BET PLACED: round ${nextRound.id} ${fxNext.name} stake=${STAKE_FCFA} FCFA dryRun=${DRY_RUN}`);
+            log(`BET PLACED: round ${bettingRound.id} ${fxNext.name} stake=${STAKE_FCFA} FCFA dryRun=${DRY_RUN}`);
         } catch (err) {
             appendJsonl(AUDIT_LOG_PATH, {
                 timestamp: new Date().toISOString(),
-                roundId: nextRound.id,
+                roundId: bettingRound.id,
                 fixture: fxNext.name,
                 market: 'Over/Under Full Time',
                 selection: 'Under 3.5',
@@ -307,7 +322,7 @@ async function main() {
                 success: false,
                 error: err.message,
             });
-            log(`BET FAILED: round ${nextRound.id}: ${err.message}`);
+            log(`BET FAILED: round ${bettingRound.id}: ${err.message}`);
         }
     }
 
