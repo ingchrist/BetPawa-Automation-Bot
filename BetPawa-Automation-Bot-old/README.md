@@ -89,12 +89,37 @@ npm run dev
 │
 ├── public/screenshots/     # Saved Screenshots
 ├── storage/logs/           # Log files
+│
+├── lib/                    # Virtual pattern-betting bot (see docs/)
+│   ├── betpawa/            # API + round domain logic + DOM action layer
+│   └── patterns/           # Betting pattern registry
+├── virtual-pattern-bot.js
 ├── betpawa-bot.js
 ├── betpawa-login.js
 ├── adibet-scraper.js
 ├── sportytrader-scraper.js
 └── test-bet.js
 ```
+
+---
+
+## 🎰 Virtual pattern-betting bot
+
+A standalone Node bot that watches BetPawa's virtual English League and places
+bets when a scoring pattern fires. Documented in full in
+**[docs/virtual-pattern-bot.md](docs/virtual-pattern-bot.md)** — including how to
+add a new pattern.
+
+```bash
+npm run virtual-bet              # live
+npm run virtual-bet:dry          # everything except the final Place Bet click
+npm run virtual-bet:check        # read-only: what the patterns see right now
+```
+
+| Pattern | Trigger | Bet on the next round |
+| --- | --- | --- |
+| `high-scoring-pair` | 2 consecutive rounds with total goals >= 4 | Under 3.5 |
+| `low-scoring-streak` | 5 consecutive rounds with total goals <= 2 | Over 2.5 |
 
 ---
 
