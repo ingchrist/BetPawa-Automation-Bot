@@ -159,3 +159,36 @@ export function formatCountdown(round, nowMs = Date.now()) {
 export function evaluatePattern({ sum1, sum2 }) {
     return sum1 >= 4 && sum2 >= 4;
 }
+
+// Post-bet cooldown, counted in ROUNDS rather than wall-clock time: the rule
+// is "skip the next N rounds", and counting the settled results themselves
+// can't drift with round length or expire on a timing knife edge the way a
+// fixed duration does.
+//
+// Pure: reports what the cooldown should become after observing the settled
+// round `roundId`; the caller writes the result back to state. `counted` is
+// false when this round was already counted (a repeat poll inside the same
+// round window, or a restart mid-cooldown), so the count advances exactly
+// once per round and the caller knows when to log.
+export function advanceCooldown(state, roundId) {
+    const remaining = Number(state?.cooldownRoundsRemaining) || 0;
+    if (remaining <= 0) return { paused: false, roundsRemaining: 0, counted: false };
+    const counted = roundId !== state.cooldownLastCountedRoundId;
+    return { paused: true, roundsRemaining: counted ? remaining - 1 : remaining, counted };
+}
+
+// One-time migration from the earlier wall-clock cooldown (an ISO
+// `cooldownUntil` stamp) to the round-counted one above, so a restart during
+// a still-running pause can't resume early and place the bet the pause
+// existed to prevent. Mutates `state`, returns the rounds still to skip.
+// Delete once no state file in the wild carries `cooldownUntil` any more.
+export function migrateLegacyCooldown(state, roundMs, nowMs = Date.now()) {
+    if (!state?.cooldownUntil) return state?.cooldownRoundsRemaining || 0;
+    const until = Date.parse(state.cooldownUntil);
+    delete state.cooldownUntil;
+    if (!Number.isNaN(until) && until > nowMs) {
+        const rounds = Math.ceil((until - nowMs) / roundMs);
+        state.cooldownRoundsRemaining = Math.max(state.cooldownRoundsRemaining || 0, rounds);
+    }
+    return state.cooldownRoundsRemaining || 0;
+}

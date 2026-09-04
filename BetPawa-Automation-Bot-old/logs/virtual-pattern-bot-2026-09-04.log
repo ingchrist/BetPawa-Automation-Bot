@@ -1,0 +1,81 @@
+[2026-09-04T11:57:25.399Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, stake=5 FCFA, pollInterval=15000ms)
+[2026-09-04T11:57:31.477Z] season: (none) -> 138850
+[2026-09-04T11:57:33.237Z] (ARS - EVE)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 02:26
+[2026-09-04T12:01:07.625Z] (BHA - MCI)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:52
+[2026-09-04T12:06:14.475Z] (AST - TOT)   (2 - 3) 6 - 3   sum=9   |  Next round starts in: 03:45
+[2026-09-04T12:11:06.585Z] (ARS - NOT)   (1 - 1) 3 - 2   sum=5   |  Next round starts in: 03:53
+[2026-09-04T12:11:06.622Z] PATTERN FIRE: two consecutive rounds >=4 (sum=9, sum=5) -> betting on next round
+[2026-09-04T12:11:47.230Z] bet placement failed, screenshot saved: public/screenshots/virtual-bet-failure-1788523907085.png
+[2026-09-04T12:11:47.230Z] BET FAILED: round 1659949: betslip did not clear after Place Bet click — placement unconfirmed, do NOT auto-retry
+[2026-09-04T12:16:08.682Z] (AST - CRY)   (1 - 1) 5 - 1   sum=6   |  Next round starts in: 03:51
+[2026-09-04T12:16:08.683Z] PATTERN FIRE: two consecutive rounds >=4 (sum=5, sum=6) -> betting on next round
+[2026-09-04T12:16:47.122Z] bet placement failed, screenshot saved: public/screenshots/virtual-bet-failure-1788524207011.png
+[2026-09-04T12:16:47.123Z] BET FAILED: round 1659950: betslip did not clear after Place Bet click — placement unconfirmed, do NOT auto-retry
+[2026-09-04T12:21:07.947Z] (BOU - LIV)   (2 - 0) 2 - 0   sum=2   |  Next round starts in: 03:52
+[2026-09-04T12:26:14.408Z] (BOU - MUN)   (1 - 0) 1 - 4   sum=5   |  Next round starts in: 03:45
+[2026-09-04T12:31:06.972Z] (BHA - ARS)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:53
+[2026-09-04T12:36:14.790Z] (ARS - HUL)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:45
+[2026-09-04T12:41:06.358Z] (ARS - BRE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:53
+[2026-09-04T12:46:12.690Z] (AST - ARS)   (2 - 0) 3 - 2   sum=5   |  Next round starts in: 03:47
+[2026-09-04T12:51:03.888Z] (ARS - COV)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:56
+[2026-09-04T12:56:11.373Z] (ARS - NEW)   (0 - 1) 0 - 1   sum=1   |  Next round starts in: 03:48
+[2026-09-04T13:01:03.515Z] (AST - BHA)   (0 - 1) 1 - 2   sum=3   |  Next round starts in: 03:56
+[2026-09-04T13:06:12.672Z] (AST - COV)   (2 - 0) 4 - 1   sum=5   |  Next round starts in: 03:47
+[2026-09-04T13:11:04.222Z] (AST - NEW)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:55
+[2026-09-04T13:16:12.223Z] (ARS - FUL)   (2 - 0) 3 - 0   sum=3   |  Next round starts in: 03:47
+[2026-09-04T13:21:04.341Z] (ARS - BOU)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:55
+[2026-09-04T13:26:11.509Z] (BHA - NOT)   (1 - 3) 4 - 7   sum=11   |  Next round starts in: 03:48
+[2026-09-04T13:31:03.942Z] (BOU - BRE)   (1 - 0) 3 - 1   sum=4   |  Next round starts in: 03:56
+[2026-09-04T13:31:03.943Z] PATTERN FIRE: two consecutive rounds >=4 (sum=11, sum=4) -> betting on next round
+[2026-09-04T13:31:45.251Z] bet placement failed, screenshot saved: public/screenshots/virtual-bet-failure-1788528705066.png
+[2026-09-04T13:31:45.252Z] BET FAILED: round 1659965: betslip did not clear after Place Bet click — placement unconfirmed, do NOT auto-retry
+[2026-09-04T13:36:06.450Z] (ARS - CRY)   (1 - 0) 3 - 0   sum=3   |  Next round starts in: 03:53
+[2026-09-04T13:41:14.368Z] (ARS - SUN)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:45
+[2026-09-04T13:46:08.633Z] (AST - EVE)   (1 - 1) 1 - 2   sum=3   |  Next round starts in: 03:51
+[2026-09-04T13:51:00.980Z] (ARS - MCI)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:59
+[2026-09-04T13:56:09.157Z] (ARS - CHE)   (0 - 0) 3 - 1   sum=4   |  Next round starts in: 03:50
+[2026-09-04T14:01:00.985Z] (ARS - IPS)   (0 - 1) 1 - 2   sum=3   |  Next round starts in: 03:59
+[2026-09-04T14:01:24.823Z] Shutting down...
+[2026-09-04T14:01:31.755Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, stake=5 FCFA, pollInterval=15000ms, cooldown=10min)
+[2026-09-04T14:01:40.998Z] (ARS - IPS)   (0 - 1) 1 - 2   sum=3   |  Next round starts in: 03:19
+[2026-09-04T14:06:02.120Z] (ARS - BHA)   (2 - 1) 4 - 1   sum=5   |  Next round starts in: 03:57
+[2026-09-04T14:10:09.053Z] season: 138850 -> 138851
+[2026-09-04T14:11:09.750Z] (AST - CHE)   (2 - 1) 2 - 1   sum=3   |  Next round starts in: 03:50
+[2026-09-04T14:16:01.133Z] (ARS - IPS)   (2 - 0) 2 - 2   sum=4   |  Next round starts in: 03:58
+[2026-09-04T14:21:08.225Z] (ARS - BHA)   (0 - 1) 2 - 1   sum=3   |  Next round starts in: 03:51
+[2026-09-04T14:26:00.789Z] (AST - SUN)   (0 - 2) 1 - 3   sum=4   |  Next round starts in: 03:59
+[2026-09-04T14:31:01.617Z] (ARS - TOT)   (1 - 1) 3 - 1   sum=4   |  Next round starts in: 03:58
+[2026-09-04T14:31:01.617Z] PATTERN FIRE: two consecutive rounds >=4 (sum=4, sum=4) -> betting on next round
+[2026-09-04T14:31:42.527Z] bet placement failed, screenshot saved: public/screenshots/virtual-bet-failure-1788532302393.png
+[2026-09-04T14:31:42.544Z] BET FAILED: round 1659977: betslip did not clear after Place Bet click — placement unconfirmed, do NOT auto-retry
+[2026-09-04T14:31:42.546Z] COOLDOWN started: pattern paused for 10:30 (results keep printing)
+[2026-09-04T14:36:03.933Z] (ARS - FUL)   (2 - 0) 3 - 1   sum=4   |  Next round starts in: 03:56
+[2026-09-04T14:36:03.933Z] COOLDOWN: pattern paused, resumes in 06:09
+[2026-09-04T14:41:14.526Z] (ARS - BRE)   (1 - 0) 3 - 1   sum=4   |  Next round starts in: 03:45
+[2026-09-04T14:41:14.531Z] COOLDOWN: pattern paused, resumes in 00:59
+[2026-09-04T14:42:16.371Z] COOLDOWN over — pattern monitoring resumed
+[2026-09-04T14:42:16.372Z] PATTERN FIRE: two consecutive rounds >=4 (sum=4, sum=4) -> betting on next round
+[2026-09-04T14:42:55.250Z] bet placement failed, screenshot saved: public/screenshots/virtual-bet-failure-1788532975127.png
+[2026-09-04T14:42:55.250Z] BET FAILED: round 1659979: betslip did not clear after Place Bet click — placement unconfirmed, do NOT auto-retry
+[2026-09-04T14:42:55.252Z] COOLDOWN started: pattern paused for 10:30 (results keep printing)
+[2026-09-04T14:46:14.563Z] (AST - MCI)   (1 - 1) 2 - 2   sum=4   |  Next round starts in: 03:45
+[2026-09-04T14:46:14.564Z] COOLDOWN: pattern paused, resumes in 07:11
+[2026-09-04T14:51:06.487Z] (ARS - COV)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:53
+[2026-09-04T14:51:06.489Z] COOLDOWN: pattern paused, resumes in 02:19
+[2026-09-04T14:53:25.587Z] COOLDOWN over — pattern monitoring resumed
+[2026-09-04T14:56:15.083Z] (BRE - EVE)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:44
+[2026-09-04T15:01:08.210Z] (ARS - EVE)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:51
+[2026-09-04T15:06:00.731Z] (ARS - SUN)   (0 - 1) 0 - 2   sum=2   |  Next round starts in: 03:59
+[2026-09-04T15:11:08.185Z] (ARS - BOU)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:51
+[2026-09-04T15:13:34.973Z] Shutting down...
+[2026-09-04T15:13:39.435Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, stake=5 FCFA, pollInterval=15000ms, cooldown=3 rounds)
+[2026-09-04T15:13:49.195Z] (ARS - BOU)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 01:10
+[2026-09-04T15:16:07.491Z] (AST - BHA)   (1 - 1) 1 - 1   sum=2   |  Next round starts in: 03:52
+[2026-09-04T15:21:02.518Z] (BHA - NOT)   (0 - 0) 4 - 0   sum=4   |  Next round starts in: 03:57
+[2026-09-04T15:26:11.537Z] (ARS - MCI)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:48
+[2026-09-04T15:31:03.280Z] (AST - FUL)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:56
+[2026-09-04T15:36:10.459Z] (AST - BRE)   (0 - 0) 2 - 1   sum=3   |  Next round starts in: 03:49
+[2026-09-04T15:41:02.276Z] (AST - ARS)   (2 - 0) 3 - 0   sum=3   |  Next round starts in: 03:57
+[2026-09-04T15:46:10.138Z] (AST - COV)   (0 - 1) 2 - 1   sum=3   |  Next round starts in: 03:49
+[2026-09-04T15:51:01.322Z] (BHA - BRE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:58
+[2026-09-04T15:56:08.359Z] (AST - EVE)   (0 - 3) 1 - 5   sum=6   |  Next round starts in: 03:51

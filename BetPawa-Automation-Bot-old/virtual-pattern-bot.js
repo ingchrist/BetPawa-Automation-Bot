@@ -11,8 +11,12 @@
 //   node virtual-pattern-bot.js              # live, places real bets
 //   node virtual-pattern-bot.js --dry-run     # detection + logging only
 //
+// After every placement attempt the pattern goes on cooldown for the next
+// VIRTUAL_COOLDOWN_ROUNDS rounds (default 3) — results keep printing, but no
+// new bet is evaluated or placed until it lifts. See COOLDOWN_ROUNDS below.
+//
 // Env (see .env.example): CDP_ENDPOINT, VIRTUAL_MAX_BETS_PER_RUN,
-// VIRTUAL_STAKE_FCFA, VIRTUAL_POLL_INTERVAL_MS
+// VIRTUAL_STAKE_FCFA, VIRTUAL_POLL_INTERVAL_MS, VIRTUAL_COOLDOWN_ROUNDS
 
 import { chromium } from 'playwright';
 import * as dotenv from 'dotenv';
@@ -32,6 +36,8 @@ import {
     formatFixtureLine,
     formatCountdown,
     evaluatePattern,
+    advanceCooldown,
+    migrateLegacyCooldown,
 } from './lib/virtual-pattern-detector.js';
 import { ensureActionPage, placeUnder35Bet, VIRTUAL_SPORTS_URL } from './lib/virtual-pattern-betting.js';
 
@@ -41,6 +47,19 @@ const CDP_ENDPOINT = process.env.CDP_ENDPOINT || env.CDP_ENDPOINT || 'http://127
 const MAX_BETS_PER_RUN = Number(process.env.VIRTUAL_MAX_BETS_PER_RUN || env.VIRTUAL_MAX_BETS_PER_RUN || 5);
 const STAKE_FCFA = Number(process.env.VIRTUAL_STAKE_FCFA || env.VIRTUAL_STAKE_FCFA || 5);
 const POLL_INTERVAL_MS = Number(process.env.VIRTUAL_POLL_INTERVAL_MS || env.VIRTUAL_POLL_INTERVAL_MS || 15000);
+// The pattern's two-round window slides by one round at a time, so a single
+// >=4 pair keeps re-firing on the following rounds (observed live: three
+// consecutive fires, three placements, on sums 4,5 -> 5,4 -> 4,4). One fire
+// should produce one bet, so after every placement ATTEMPT — success or
+// failure alike, since a failed placement is unconfirmed and must never be
+// effectively retried — the pattern skips this many further rounds before it
+// may fire again. Counted in rounds, not minutes: that is how the rule is
+// actually stated, and it stays correct no matter how long a round runs.
+const COOLDOWN_ROUNDS = Number(process.env.VIRTUAL_COOLDOWN_ROUNDS || env.VIRTUAL_COOLDOWN_ROUNDS || 3);
+// Measured round spacing (301.3s and 300.5s between the three consecutive
+// placements in the incident log). Used only to convert a leftover
+// wall-clock cooldown from the previous scheme into rounds on startup.
+const APPROX_ROUND_MS = 300500;
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const STATE_PATH = path.join('storage', 'virtual-pattern-state.json');
@@ -98,6 +117,11 @@ function defaultState() {
         betRoundIds: [],
         lastPatternSums: {},
         lastEvaluatedNextRoundId: null,
+        // Post-bet cooldown. Both fields are persisted so a restart can
+        // neither skip a pause that is still running nor double-count the
+        // round it was already in the middle of.
+        cooldownRoundsRemaining: 0,
+        cooldownLastCountedRoundId: null,
         updatedAt: null,
     };
 }
@@ -138,9 +162,11 @@ function appendJsonl(filePath, obj) {
 // --- main --------------------------------------------------------------------
 
 async function main() {
-    log(`Starting virtual-pattern-bot (dryRun=${DRY_RUN}, maxBetsPerRun=${MAX_BETS_PER_RUN}, stake=${STAKE_FCFA} FCFA, pollInterval=${POLL_INTERVAL_MS}ms)`);
+    log(`Starting virtual-pattern-bot (dryRun=${DRY_RUN}, maxBetsPerRun=${MAX_BETS_PER_RUN}, stake=${STAKE_FCFA} FCFA, pollInterval=${POLL_INTERVAL_MS}ms, cooldown=${COOLDOWN_ROUNDS} rounds)`);
 
     const state = loadState();
+    const cooldownAtBoot = migrateLegacyCooldown(state, APPROX_ROUND_MS);
+    if (cooldownAtBoot > 0) log(`COOLDOWN carried over from previous run — ${cooldownAtBoot} round(s) still to skip`);
     let betsPlacedThisRun = 0; // process-local only, per the user's "per-run" cap — intentionally not persisted
     let lastLoggedResultRoundId = null; // display dedupe: print each new result once, not every poll
     let lastFireAnnouncedForRound = null; // display dedupe: announce a FIRE once per target round
@@ -262,6 +288,27 @@ async function main() {
             log(`${formatFixtureLine(fx1, score1)}   sum=${score1.sum}   |  Next round starts in: ${formatCountdown(nextRound)}`);
         }
 
+        // Cooldown gate. Deliberately placed AFTER the result line above so
+        // scores keep printing throughout, and BEFORE evaluatePattern so a
+        // paused pattern announces nothing and places nothing.
+        const cooldown = advanceCooldown(state, prev1.id);
+        if (cooldown.paused) {
+            // `counted` is true once per skipped round, so this neither
+            // double-counts nor logs on every 15s poll.
+            if (cooldown.counted) {
+                state.cooldownRoundsRemaining = cooldown.roundsRemaining;
+                state.cooldownLastCountedRoundId = prev1.id;
+                log(cooldown.roundsRemaining > 0
+                    ? `COOLDOWN: pattern paused — ${cooldown.roundsRemaining} more round(s) to skip`
+                    : 'COOLDOWN: pattern paused — resumes at the next result');
+            }
+            return saveState(state);
+        }
+        if (state.cooldownLastCountedRoundId) {
+            state.cooldownLastCountedRoundId = null;
+            log('COOLDOWN over — pattern monitoring resumed');
+        }
+
         const fires = evaluatePattern({ sum1: s1, sum2: s2 });
         if (!fires) return saveState(state);
 
@@ -323,6 +370,17 @@ async function main() {
                 error: err.message,
             });
             log(`BET FAILED: round ${bettingRound.id}: ${err.message}`);
+        } finally {
+            // Placement was attempted, so the pattern goes quiet regardless
+            // of outcome — see COOLDOWN_ROUNDS. In the finally block so an
+            // unexpected throw from the audit-log write can't skip it.
+            state.cooldownRoundsRemaining = COOLDOWN_ROUNDS;
+            // Seed with the round that fired: it is the one just evaluated,
+            // not one of the rounds being skipped, so it must not consume a
+            // slot in the count.
+            state.cooldownLastCountedRoundId = prev1.id;
+            saveState(state);
+            log(`COOLDOWN started: skipping the next ${COOLDOWN_ROUNDS} rounds (results keep printing)`);
         }
     }
 

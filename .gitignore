@@ -1,26 +1,34 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+# Dependencies & build output — match at any depth (incl. BetPawa-Automation-Bot-old/)
+node_modules/
+vendor/
+.phpunit.cache/
+**/public/build
+**/public/hot
+**/public/storage
+
+# Secrets & local config — match at any depth
 .env
 .env.backup
 .env.production
+**/auth.json
+**/storage/*.key
+**/storage/pail
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
-/auth.json
+
+# Editor dirs
+.fleet/
+.idea/
+.nova/
+.vscode/
+.zed/
+
+# Bot logs & state: intentionally ANCHORED to the repo root only, so the
+# copies under BetPawa-Automation-Bot-old/ stay tracked and pushable.
 /logs
 /storage/virtual-pattern-state.json
 /storage/logs/virtual-pattern-bets.jsonl
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
