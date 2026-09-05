@@ -21,16 +21,55 @@ npm run virtual-bet:recon        # live selector check against the real page
 | --- | --- | --- |
 | `high-scoring-pair` | 2 consecutive rounds with total goals **>= 4** | `O/U` → **Under 3.5** |
 | `low-scoring-streak` | 5 consecutive rounds with total goals **<= 2** | `O/U` → **Over 2.5** |
+| `low-scoring-trio` | 3 consecutive rounds with total goals **<= 2** | `O/U` → **Over 2.5** |
 
 "Total goals" is the full-time sum of the league's **row-1** fixture — the first
 fixture as actually displayed on the site, which is the alphabetically-first one,
 not the first in API order.
 
 Each pattern has its **own** cooldown and its own record of rounds it has already
-acted on, so they never interfere with each other. At most **one** bet is placed
-per round: if two patterns ever fired together, the one listed first in
-`lib/patterns/index.js` wins and the other is skipped rather than adding a second
-leg (two legs in the betslip is an accumulator, a completely different bet).
+acted on, so they never interfere with each other.
+
+### When several patterns fire on the same round
+
+They can, and two of them are *guaranteed* to: `low-scoring-trio` **strictly
+subsumes** `low-scoring-streak` — every 5-round low streak contains a 3-round low
+tail — and both want the identical **Over 2.5** on the identical fixture. (The
+per-pattern cooldown usually staggers them in practice: the trio fires at round 3
+and is still paused when the streak reaches round 5. With
+`VIRTUAL_COOLDOWN_ROUNDS=0` they coincide every time.)
+
+`high-scoring-pair` can never contend with either: a sum cannot be both `>= 4`
+and `<= 2`.
+
+The engine handles a shared round in two ways:
+
+- **Different selections** → all of them are placed, **strictly one after
+  another**. Each placement is awaited to completion, and the placement layer
+  starts every bet from a provably empty betslip, so two bets can never merge
+  into one multi-leg accumulator — which is a completely different, and far
+  worse, bet than the two singles the patterns asked for.
+- **The same selection** → placed **once**. Two patterns wanting the same bet is
+  not two bets, it is one bet at double stake, which is not what either pattern
+  asked for. The later one is *coalesced*: no second placement, but it is still
+  marked as attempted, still goes on cooldown (its bet is on), and still gets an
+  audit record — one carrying `placed: false`, `stake: 0` and
+  `coalescedInto: <the pattern that placed it>`, so reconciling the audit log
+  against the bookmaker still adds up.
+
+  The **first-listed** pattern in `lib/patterns/index.js` owns the placement, so
+  its stake is the one used. `low-scoring-streak` is listed before
+  `low-scoring-trio` on purpose: the 5-round streak is the narrower, stronger
+  signal.
+
+  A coalesce also happens when the first placement **failed**. A failure is
+  *unconfirmed*, not "did not happen" — the bet may well be on at the bookmaker,
+  so re-placing the same selection would be a retry in disguise. That record
+  carries `success: false`.
+
+Because several bets can now go on in one round, `VIRTUAL_MAX_BETS_PER_RUN` binds
+more often than it used to. It counts real placements only; a coalesced bet costs
+nothing against it.
 
 ## Configuration
 
@@ -50,18 +89,22 @@ Everything is read in one place, `lib/config.js`. CLI flags beat env, env beats
 | `VIRTUAL_AUDIT_LOG_PATH` | `storage/logs/virtual-pattern-bets.jsonl` | audit trail |
 | `NO_COLOR` | unset | set to anything to disable terminal colour |
 
-CLI: `--dry-run`, `--stake=25`, `--patterns=low-scoring-streak`.
+CLI: `--dry-run`, `--stake=25`, `--patterns=low-scoring-trio`.
 
 Any pattern can override the stake, the cooldown, or be switched off on its own,
 using its id upper-snake-cased:
 
 ```bash
-VIRTUAL_LOW_SCORING_STREAK_STAKE_FCFA=50      # bet 50 FCFA on this pattern only
-VIRTUAL_LOW_SCORING_STREAK_COOLDOWN_ROUNDS=6
+VIRTUAL_LOW_SCORING_TRIO_STAKE_FCFA=50        # bet 50 FCFA on this pattern only
+VIRTUAL_LOW_SCORING_TRIO_COOLDOWN_ROUNDS=6
 VIRTUAL_HIGH_SCORING_PAIR_ENABLED=false       # pause just this one
+
+# Since low-scoring-trio subsumes low-scoring-streak and they bet the same
+# thing, running the trio alone is a reasonable choice:
+VIRTUAL_LOW_SCORING_STREAK_ENABLED=false
 ```
 
-## Adding a third pattern
+## Adding a fourth pattern
 
 1. Create `lib/patterns/<your-pattern>.js` and default-export a pattern object.
    For the "N consecutive rounds whose total satisfies a predicate" shape, use
@@ -113,6 +156,7 @@ lib/
     streak.js                 factory + the Pattern contract
     high-scoring-pair.js
     low-scoring-streak.js
+    low-scoring-trio.js
 ```
 
 `lib/betpawa/rounds.js` and `lib/patterns/*` are pure and can be tested without a

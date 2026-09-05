@@ -7,13 +7,22 @@
 // cooldowns, the audit log and the placement flow are all keyed off the
 // pattern's `id`.
 //
-// Order matters only as a tie-break: at most one bet is placed per round, and
-// an earlier-listed pattern wins if two ever fire on the same round.
+// Order is the tie-break when several patterns fire on the same round. They
+// are all placed, one after another, EXCEPT that a pattern asking for a
+// selection an earlier one has already placed on that round is coalesced into
+// it rather than staking the same bet twice (see lib/pattern-engine.js). So
+// the earlier-listed pattern is the one whose stake is actually used.
+//
+// low-scoring-streak is listed before low-scoring-trio deliberately: the two
+// bet the same Over 2.5, and the 5-round streak is the narrower, stronger
+// signal, so it should own the placement on the rare rounds where both are
+// off cooldown together.
 
 import highScoringPair from './high-scoring-pair.js';
 import lowScoringStreak from './low-scoring-streak.js';
+import lowScoringTrio from './low-scoring-trio.js';
 
-export const ALL_PATTERNS = Object.freeze([highScoringPair, lowScoringStreak]);
+export const ALL_PATTERNS = Object.freeze([highScoringPair, lowScoringStreak, lowScoringTrio]);
 
 /**
  * Patterns enabled by the current config, validated for id uniqueness.

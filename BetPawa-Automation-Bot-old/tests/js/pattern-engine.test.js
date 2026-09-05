@@ -12,11 +12,14 @@ const bet = (selection) => ({ marketTab: 'O/U', selectionLabel: selection, marke
 
 const alwaysFires = (id, windowSize = 1) =>
     createStreakPattern({ id, name: id, windowSize, predicate: () => true, predicateLabel: 'always', bet: bet(`sel-${id}`) });
+/** Fires on everything and wants the SAME selection as another pattern. */
+const alwaysFiresWanting = (id, selection, windowSize = 1) =>
+    createStreakPattern({ id, name: id, windowSize, predicate: () => true, predicateLabel: 'always', bet: bet(selection) });
 const neverFires = (id, windowSize = 1) =>
     createStreakPattern({ id, name: id, windowSize, predicate: () => false, predicateLabel: 'never', bet: bet(`sel-${id}`) });
 
 /** Minimal in-memory stand-ins for the store, audit log and placement layer. */
-function harness({ patterns, cooldownRounds = 3, maxBetsPerRun = 5, placeBetImpl } = {}) {
+function harness({ patterns, cooldownRounds = 3, maxBetsPerRun = 5, placeBetImpl, stakes = {} } = {}) {
     const patternState = {};
     const placed = [];
     const audits = [];
@@ -34,7 +37,7 @@ function harness({ patterns, cooldownRounds = 3, maxBetsPerRun = 5, placeBetImpl
     const config = {
         maxBetsPerRun,
         dryRun: false,
-        forPattern: () => ({ enabled: true, stakeFcfa: 5, cooldownRounds }),
+        forPattern: (id) => ({ enabled: true, stakeFcfa: stakes[id] ?? 5, cooldownRounds }),
     };
     const engine = createPatternEngine({
         patterns, config, store,
@@ -104,14 +107,104 @@ test('a failed placement still starts the cooldown — it is unconfirmed, never 
     assert.equal(h.audits.length, 1, 'no second attempt while paused');
 });
 
-test('two patterns firing on one round produce one bet, not a two-leg accumulator', async () => {
-    const h = harness({ patterns: [alwaysFires('first'), alwaysFires('second')], cooldownRounds: 0 });
+// --- several patterns firing on the same round --------------------------
+
+test('two patterns wanting DIFFERENT selections both bet, strictly one after the other', async () => {
+    const order = [];
+    const h = harness({
+        patterns: [alwaysFires('first'), alwaysFires('second')],
+        cooldownRounds: 0,
+        // Records entry and exit, so an overlap would show up as
+        // start-second before end-first — i.e. two slips open at once.
+        placeBetImpl: async (b) => {
+            order.push(`start-${b.selectionLabel}`);
+            await new Promise((r) => setTimeout(r, 5));
+            order.push(`end-${b.selectionLabel}`);
+            return { success: true };
+        },
+    });
+
     await h.tick();
-    assert.equal(h.placed.length, 1);
-    assert.equal(h.placed[0].selectionLabel, 'sel-first', 'registry order breaks the tie');
-    assert.ok(h.logs.some((l) => l.includes('[second]') && l.includes('already placed this round')));
-    // The skipped pattern was never marked as attempted, so it stays eligible.
-    assert.deepEqual(h.patternState.second.betRoundIds, []);
+    assert.deepEqual(order, ['start-sel-first', 'end-sel-first', 'start-sel-second', 'end-sel-second']);
+    assert.deepEqual(h.audits.map((a) => [a.pattern, a.selection]), [['first', 'sel-first'], ['second', 'sel-second']]);
+    assert.ok(h.logs.some((l) => l.includes('[second]') && l.includes('separate single')));
+});
+
+test('two patterns wanting the SAME selection place it once, at one stake', async () => {
+    // The real case: low-scoring-trio subsumes low-scoring-streak and both
+    // bet Over 2.5. Two placements would be one bet at double stake.
+    const h = harness({
+        patterns: [alwaysFiresWanting('streak', 'Over 2.5'), alwaysFiresWanting('trio', 'Over 2.5')],
+        cooldownRounds: 0,
+        stakes: { streak: 5, trio: 40 },
+    });
+
+    await h.tick();
+    assert.equal(h.placed.length, 1, 'one placement, not two');
+    assert.equal(h.placed[0].stakeFcfa, 5, "the earlier-listed pattern's stake is the one used");
+    assert.ok(h.logs.some((l) => l.includes('[trio]') && l.includes('not staking it twice')));
+
+    // The coalesced pattern is still fully accounted for: marked as attempted
+    // so a repeat poll stays quiet, audited as having moved no money of its
+    // own, and paused as if it had placed.
+    assert.deepEqual(h.patternState.trio.betRoundIds, ['betting-0']);
+    const coalesced = h.audits.find((a) => a.pattern === 'trio');
+    assert.equal(coalesced.placed, false);
+    assert.equal(coalesced.coalescedInto, 'streak');
+    assert.equal(coalesced.stake, 0);
+    assert.equal(coalesced.requestedStake, 40);
+    assert.equal(coalesced.success, true);
+});
+
+test('a duplicate selection is not re-placed after an UNCONFIRMED failure', async () => {
+    // A failed placement may still be on at the bookmaker, so a second
+    // pattern asking for the same selection is a retry in disguise.
+    const h = harness({
+        patterns: [alwaysFiresWanting('streak', 'Over 2.5'), alwaysFiresWanting('trio', 'Over 2.5')],
+        cooldownRounds: 0,
+        placeBetImpl: async () => { throw new Error('no placement confirmation'); },
+    });
+
+    await h.tick();
+    assert.equal(h.audits.length, 2);
+    const coalesced = h.audits.find((a) => a.pattern === 'trio');
+    assert.equal(coalesced.placed, false);
+    assert.equal(coalesced.success, false, 'not reported as a bet that is on');
+    assert.ok(h.logs.some((l) => l.includes('[trio]') && l.includes('unconfirmed')));
+});
+
+test("a failed placement does not stop a DIFFERENT selection going on afterwards", async () => {
+    const h = harness({
+        patterns: [alwaysFires('first'), alwaysFires('second')],
+        cooldownRounds: 0,
+        placeBetImpl: async (b) => {
+            if (b.selectionLabel === 'sel-first') throw new Error('betslip did not clear');
+            return { success: true };
+        },
+    });
+
+    await h.tick();
+    assert.deepEqual(h.audits.map((a) => [a.pattern, a.success]), [['first', false], ['second', true]]);
+});
+
+test('a repeat poll never re-places any of a multi-bet round', async () => {
+    const h = harness({ patterns: [alwaysFires('first'), alwaysFires('second')], cooldownRounds: 0 });
+    const ctx = { sums: [1], settledRoundId: 's1', bettingRound: { id: 'b1' }, resolveFixture: async () => ({ name: 'ARS - MUN' }) };
+    await h.engine.run(ctx);
+    await h.engine.run(ctx);
+    assert.equal(h.placed.length, 2);
+});
+
+test('the per-run cap counts bets across patterns within a single round', async () => {
+    const h = harness({
+        patterns: [alwaysFires('a'), alwaysFires('b'), alwaysFires('c')],
+        cooldownRounds: 0,
+        maxBetsPerRun: 2,
+    });
+    await h.tick();
+    assert.equal(h.placed.length, 2);
+    assert.ok(h.logs.some((l) => l.includes('[c]') && l.includes('cap reached')));
+    assert.deepEqual(h.patternState.c.betRoundIds, [], 'the capped pattern stays eligible');
 });
 
 test("one pattern's cooldown does not mute another", async () => {
