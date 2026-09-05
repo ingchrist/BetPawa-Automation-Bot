@@ -186,3 +186,83 @@
 [2026-09-04T21:21:10.349Z] (AST - MCI)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:49
 [2026-09-04T21:26:12.053Z] (ARS - BOU)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:47
 [2026-09-04T21:31:13.791Z] (AST - LIV)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:46
+[2026-09-04T21:36:00.360Z] (ARS - CRY)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:59
+[2026-09-04T21:41:01.803Z] (BHA - AST)   (4 - 1) 7 - 2   sum=9   |  Next round starts in: 03:58
+[2026-09-04T21:46:03.295Z] (ARS - AST)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:56
+[2026-09-04T21:51:04.881Z] (AST - LEE)   (0 - 0) 1 - 2   sum=3   |  Next round starts in: 03:55
+[2026-09-04T21:56:06.337Z] (ARS - BRE)   (0 - 1) 0 - 1   sum=1   |  Next round starts in: 03:53
+[2026-09-04T22:01:08.093Z] (ARS - HUL)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:51
+[2026-09-04T22:06:09.790Z] (ARS - CHE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:50
+[2026-09-04T22:11:26.628Z] (AST - HUL)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:33
+[2026-09-04T22:16:13.145Z] (AST - CHE)   (0 - 1) 1 - 3   sum=4   |  Next round starts in: 03:46
+[2026-09-04T22:21:14.725Z] (ARS - SUN)   (1 - 1) 2 - 2   sum=4   |  Next round starts in: 03:45
+[2026-09-04T22:21:14.726Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 4) -> Under 3.5 on the next round
+[2026-09-04T22:21:26.064Z] [high-scoring-pair] BET PLACED: round 1660071 BOU - EVE Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-04T22:21:26.067Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-04T22:26:12.744Z] (BOU - EVE)   (3 - 1) 4 - 1   sum=5   |  Next round starts in: 03:47
+[2026-09-04T22:26:12.744Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-04T22:31:14.301Z] (BRE - MUN)   (1 - 0) 1 - 2   sum=3   |  Next round starts in: 03:45
+[2026-09-04T22:31:14.301Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-04T22:36:00.660Z] (AST - TOT)   (0 - 0) 1 - 1   sum=2   |  Next round starts in: 03:59
+[2026-09-04T22:36:00.661Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-04T22:36:15.751Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-04T22:40:01.787Z] season: 138853 -> 138854
+[2026-09-04T22:41:02.324Z] (AST - COV)   (0 - 0) 3 - 0   sum=3   |  Next round starts in: 03:57
+[2026-09-04T22:46:03.819Z] (AST - MCI)   (1 - 1) 1 - 1   sum=2   |  Next round starts in: 03:56
+[2026-09-04T22:51:05.363Z] (AST - HUL)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:54
+[2026-09-04T22:56:06.731Z] (ARS - NOT)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:53
+[2026-09-04T23:01:08.276Z] (AST - SUN)   (0 - 0) 3 - 1   sum=4   |  Next round starts in: 03:51
+[2026-09-04T23:06:09.718Z] (ARS - MUN)   (1 - 1) 3 - 1   sum=4   |  Next round starts in: 03:50
+[2026-09-04T23:06:09.718Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 4) -> Under 3.5 on the next round
+[2026-09-04T23:06:19.717Z] [high-scoring-pair] BET PLACED: round 1660080 AST - BHA Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-04T23:06:19.719Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-04T23:11:06.653Z] (AST - BHA)   (1 - 1) 1 - 1   sum=2   |  Next round starts in: 03:53
+[2026-09-04T23:11:06.654Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-04T23:16:08.619Z] (AST - COV)   (2 - 0) 3 - 3   sum=6   |  Next round starts in: 03:51
+[2026-09-04T23:16:08.620Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-04T23:21:10.365Z] (BOU - AST)   (0 - 3) 0 - 4   sum=4   |  Next round starts in: 03:49
+[2026-09-04T23:21:10.366Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-04T23:21:25.425Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-04T23:21:25.425Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 6, 4) -> Under 3.5 on the next round
+[2026-09-04T23:21:36.546Z] [high-scoring-pair] BET PLACED: round 1660083 ARS - LIV Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-04T23:21:36.547Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-04T23:26:08.047Z] (ARS - LIV)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:51
+[2026-09-04T23:26:08.048Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-04T23:31:09.608Z] (AST - NOT)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:50
+[2026-09-04T23:31:09.609Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-04T23:36:11.032Z] (ARS - BRE)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:48
+[2026-09-04T23:36:11.032Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-04T23:36:26.096Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-04T23:41:12.751Z] (ARS - IPS)   (0 - 0) 2 - 1   sum=3   |  Next round starts in: 03:47
+[2026-09-04T23:46:14.321Z] (ARS - TOT)   (1 - 1) 3 - 1   sum=4   |  Next round starts in: 03:45
+[2026-09-04T23:51:01.094Z] (BHA - ARS)   (1 - 0) 5 - 1   sum=6   |  Next round starts in: 03:58
+[2026-09-04T23:51:01.094Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 6) -> Under 3.5 on the next round
+[2026-09-04T23:51:13.339Z] [high-scoring-pair] BET PLACED: round 1660089 BHA - COV Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-04T23:51:13.340Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-04T23:56:14.825Z] (BHA - COV)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:45
+[2026-09-04T23:56:14.825Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T00:01:01.279Z] (ARS - COV)   (2 - 0) 6 - 3   sum=9   |  Next round starts in: 03:58
+[2026-09-05T00:01:01.280Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T00:06:02.889Z] (ARS - AST)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:57
+[2026-09-05T00:06:02.890Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T00:06:18.029Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T00:11:04.482Z] (AST - NEW)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:55
+[2026-09-05T00:16:05.933Z] (ARS - NEW)   (1 - 2) 2 - 2   sum=4   |  Next round starts in: 03:54
+[2026-09-05T00:21:07.685Z] (ARS - FUL)   (3 - 0) 4 - 0   sum=4   |  Next round starts in: 03:52
+[2026-09-05T00:21:07.686Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 4) -> Under 3.5 on the next round
+[2026-09-05T00:21:19.892Z] [high-scoring-pair] BET PLACED: round 1660095 ARS - CRY Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T00:21:19.896Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T00:26:06.463Z] (ARS - CRY)   (2 - 0) 3 - 0   sum=3   |  Next round starts in: 03:53
+[2026-09-05T00:26:06.464Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T00:31:08.028Z] (BHA - BRE)   (0 - 1) 1 - 3   sum=4   |  Next round starts in: 03:51
+[2026-09-05T00:31:08.028Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T00:36:09.601Z] (ARS - MCI)   (1 - 1) 3 - 2   sum=5   |  Next round starts in: 03:50
+[2026-09-05T00:36:09.602Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T00:36:24.663Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T00:36:24.665Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 5) -> Under 3.5 on the next round
+[2026-09-05T00:36:24.665Z] [high-scoring-pair] cap reached (5/run) — skipping bet placement
+[2026-09-05T00:41:11.063Z] (BHA - CHE)   (1 - 2) 1 - 2   sum=3   |  Next round starts in: 03:48
+[2026-09-05T00:46:12.732Z] (ARS - HUL)   (1 - 0) 3 - 0   sum=3   |  Next round starts in: 03:47
+[2026-09-05T00:51:14.536Z] (ARS - LEE)   (2 - 1) 2 - 2   sum=4   |  Next round starts in: 03:45
+[2026-09-05T00:56:01.073Z] (ARS - EVE)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:58
+                                                                                                

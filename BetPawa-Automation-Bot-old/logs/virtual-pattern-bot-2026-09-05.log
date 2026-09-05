@@ -1,0 +1,823 @@
+[2026-09-05T02:12:10.144Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T02:12:10.145Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T02:12:10.145Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T02:19:25.708Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T02:19:25.709Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T02:19:25.709Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T02:19:27.232Z] season: 138854 -> 138855
+[2026-09-05T02:19:31.438Z] (BHA - SUN)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 00:28
+[2026-09-05T02:21:02.031Z] (ARS - MCI)   (1 - 1) 1 - 2   sum=3   |  Next round starts in: 03:57
+[2026-09-05T02:26:03.774Z] (BHA - ARS)   (0 - 0) 0 - 2   sum=2   |  Next round starts in: 03:56
+[2026-09-05T02:31:05.462Z] (ARS - FUL)   (0 - 2) 1 - 4   sum=5   |  Next round starts in: 03:54
+[2026-09-05T02:36:07.203Z] (ARS - IPS)   (1 - 1) 1 - 1   sum=2   |  Next round starts in: 03:52
+[2026-09-05T02:41:08.823Z] (BHA - CRY)   (2 - 0) 3 - 2   sum=5   |  Next round starts in: 03:51
+[2026-09-05T02:46:10.440Z] (BOU - COV)   (2 - 0) 2 - 0   sum=2   |  Next round starts in: 03:49
+[2026-09-05T02:51:12.642Z] (ARS - AST)   (0 - 1) 0 - 2   sum=2   |  Next round starts in: 03:47
+[2026-09-05T02:56:14.177Z] (ARS - CRY)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:45
+[2026-09-05T03:27:59.138Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T03:27:59.139Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T03:27:59.139Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T03:28:02.813Z] (ARS - LEE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 01:57
+[2026-09-05T03:31:03.979Z] (AST - IPS)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:56
+[2026-09-05T03:36:07.671Z] (AST - EVE)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:52
+[2026-09-05T03:41:09.839Z] (AST - CRY)   (2 - 1) 2 - 2   sum=4   |  Next round starts in: 03:50
+[2026-09-05T03:46:11.708Z] (ARS - BOU)   (1 - 2) 3 - 2   sum=5   |  Next round starts in: 03:48
+[2026-09-05T03:46:11.709Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 5) -> Under 3.5 on the next round
+[2026-09-05T03:46:24.760Z] [high-scoring-pair] BET PLACED: round 1660136 ARS - BRE Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T03:46:24.762Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T03:51:11.295Z] (ARS - BRE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:48
+[2026-09-05T03:51:11.296Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T03:56:13.116Z] (BHA - BRE)   (0 - 2) 0 - 3   sum=3   |  Next round starts in: 03:46
+[2026-09-05T03:56:13.118Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T04:01:15.006Z] (ARS - BHA)   (1 - 1) 1 - 2   sum=3   |  Next round starts in: 03:44
+[2026-09-05T04:01:15.008Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T04:01:30.076Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T04:06:01.690Z] (BOU - AST)   (1 - 1) 4 - 2   sum=6   |  Next round starts in: 03:58
+[2026-09-05T04:11:03.446Z] (BOU - NEW)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:56
+[2026-09-05T04:16:05.615Z] (ARS - LIV)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:54
+[2026-09-05T04:20:06.821Z] season: 138855 -> 138856
+[2026-09-05T04:21:07.265Z] (ARS - EVE)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:52
+[2026-09-05T04:26:09.069Z] (BHA - LEE)   (0 - 0) 1 - 1   sum=2   |  Next round starts in: 03:50
+[2026-09-05T04:31:10.647Z] (ARS - CHE)   (0 - 4) 0 - 5   sum=5   |  Next round starts in: 03:49
+[2026-09-05T04:36:12.027Z] (AST - CHE)   (0 - 1) 1 - 2   sum=3   |  Next round starts in: 03:47
+[2026-09-05T04:41:13.559Z] (ARS - HUL)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:46
+[2026-09-05T04:46:00.170Z] (AST - HUL)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:59
+[2026-09-05T04:51:01.834Z] (AST - ARS)   (0 - 0) 1 - 2   sum=3   |  Next round starts in: 03:58
+[2026-09-05T04:56:03.366Z] (BHA - TOT)   (1 - 0) 3 - 0   sum=3   |  Next round starts in: 03:56
+[2026-09-05T05:01:04.937Z] (BHA - LIV)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:55
+[2026-09-05T05:06:06.462Z] (ARS - LEE)   (0 - 0) 2 - 1   sum=3   |  Next round starts in: 03:53
+[2026-09-05T05:11:07.911Z] (ARS - EVE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:52
+[2026-09-05T05:16:09.263Z] (BHA - MCI)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:50
+[2026-09-05T05:21:10.578Z] (BOU - FUL)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:49
+[2026-09-05T05:26:12.112Z] (ARS - CRY)   (2 - 0) 2 - 2   sum=4   |  Next round starts in: 03:47
+[2026-09-05T05:31:13.686Z] (ARS - FUL)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:46
+[2026-09-05T05:36:00.193Z] (AST - FUL)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:59
+[2026-09-05T05:41:01.686Z] (ARS - BHA)   (0 - 0) 1 - 1   sum=2   |  Next round starts in: 03:58
+[2026-09-05T05:46:03.205Z] (ARS - IPS)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:56
+[2026-09-05T05:51:04.852Z] (AST - IPS)   (1 - 0) 3 - 4   sum=7   |  Next round starts in: 03:55
+[2026-09-05T05:56:06.357Z] (ARS - MCI)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:53
+[2026-09-05T06:19:32.147Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T06:19:32.149Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T06:19:32.149Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T06:19:36.907Z] (AST - BOU)   (1 - 1) 3 - 1   sum=4   |  Next round starts in: 00:23
+[2026-09-05T06:21:07.487Z] (ARS - LIV)   (2 - 0) 3 - 0   sum=3   |  Next round starts in: 03:52
+[2026-09-05T06:26:09.076Z] (ARS - AST)   (0 - 0) 1 - 1   sum=2   |  Next round starts in: 03:50
+[2026-09-05T06:31:10.669Z] (ARS - NOT)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:49
+[2026-09-05T06:36:12.344Z] (ARS - SUN)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:47
+[2026-09-05T06:41:13.851Z] (BHA - IPS)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:46
+[2026-09-05T06:46:00.555Z] (BOU - NEW)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:59
+[2026-09-05T06:51:02.237Z] (ARS - COV)   (1 - 1) 3 - 1   sum=4   |  Next round starts in: 03:57
+[2026-09-05T06:56:03.834Z] (ARS - NEW)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:56
+[2026-09-05T07:23:34.030Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T07:23:34.031Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T07:23:34.031Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T07:23:35.091Z] season: 138856 -> 138857
+[2026-09-05T07:23:37.744Z] (AST - BOU)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 01:22
+[2026-09-05T07:26:08.443Z] (BHA - SUN)   (0 - 0) 2 - 2   sum=4   |  Next round starts in: 03:51
+[2026-09-05T07:31:09.719Z] (ARS - HUL)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:50
+[2026-09-05T07:36:11.294Z] (BHA - ARS)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:48
+[2026-09-05T07:41:12.457Z] (AST - FUL)   (0 - 1) 0 - 1   sum=1   |  Next round starts in: 03:47
+[2026-09-05T07:46:13.664Z] (AST - LIV)   (0 - 1) 2 - 2   sum=4   |  Next round starts in: 03:46
+[2026-09-05T07:51:14.960Z] (AST - EVE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:45
+[2026-09-05T07:56:01.249Z] (ARS - BRE)   (2 - 0) 4 - 0   sum=4   |  Next round starts in: 03:58
+[2026-09-05T08:01:02.784Z] (ARS - NOT)   (1 - 0) 1 - 1   sum=2   |  Next round starts in: 03:57
+[2026-09-05T08:06:04.074Z] (AST - HUL)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:55
+[2026-09-05T08:11:05.370Z] (ARS - FUL)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:54
+[2026-09-05T08:16:06.621Z] (AST - NEW)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:53
+[2026-09-05T08:21:07.897Z] (AST - CHE)   (0 - 0) 3 - 1   sum=4   |  Next round starts in: 03:52
+[2026-09-05T08:26:09.203Z] (ARS - LEE)   (2 - 0) 4 - 0   sum=4   |  Next round starts in: 03:50
+[2026-09-05T08:26:09.203Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 4) -> Under 3.5 on the next round
+[2026-09-05T08:26:14.896Z] [high-scoring-pair] BET PLACED: round 1660192 ARS - MCI Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T08:26:14.899Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T08:31:01.224Z] (ARS - MCI)   (0 - 1) 1 - 1   sum=2   |  Next round starts in: 03:58
+[2026-09-05T08:31:01.225Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T08:36:02.693Z] (ARS - AST)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:57
+[2026-09-05T08:36:02.694Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T12:08:52.078Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T12:08:52.079Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T12:08:52.079Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T12:08:52.079Z]   [high-scoring-pair] COOLDOWN carried over from a previous run — 1 round(s) still to skip
+[2026-09-05T12:08:53.788Z] season: 138857 -> 138858
+[2026-09-05T12:08:57.968Z] (ARS - IPS)   (0 - 0) 1 - 1   sum=2   |  Next round starts in: 01:02
+[2026-09-05T12:08:57.969Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T12:09:13.041Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T12:11:13.775Z] (ARS - NOT)   (0 - 0) 2 - 1   sum=3   |  Next round starts in: 03:46
+[2026-09-05T12:16:00.437Z] (BHA - ARS)   (0 - 1) 0 - 1   sum=1   |  Next round starts in: 03:59
+[2026-09-05T12:21:02.061Z] (BOU - LEE)   (0 - 1) 2 - 1   sum=3   |  Next round starts in: 03:57
+[2026-09-05T12:26:03.687Z] (AST - LIV)   (0 - 0) 4 - 1   sum=5   |  Next round starts in: 03:56
+[2026-09-05T12:31:05.227Z] (EVE - ARS)   (0 - 0) 0 - 2   sum=2   |  Next round starts in: 03:54
+[2026-09-05T12:36:07.024Z] (AST - HUL)   (0 - 1) 1 - 2   sum=3   |  Next round starts in: 03:52
+[2026-09-05T12:41:08.602Z] (BHA - MCI)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:51
+[2026-09-05T12:46:10.224Z] (AST - BOU)   (3 - 0) 3 - 1   sum=4   |  Next round starts in: 03:49
+[2026-09-05T13:00:32.687Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T13:00:32.688Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T13:00:32.688Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T13:00:34.342Z] season: 138858 -> 138859
+[2026-09-05T13:01:05.294Z] (BHA - LEE)   (0 - 1) 4 - 2   sum=6   |  Next round starts in: 03:54
+[2026-09-05T13:06:07.097Z] (ARS - CHE)   (0 - 0) 0 - 0   sum=0   |  Next round starts in: 03:52
+[2026-09-05T13:11:08.663Z] (ARS - NOT)   (4 - 1) 5 - 3   sum=8   |  Next round starts in: 03:51
+[2026-09-05T13:16:10.365Z] (BHA - IPS)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:49
+[2026-09-05T13:21:11.834Z] (ARS - LIV)   (2 - 0) 5 - 1   sum=6   |  Next round starts in: 03:48
+[2026-09-05T13:26:13.676Z] (AST - TOT)   (3 - 1) 4 - 1   sum=5   |  Next round starts in: 03:46
+[2026-09-05T13:26:13.676Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 6, 5) -> Under 3.5 on the next round
+[2026-09-05T13:26:22.750Z] [high-scoring-pair] BET PLACED: round 1660218 ARS - CRY Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T13:26:22.751Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T13:31:09.279Z] (ARS - CRY)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:50
+[2026-09-05T13:31:09.280Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T13:36:10.843Z] (BHA - MUN)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:49
+[2026-09-05T13:36:10.844Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T13:41:12.340Z] (ARS - SUN)   (2 - 0) 2 - 0   sum=2   |  Next round starts in: 03:47
+[2026-09-05T13:41:12.341Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T13:41:27.409Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T13:46:13.827Z] (ARS - IPS)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:46
+[2026-09-05T13:51:00.259Z] (ARS - COV)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:59
+[2026-09-05T13:51:00.260Z] [low-scoring-streak] PATTERN FIRE: 5 consecutive rounds with sum <= 2 (sums: 1, 2, 2, 1, 2) -> Over 2.5 on the next round
+[2026-09-05T13:51:08.066Z] [low-scoring-streak] BET PLACED: round 1660223 ARS - BRE Over 2.5 stake=5 FCFA dryRun=false
+[2026-09-05T13:51:08.069Z] [low-scoring-streak] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T13:56:09.620Z] (ARS - BRE)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:50
+[2026-09-05T13:56:09.620Z] [low-scoring-streak] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T14:01:11.121Z] (ARS - EVE)   (0 - 0) 0 - 1   sum=1   |  Next round starts in: 03:48
+[2026-09-05T14:01:11.122Z] [low-scoring-streak] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T14:06:12.709Z] (BHA - COV)   (1 - 0) 3 - 0   sum=3   |  Next round starts in: 03:47
+[2026-09-05T14:06:12.710Z] [low-scoring-streak] COOLDOWN: paused — resumes at the next result
+[2026-09-05T14:06:27.775Z] [low-scoring-streak] COOLDOWN over — monitoring resumed
+[2026-09-05T14:11:14.163Z] (ARS - AST)   (0 - 1) 0 - 2   sum=2   |  Next round starts in: 03:45
+[2026-09-05T14:16:00.629Z] (ARS - TOT)   (0 - 0) 2 - 1   sum=3   |  Next round starts in: 03:59
+[2026-09-05T14:21:02.190Z] (ARS - BHA)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:57
+[2026-09-05T14:26:03.739Z] (ARS - MUN)   (2 - 1) 3 - 1   sum=4   |  Next round starts in: 03:56
+[2026-09-05T14:31:05.220Z] (BRE - CRY)   (4 - 1) 4 - 2   sum=6   |  Next round starts in: 03:54
+[2026-09-05T14:31:05.220Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 6) -> Under 3.5 on the next round
+[2026-09-05T14:31:12.122Z] [high-scoring-pair] BET PLACED: round 1660231 ARS - FUL Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T14:31:12.122Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T14:36:13.582Z] (ARS - FUL)   (0 - 0) 2 - 0   sum=2   |  Next round starts in: 03:46
+[2026-09-05T14:36:13.583Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T14:41:15.130Z] (AST - MCI)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:44
+[2026-09-05T14:41:15.130Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T14:46:01.600Z] (AST - IPS)   (1 - 1) 2 - 2   sum=4   |  Next round starts in: 03:58
+[2026-09-05T14:46:01.601Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T14:46:16.666Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T14:51:03.144Z] (ARS - LEE)   (2 - 0) 3 - 0   sum=3   |  Next round starts in: 03:56
+[2026-09-05T14:56:04.804Z] (BOU - LEE)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:55
+[2026-09-05T15:01:06.324Z] (ARS - BOU)   (1 - 0) 2 - 0   sum=2   |  Next round starts in: 03:53
+[2026-09-05T15:06:07.848Z] (BHA - TOT)   (0 - 3) 1 - 3   sum=4   |  Next round starts in: 03:52
+[2026-09-05T15:11:09.354Z] (ARS - MCI)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:50
+[2026-09-05T15:16:10.971Z] (BHA - FUL)   (0 - 1) 2 - 2   sum=4   |  Next round starts in: 03:49
+[2026-09-05T15:21:12.450Z] (AST - LIV)   (0 - 0) 0 - 2   sum=2   |  Next round starts in: 03:47
+[2026-09-05T15:26:13.997Z] (AST - CRY)   (1 - 0) 2 - 1   sum=3   |  Next round starts in: 03:46
+[2026-09-05T15:31:00.564Z] (AST - SUN)   (1 - 0) 1 - 0   sum=1   |  Next round starts in: 03:59
+[2026-09-05T15:36:02.383Z] (AST - COV)   (1 - 0) 5 - 0   sum=5   |  Next round starts in: 03:57
+[2026-09-05T15:40:03.401Z] season: 138859 -> 138860
+[2026-09-05T15:41:04.051Z] (ARS - HUL)   (1 - 1) 2 - 1   sum=3   |  Next round starts in: 03:55
+[2026-09-05T15:41:37.903Z] Starting virtual-pattern-bot (dryRun=true, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T15:41:37.903Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T15:41:37.904Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T15:41:37.904Z] Legend:  NEXT = O/U odds on the round now open for betting (the "before")
+[2026-09-05T15:41:37.904Z]          RESULT = how that same round finished, with those odds reprinted (the "after")
+[2026-09-05T15:41:37.904Z]          ✓ marks the side that won; the losing side is dimmed
+[2026-09-05T15:41:44.181Z] 
+[2026-09-05T15:41:44.182Z] ── RESULT ── MD 34 · ARS - HUL ───────────────────────────────── 3 goals ──
+[2026-09-05T15:41:44.182Z]    score     HT 1 - 1     FT 2 - 1     sum=3
+[2026-09-05T15:41:44.184Z]    (odds not captured — this round was already under way when the bot started watching)
+[2026-09-05T15:41:44.186Z] 
+[2026-09-05T15:41:44.186Z] ── NEXT ── MD 01 · AST - CRY ─────────────────────────── closes in 03:15 ──
+[2026-09-05T15:41:44.186Z]    O/U 1.5   Over   1.13     Under  5.75
+[2026-09-05T15:41:44.186Z]    O/U 2.5   Over   1.52     Under  2.50
+[2026-09-05T15:41:44.186Z]    O/U 3.5   Over   2.35     Under  1.56
+[2026-09-05T15:45:01.291Z] 
+[2026-09-05T15:45:01.291Z] ── NEXT ── MD 02 · BHA - HUL ─────────────────────────── closes in 04:58 ──
+[2026-09-05T15:45:01.291Z]    O/U 1.5   Over   1.10     Under  6.25
+[2026-09-05T15:45:01.291Z]    O/U 2.5   Over   1.45     Under  2.70
+[2026-09-05T15:45:01.291Z]    O/U 3.5   Over   2.20     Under  1.64
+[2026-09-05T15:46:01.775Z] 
+[2026-09-05T15:46:01.775Z] ── RESULT ── MD 01 · AST - CRY ───────────────────────────────── 4 goals ──
+[2026-09-05T15:46:01.775Z]    score     HT 2 - 0     FT 3 - 1     sum=4
+[2026-09-05T15:46:01.775Z]    O/U 1.5   Over   1.13 ✓   Under  5.75
+[2026-09-05T15:46:01.776Z]    O/U 2.5   Over   1.52 ✓   Under  2.50
+[2026-09-05T15:46:01.776Z]    O/U 3.5   Over   2.35 ✓   Under  1.56
+[2026-09-05T15:46:05.669Z] (AST - CRY)   (2 - 0) 3 - 1   sum=4   |  Next round starts in: 03:54
+[2026-09-05T15:46:13.035Z] Shutting down...
+[2026-09-05T15:51:07.134Z] (BHA - HUL)   (0 - 0) 1 - 0   sum=1   |  Next round starts in: 03:52
+[2026-09-05T15:51:32.426Z] Shutting down...
+[2026-09-05T15:51:36.312Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T15:51:36.313Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T15:51:36.314Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T15:51:36.314Z] Legend:  NEXT = O/U odds on the round now open for betting (the "before")
+[2026-09-05T15:51:36.314Z]          RESULT = how that same round finished, with those odds reprinted (the "after")
+[2026-09-05T15:51:36.314Z]          ✓ marks the side that won; the losing side is dimmed
+[2026-09-05T15:51:41.702Z] 
+[2026-09-05T15:51:41.703Z] ── RESULT ── MD 02 · BHA - HUL ────────────────────────────────── 1 goal ──
+[2026-09-05T15:51:41.703Z]    score     HT 0 - 0     FT 1 - 0     sum=1
+[2026-09-05T15:51:41.704Z]    (odds not captured — this round was already under way when the bot started watching)
+[2026-09-05T15:51:41.705Z] 
+[2026-09-05T15:51:41.705Z] ── NEXT ── MD 03 · BHA - LEE ─────────────────────────── closes in 03:18 ──
+[2026-09-05T15:51:41.706Z]    O/U 1.5   Over   1.09     Under  6.75
+[2026-09-05T15:51:41.706Z]    O/U 2.5   Over   1.42     Under  2.80
+[2026-09-05T15:51:41.706Z]    O/U 3.5   Over   2.13     Under  1.69
+[2026-09-05T15:55:13.342Z] 
+[2026-09-05T15:55:13.343Z] ── NEXT ── MD 04 · ARS - IPS ─────────────────────────── closes in 04:46 ──
+[2026-09-05T15:55:13.343Z]    O/U 1.5   Over   1.18     Under  4.60
+[2026-09-05T15:55:13.343Z]    O/U 2.5   Over   1.68     Under  2.14
+[2026-09-05T15:55:13.343Z]    O/U 3.5   Over   2.80     Under  1.42
+[2026-09-05T15:56:13.850Z] 
+[2026-09-05T15:56:13.851Z] ── RESULT ── MD 03 · BHA - LEE ───────────────────────────────── 3 goals ──
+[2026-09-05T15:56:13.851Z]    score     HT 1 - 0     FT 2 - 1     sum=3
+[2026-09-05T15:56:13.851Z]    O/U 1.5   Over   1.09 ✓   Under  6.75
+[2026-09-05T15:56:13.851Z]    O/U 2.5   Over   1.42 ✓   Under  2.80
+[2026-09-05T15:56:13.851Z]    O/U 3.5   Over   2.13     Under  1.69 ✓
+[2026-09-05T16:00:15.721Z] 
+[2026-09-05T16:00:15.721Z] ── NEXT ── MD 05 · ARS - EVE ─────────────────────────── closes in 04:44 ──
+[2026-09-05T16:00:15.721Z]    O/U 1.5   Over   1.27     Under  3.65
+[2026-09-05T16:00:15.721Z]    O/U 2.5   Over   1.93     Under  1.83
+[2026-09-05T16:00:15.722Z]    O/U 3.5   Over   3.50     Under  1.28
+[2026-09-05T16:01:01.166Z] 
+[2026-09-05T16:01:01.166Z] ── RESULT ── MD 04 · ARS - IPS ───────────────────────────────── 2 goals ──
+[2026-09-05T16:01:01.166Z]    score     HT 0 - 1     FT 1 - 1     sum=2
+[2026-09-05T16:01:01.166Z]    O/U 1.5   Over   1.18 ✓   Under  4.60
+[2026-09-05T16:01:01.166Z]    O/U 2.5   Over   1.68     Under  2.14 ✓
+[2026-09-05T16:01:01.166Z]    O/U 3.5   Over   2.80     Under  1.42 ✓
+[2026-09-05T16:05:03.166Z] 
+[2026-09-05T16:05:03.167Z] ── NEXT ── MD 06 · BOU - ARS ─────────────────────────── closes in 04:56 ──
+[2026-09-05T16:05:03.167Z]    O/U 1.5   Over   1.39     Under  2.95
+[2026-09-05T16:05:03.167Z]    O/U 2.5   Over   2.35     Under  1.58
+[2026-09-05T16:05:03.167Z]    O/U 3.5   Over   4.65     Under  1.18
+[2026-09-05T16:06:03.645Z] 
+[2026-09-05T16:06:03.646Z] ── RESULT ── MD 05 · ARS - EVE ───────────────────────────────── 4 goals ──
+[2026-09-05T16:06:03.646Z]    score     HT 3 - 0     FT 4 - 0     sum=4
+[2026-09-05T16:06:03.646Z]    O/U 1.5   Over   1.27 ✓   Under  3.65
+[2026-09-05T16:06:03.646Z]    O/U 2.5   Over   1.93 ✓   Under  1.83
+[2026-09-05T16:06:03.646Z]    O/U 3.5   Over   3.50 ✓   Under  1.28
+[2026-09-05T16:10:05.563Z] 
+[2026-09-05T16:10:05.564Z] ── NEXT ── MD 07 · ARS - AST ─────────────────────────── closes in 04:54 ──
+[2026-09-05T16:10:05.564Z]    O/U 1.5   Over   1.22     Under  4.15
+[2026-09-05T16:10:05.564Z]    O/U 2.5   Over   1.78     Under  1.99
+[2026-09-05T16:10:05.564Z]    O/U 3.5   Over   3.10     Under  1.35
+[2026-09-05T16:11:06.040Z] 
+[2026-09-05T16:11:06.040Z] ── RESULT ── MD 06 · BOU - ARS ───────────────────────────────── 2 goals ──
+[2026-09-05T16:11:06.041Z]    score     HT 0 - 0     FT 1 - 1     sum=2
+[2026-09-05T16:11:06.041Z]    O/U 1.5   Over   1.39 ✓   Under  2.95
+[2026-09-05T16:11:06.041Z]    O/U 2.5   Over   2.35     Under  1.58 ✓
+[2026-09-05T16:11:06.041Z]    O/U 3.5   Over   4.65     Under  1.18 ✓
+[2026-09-05T16:15:07.855Z] 
+[2026-09-05T16:15:07.855Z] ── NEXT ── MD 08 · AST - IPS ─────────────────────────── closes in 04:52 ──
+[2026-09-05T16:15:07.855Z]    O/U 1.5   Over   1.09     Under  6.50
+[2026-09-05T16:15:07.856Z]    O/U 2.5   Over   1.42     Under  2.80
+[2026-09-05T16:15:07.856Z]    O/U 3.5   Over   2.13     Under  1.69
+[2026-09-05T16:16:08.354Z] 
+[2026-09-05T16:16:08.354Z] ── RESULT ── MD 07 · ARS - AST ───────────────────────────────── 2 goals ──
+[2026-09-05T16:16:08.354Z]    score     HT 0 - 1     FT 0 - 2     sum=2
+[2026-09-05T16:16:08.354Z]    O/U 1.5   Over   1.22 ✓   Under  4.15
+[2026-09-05T16:16:08.354Z]    O/U 2.5   Over   1.78     Under  1.99 ✓
+[2026-09-05T16:16:08.354Z]    O/U 3.5   Over   3.10     Under  1.35 ✓
+[2026-09-05T16:20:10.188Z] 
+[2026-09-05T16:20:10.188Z] ── NEXT ── MD 09 · ARS - CHE ─────────────────────────── closes in 04:49 ──
+[2026-09-05T16:20:10.188Z]    O/U 1.5   Over   1.21     Under  4.25
+[2026-09-05T16:20:10.188Z]    O/U 2.5   Over   1.76     Under  2.02
+[2026-09-05T16:20:10.188Z]    O/U 3.5   Over   3.00     Under  1.37
+[2026-09-05T16:21:10.652Z] 
+[2026-09-05T16:21:10.652Z] ── RESULT ── MD 08 · AST - IPS ───────────────────────────────── 8 goals ──
+[2026-09-05T16:21:10.652Z]    score     HT 1 - 1     FT 7 - 1     sum=8
+[2026-09-05T16:21:10.652Z]    O/U 1.5   Over   1.09 ✓   Under  6.50
+[2026-09-05T16:21:10.652Z]    O/U 2.5   Over   1.42 ✓   Under  2.80
+[2026-09-05T16:21:10.652Z]    O/U 3.5   Over   2.13 ✓   Under  1.69
+[2026-09-05T16:25:12.551Z] 
+[2026-09-05T16:25:12.551Z] ── NEXT ── MD 10 · BHA - MCI ─────────────────────────── closes in 04:47 ──
+[2026-09-05T16:25:12.551Z]    O/U 1.5   Over   1.09     Under  6.75
+[2026-09-05T16:25:12.551Z]    O/U 2.5   Over   1.42     Under  2.80
+[2026-09-05T16:25:12.551Z]    O/U 3.5   Over   2.11     Under  1.70
+[2026-09-05T16:26:13.097Z] 
+[2026-09-05T16:26:13.098Z] ── RESULT ── MD 09 · ARS - CHE ───────────────────────────────── 3 goals ──
+[2026-09-05T16:26:13.098Z]    score     HT 2 - 0     FT 3 - 0     sum=3
+[2026-09-05T16:26:13.098Z]    O/U 1.5   Over   1.21 ✓   Under  4.25
+[2026-09-05T16:26:13.098Z]    O/U 2.5   Over   1.76 ✓   Under  2.02
+[2026-09-05T16:26:13.098Z]    O/U 3.5   Over   3.00     Under  1.37 ✓
+[2026-09-05T16:30:15.068Z] 
+[2026-09-05T16:30:15.068Z] ── NEXT ── MD 11 · ARS - NOT ─────────────────────────── closes in 04:44 ──
+[2026-09-05T16:30:15.068Z]    O/U 1.5   Over   1.26     Under  3.75
+[2026-09-05T16:30:15.068Z]    O/U 2.5   Over   1.91     Under  1.86
+[2026-09-05T16:30:15.068Z]    O/U 3.5   Over   3.45     Under  1.29
+[2026-09-05T16:31:00.472Z] 
+[2026-09-05T16:31:00.473Z] ── RESULT ── MD 10 · BHA - MCI ───────────────────────────────── 4 goals ──
+[2026-09-05T16:31:00.473Z]    score     HT 0 - 1     FT 2 - 2     sum=4
+[2026-09-05T16:31:00.473Z]    O/U 1.5   Over   1.09 ✓   Under  6.75
+[2026-09-05T16:31:00.473Z]    O/U 2.5   Over   1.42 ✓   Under  2.80
+[2026-09-05T16:31:00.473Z]    O/U 3.5   Over   2.11 ✓   Under  1.70
+[2026-09-05T16:35:02.350Z] 
+[2026-09-05T16:35:02.350Z] ── NEXT ── MD 12 · ARS - BHA ─────────────────────────── closes in 04:57 ──
+[2026-09-05T16:35:02.350Z]    O/U 1.5   Over   1.20     Under  4.30
+[2026-09-05T16:35:02.350Z]    O/U 2.5   Over   1.74     Under  2.05
+[2026-09-05T16:35:02.350Z]    O/U 3.5   Over   2.95     Under  1.38
+[2026-09-05T16:36:02.850Z] 
+[2026-09-05T16:36:02.850Z] ── RESULT ── MD 11 · ARS - NOT ───────────────────────────────── 4 goals ──
+[2026-09-05T16:36:02.850Z]    score     HT 1 - 0     FT 4 - 0     sum=4
+[2026-09-05T16:36:02.850Z]    O/U 1.5   Over   1.26 ✓   Under  3.75
+[2026-09-05T16:36:02.850Z]    O/U 2.5   Over   1.91 ✓   Under  1.86
+[2026-09-05T16:36:02.850Z]    O/U 3.5   Over   3.45 ✓   Under  1.29
+[2026-09-05T16:36:02.851Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 4) -> Under 3.5 on the next round
+[2026-09-05T16:36:13.715Z] [high-scoring-pair] BET PLACED: round 1629950 ARS - BHA Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T16:36:13.716Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T16:40:15.766Z] 
+[2026-09-05T16:40:15.766Z] ── NEXT ── MD 13 · ARS - LEE ─────────────────────────── closes in 04:44 ──
+[2026-09-05T16:40:15.766Z]    O/U 1.5   Over   1.19     Under  4.55
+[2026-09-05T16:40:15.766Z]    O/U 2.5   Over   1.69     Under  2.13
+[2026-09-05T16:40:15.766Z]    O/U 3.5   Over   2.85     Under  1.41
+[2026-09-05T16:41:01.158Z] 
+[2026-09-05T16:41:01.158Z] ── RESULT ── MD 12 · ARS - BHA ───────────────────────────────── 6 goals ──
+[2026-09-05T16:41:01.158Z]    score     HT 2 - 0     FT 4 - 2     sum=6
+[2026-09-05T16:41:01.158Z]    O/U 1.5   Over   1.20 ✓   Under  4.30
+[2026-09-05T16:41:01.158Z]    O/U 2.5   Over   1.74 ✓   Under  2.05
+[2026-09-05T16:41:01.158Z]    O/U 3.5   Over   2.95 ✓   Under  1.38
+[2026-09-05T16:41:01.159Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T16:45:03.400Z] 
+[2026-09-05T16:45:03.400Z] ── NEXT ── MD 14 · ARS - FUL ─────────────────────────── closes in 04:56 ──
+[2026-09-05T16:45:03.400Z]    O/U 1.5   Over   1.25     Under  3.85
+[2026-09-05T16:45:03.400Z]    O/U 2.5   Over   1.87     Under  1.89
+[2026-09-05T16:45:03.400Z]    O/U 3.5   Over   3.35     Under  1.31
+[2026-09-05T16:46:03.844Z] 
+[2026-09-05T16:46:03.844Z] ── RESULT ── MD 13 · ARS - LEE ───────────────────────────────── 4 goals ──
+[2026-09-05T16:46:03.844Z]    score     HT 0 - 1     FT 2 - 2     sum=4
+[2026-09-05T16:46:03.844Z]    O/U 1.5   Over   1.19 ✓   Under  4.55
+[2026-09-05T16:46:03.844Z]    O/U 2.5   Over   1.69 ✓   Under  2.13
+[2026-09-05T16:46:03.844Z]    O/U 3.5   Over   2.85 ✓   Under  1.41
+[2026-09-05T16:46:03.844Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T16:50:05.644Z] 
+[2026-09-05T16:50:05.645Z] ── NEXT ── MD 15 · BHA - BOU ─────────────────────────── closes in 04:54 ──
+[2026-09-05T16:50:05.645Z]    O/U 1.5   Over   1.18     Under  4.65
+[2026-09-05T16:50:05.645Z]    O/U 2.5   Over   1.67     Under  2.15
+[2026-09-05T16:50:05.645Z]    O/U 3.5   Over   2.80     Under  1.42
+[2026-09-05T16:51:06.118Z] 
+[2026-09-05T16:51:06.118Z] ── RESULT ── MD 14 · ARS - FUL ───────────────────────────────── 2 goals ──
+[2026-09-05T16:51:06.118Z]    score     HT 1 - 0     FT 2 - 0     sum=2
+[2026-09-05T16:51:06.118Z]    O/U 1.5   Over   1.25 ✓   Under  3.85
+[2026-09-05T16:51:06.118Z]    O/U 2.5   Over   1.87     Under  1.89 ✓
+[2026-09-05T16:51:06.118Z]    O/U 3.5   Over   3.35     Under  1.31 ✓
+[2026-09-05T16:51:06.119Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T16:51:21.186Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T16:55:08.076Z] 
+[2026-09-05T16:55:08.076Z] ── NEXT ── MD 16 · ARS - CRY ─────────────────────────── closes in 04:51 ──
+[2026-09-05T16:55:08.076Z]    O/U 1.5   Over   1.24     Under  3.90
+[2026-09-05T16:55:08.076Z]    O/U 2.5   Over   1.84     Under  1.92
+[2026-09-05T16:55:08.076Z]    O/U 3.5   Over   3.25     Under  1.32
+[2026-09-05T16:56:08.567Z] 
+[2026-09-05T16:56:08.567Z] ── RESULT ── MD 15 · BHA - BOU ───────────────────────────────── 0 goals ──
+[2026-09-05T16:56:08.568Z]    score     HT 0 - 0     FT 0 - 0     sum=0
+[2026-09-05T16:56:08.568Z]    O/U 1.5   Over   1.18     Under  4.65 ✓
+[2026-09-05T16:56:08.568Z]    O/U 2.5   Over   1.67     Under  2.15 ✓
+[2026-09-05T16:56:08.568Z]    O/U 3.5   Over   2.80     Under  1.42 ✓
+[2026-09-05T17:00:10.511Z] 
+[2026-09-05T17:00:10.511Z] ── NEXT ── MD 17 · ARS - LIV ─────────────────────────── closes in 04:49 ──
+[2026-09-05T17:00:10.511Z]    O/U 1.5   Over   1.30     Under  3.35
+[2026-09-05T17:00:10.511Z]    O/U 2.5   Over   2.06     Under  1.73
+[2026-09-05T17:00:10.511Z]    O/U 3.5   Over   3.85     Under  1.24
+[2026-09-05T17:01:11.016Z] 
+[2026-09-05T17:01:11.016Z] ── RESULT ── MD 16 · ARS - CRY ───────────────────────────────── 0 goals ──
+[2026-09-05T17:01:11.016Z]    score     HT 0 - 0     FT 0 - 0     sum=0
+[2026-09-05T17:01:11.016Z]    O/U 1.5   Over   1.24     Under  3.90 ✓
+[2026-09-05T17:01:11.016Z]    O/U 2.5   Over   1.84     Under  1.92 ✓
+[2026-09-05T17:01:11.017Z]    O/U 3.5   Over   3.25     Under  1.32 ✓
+[2026-09-05T17:05:12.822Z] 
+[2026-09-05T17:05:12.822Z] ── NEXT ── MD 18 · AST - FUL ─────────────────────────── closes in 04:47 ──
+[2026-09-05T17:05:12.822Z]    O/U 1.5   Over   1.13     Under  5.50
+[2026-09-05T17:05:12.822Z]    O/U 2.5   Over   1.53     Under  2.45
+[2026-09-05T17:05:12.822Z]    O/U 3.5   Over   2.40     Under  1.55
+[2026-09-05T17:06:13.288Z] 
+[2026-09-05T17:06:13.289Z] ── RESULT ── MD 17 · ARS - LIV ───────────────────────────────── 0 goals ──
+[2026-09-05T17:06:13.289Z]    score     HT 0 - 0     FT 0 - 0     sum=0
+[2026-09-05T17:06:13.289Z]    O/U 1.5   Over   1.30     Under  3.35 ✓
+[2026-09-05T17:06:13.289Z]    O/U 2.5   Over   2.06     Under  1.73 ✓
+[2026-09-05T17:06:13.289Z]    O/U 3.5   Over   3.85     Under  1.24 ✓
+[2026-09-05T17:10:15.164Z] 
+[2026-09-05T17:10:15.164Z] ── NEXT ── MD 19 · ARS - MUN ─────────────────────────── closes in 04:44 ──
+[2026-09-05T17:10:15.164Z]    O/U 1.5   Over   1.24     Under  3.90
+[2026-09-05T17:10:15.164Z]    O/U 2.5   Over   1.85     Under  1.92
+[2026-09-05T17:10:15.164Z]    O/U 3.5   Over   3.25     Under  1.32
+[2026-09-05T17:11:00.586Z] 
+[2026-09-05T17:11:00.588Z] ── RESULT ── MD 18 · AST - FUL ────────────────────────────────── 1 goal ──
+[2026-09-05T17:11:00.588Z]    score     HT 0 - 0     FT 0 - 1     sum=1
+[2026-09-05T17:11:00.588Z]    O/U 1.5   Over   1.13     Under  5.50 ✓
+[2026-09-05T17:11:00.588Z]    O/U 2.5   Over   1.53     Under  2.45 ✓
+[2026-09-05T17:11:00.588Z]    O/U 3.5   Over   2.40     Under  1.55 ✓
+[2026-09-05T17:11:00.588Z] [low-scoring-streak] PATTERN FIRE: 5 consecutive rounds with sum <= 2 (sums: 2, 0, 0, 0, 1) -> Over 2.5 on the next round
+[2026-09-05T17:11:07.925Z] [low-scoring-streak] BET PLACED: round 1629957 ARS - MUN Over 2.5 stake=5 FCFA dryRun=false
+[2026-09-05T17:11:07.926Z] [low-scoring-streak] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T17:15:09.816Z] 
+[2026-09-05T17:15:09.816Z] ── NEXT ── MD 20 · ARS - MCI ─────────────────────────── closes in 04:50 ──
+[2026-09-05T17:15:09.816Z]    O/U 1.5   Over   1.22     Under  4.10
+[2026-09-05T17:15:09.816Z]    O/U 2.5   Over   1.79     Under  1.98
+[2026-09-05T17:15:09.816Z]    O/U 3.5   Over   3.10     Under  1.35
+[2026-09-05T17:16:10.245Z] 
+[2026-09-05T17:16:10.245Z] ── RESULT ── MD 19 · ARS - MUN ───────────────────────────────── 3 goals ──
+[2026-09-05T17:16:10.245Z]    score     HT 1 - 0     FT 1 - 2     sum=3
+[2026-09-05T17:16:10.245Z]    O/U 1.5   Over   1.24 ✓   Under  3.90
+[2026-09-05T17:16:10.245Z]    O/U 2.5   Over   1.85 ✓   Under  1.92
+[2026-09-05T17:16:10.245Z]    O/U 3.5   Over   3.25     Under  1.32 ✓
+[2026-09-05T17:16:10.246Z] [low-scoring-streak] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T17:20:12.166Z] 
+[2026-09-05T17:20:12.166Z] ── NEXT ── MD 21 · ARS - SUN ─────────────────────────── closes in 04:47 ──
+[2026-09-05T17:20:12.166Z]    O/U 1.5   Over   1.29     Under  3.50
+[2026-09-05T17:20:12.166Z]    O/U 2.5   Over   2.00     Under  1.78
+[2026-09-05T17:20:12.167Z]    O/U 3.5   Over   3.70     Under  1.26
+[2026-09-05T17:21:12.603Z] 
+[2026-09-05T17:21:12.604Z] ── RESULT ── MD 20 · ARS - MCI ───────────────────────────────── 4 goals ──
+[2026-09-05T17:21:12.604Z]    score     HT 1 - 0     FT 3 - 1     sum=4
+[2026-09-05T17:21:12.604Z]    O/U 1.5   Over   1.22 ✓   Under  4.10
+[2026-09-05T17:21:12.604Z]    O/U 2.5   Over   1.79 ✓   Under  1.98
+[2026-09-05T17:21:12.604Z]    O/U 3.5   Over   3.10 ✓   Under  1.35
+[2026-09-05T17:21:12.604Z] [low-scoring-streak] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T17:25:14.435Z] 
+[2026-09-05T17:25:14.435Z] ── NEXT ── MD 22 · ARS - HUL ─────────────────────────── closes in 04:45 ──
+[2026-09-05T17:25:14.435Z]    O/U 1.5   Over   1.19     Under  4.50
+[2026-09-05T17:25:14.435Z]    O/U 2.5   Over   1.70     Under  2.11
+[2026-09-05T17:25:14.435Z]    O/U 3.5   Over   2.85     Under  1.41
+[2026-09-05T17:26:14.923Z] 
+[2026-09-05T17:26:14.923Z] ── RESULT ── MD 21 · ARS - SUN ───────────────────────────────── 2 goals ──
+[2026-09-05T17:26:14.923Z]    score     HT 0 - 0     FT 1 - 1     sum=2
+[2026-09-05T17:26:14.923Z]    O/U 1.5   Over   1.29 ✓   Under  3.50
+[2026-09-05T17:26:14.923Z]    O/U 2.5   Over   2.00     Under  1.78 ✓
+[2026-09-05T17:26:14.923Z]    O/U 3.5   Over   3.70     Under  1.26 ✓
+[2026-09-05T17:26:14.924Z] [low-scoring-streak] COOLDOWN: paused — resumes at the next result
+[2026-09-05T17:26:29.994Z] [low-scoring-streak] COOLDOWN over — monitoring resumed
+[2026-09-05T17:30:01.665Z] 
+[2026-09-05T17:30:01.666Z] ── NEXT ── MD 23 · BHA - FUL ─────────────────────────── closes in 04:58 ──
+[2026-09-05T17:30:01.666Z]    O/U 1.5   Over   1.13     Under  5.50
+[2026-09-05T17:30:01.666Z]    O/U 2.5   Over   1.54     Under  2.45
+[2026-09-05T17:30:01.666Z]    O/U 3.5   Over   2.45     Under  1.54
+[2026-09-05T17:31:02.105Z] 
+[2026-09-05T17:31:02.105Z] ── RESULT ── MD 22 · ARS - HUL ───────────────────────────────── 3 goals ──
+[2026-09-05T17:31:02.105Z]    score     HT 1 - 0     FT 3 - 0     sum=3
+[2026-09-05T17:31:02.105Z]    O/U 1.5   Over   1.19 ✓   Under  4.50
+[2026-09-05T17:31:02.105Z]    O/U 2.5   Over   1.70 ✓   Under  2.11
+[2026-09-05T17:31:02.105Z]    O/U 3.5   Over   2.85     Under  1.41 ✓
+[2026-09-05T17:35:03.859Z] 
+[2026-09-05T17:35:03.860Z] ── NEXT ── MD 24 · BOU - SUN ─────────────────────────── closes in 04:56 ──
+[2026-09-05T17:35:03.860Z]    O/U 1.5   Over   1.28     Under  3.60
+[2026-09-05T17:35:03.860Z]    O/U 2.5   Over   1.96     Under  1.81
+[2026-09-05T17:35:03.860Z]    O/U 3.5   Over   3.60     Under  1.27
+[2026-09-05T17:36:04.292Z] 
+[2026-09-05T17:36:04.292Z] ── RESULT ── MD 23 · BHA - FUL ───────────────────────────────── 3 goals ──
+[2026-09-05T17:36:04.292Z]    score     HT 1 - 0     FT 2 - 1     sum=3
+[2026-09-05T17:36:04.292Z]    O/U 1.5   Over   1.13 ✓   Under  5.50
+[2026-09-05T17:36:04.292Z]    O/U 2.5   Over   1.54 ✓   Under  2.45
+[2026-09-05T17:36:04.292Z]    O/U 3.5   Over   2.45     Under  1.54 ✓
+[2026-09-05T17:40:06.301Z] 
+[2026-09-05T17:40:06.301Z] ── NEXT ── MD 25 · ARS - BOU ─────────────────────────── closes in 04:53 ──
+[2026-09-05T17:40:06.301Z]    O/U 1.5   Over   1.34     Under  3.15
+[2026-09-05T17:40:06.301Z]    O/U 2.5   Over   2.18     Under  1.66
+[2026-09-05T17:40:06.301Z]    O/U 3.5   Over   4.25     Under  1.21
+[2026-09-05T17:41:06.774Z] 
+[2026-09-05T17:41:06.775Z] ── RESULT ── MD 24 · BOU - SUN ───────────────────────────────── 2 goals ──
+[2026-09-05T17:41:06.775Z]    score     HT 0 - 1     FT 1 - 1     sum=2
+[2026-09-05T17:41:06.775Z]    O/U 1.5   Over   1.28 ✓   Under  3.60
+[2026-09-05T17:41:06.775Z]    O/U 2.5   Over   1.96     Under  1.81 ✓
+[2026-09-05T17:41:06.775Z]    O/U 3.5   Over   3.60     Under  1.27 ✓
+[2026-09-05T17:45:08.662Z] 
+[2026-09-05T17:45:08.662Z] ── NEXT ── MD 26 · AST - ARS ─────────────────────────── closes in 04:51 ──
+[2026-09-05T17:45:08.663Z]    O/U 1.5   Over   1.25     Under  3.80
+[2026-09-05T17:45:08.663Z]    O/U 2.5   Over   1.89     Under  1.88
+[2026-09-05T17:45:08.663Z]    O/U 3.5   Over   3.40     Under  1.30
+[2026-09-05T17:46:09.091Z] 
+[2026-09-05T17:46:09.092Z] ── RESULT ── MD 25 · ARS - BOU ────────────────────────────────── 1 goal ──
+[2026-09-05T17:46:09.092Z]    score     HT 0 - 0     FT 1 - 0     sum=1
+[2026-09-05T17:46:09.092Z]    O/U 1.5   Over   1.34     Under  3.15 ✓
+[2026-09-05T17:46:09.092Z]    O/U 2.5   Over   2.18     Under  1.66 ✓
+[2026-09-05T17:46:09.092Z]    O/U 3.5   Over   4.25     Under  1.21 ✓
+[2026-09-05T17:50:11.006Z] 
+[2026-09-05T17:50:11.006Z] ── NEXT ── MD 27 · ARS - BRE ─────────────────────────── closes in 04:48 ──
+[2026-09-05T17:50:11.007Z]    O/U 1.5   Over   1.37     Under  3.00
+[2026-09-05T17:50:11.007Z]    O/U 2.5   Over   2.25     Under  1.62
+[2026-09-05T17:50:11.007Z]    O/U 3.5   Over   4.45     Under  1.19
+[2026-09-05T17:51:11.446Z] 
+[2026-09-05T17:51:11.446Z] ── RESULT ── MD 26 · AST - ARS ───────────────────────────────── 2 goals ──
+[2026-09-05T17:51:11.446Z]    score     HT 1 - 0     FT 1 - 1     sum=2
+[2026-09-05T17:51:11.446Z]    O/U 1.5   Over   1.25 ✓   Under  3.80
+[2026-09-05T17:51:11.446Z]    O/U 2.5   Over   1.89     Under  1.88 ✓
+[2026-09-05T17:51:11.446Z]    O/U 3.5   Over   3.40     Under  1.30 ✓
+[2026-09-05T17:55:13.399Z] 
+[2026-09-05T17:55:13.399Z] ── NEXT ── MD 28 · CHE - ARS ─────────────────────────── closes in 04:46 ──
+[2026-09-05T17:55:13.399Z]    O/U 1.5   Over   1.24     Under  3.90
+[2026-09-05T17:55:13.399Z]    O/U 2.5   Over   1.85     Under  1.91
+[2026-09-05T17:55:13.399Z]    O/U 3.5   Over   3.30     Under  1.32
+[2026-09-05T17:56:13.860Z] 
+[2026-09-05T17:56:13.860Z] ── RESULT ── MD 27 · ARS - BRE ───────────────────────────────── 2 goals ──
+[2026-09-05T17:56:13.860Z]    score     HT 1 - 1     FT 1 - 1     sum=2
+[2026-09-05T17:56:13.861Z]    O/U 1.5   Over   1.37 ✓   Under  3.00
+[2026-09-05T17:56:13.861Z]    O/U 2.5   Over   2.25     Under  1.62 ✓
+[2026-09-05T17:56:13.861Z]    O/U 3.5   Over   4.45     Under  1.19 ✓
+[2026-09-05T18:00:15.731Z] 
+[2026-09-05T18:00:15.732Z] ── NEXT ── MD 29 · ARS - TOT ─────────────────────────── closes in 04:44 ──
+[2026-09-05T18:00:15.732Z]    O/U 1.5   Over   1.16     Under  5.00
+[2026-09-05T18:00:15.732Z]    O/U 2.5   Over   1.60     Under  2.30
+[2026-09-05T18:00:15.732Z]    O/U 3.5   Over   2.60     Under  1.48
+[2026-09-05T18:01:01.145Z] 
+[2026-09-05T18:01:01.145Z] ── RESULT ── MD 28 · CHE - ARS ────────────────────────────────── 1 goal ──
+[2026-09-05T18:01:01.145Z]    score     HT 1 - 0     FT 1 - 0     sum=1
+[2026-09-05T18:01:01.145Z]    O/U 1.5   Over   1.24     Under  3.90 ✓
+[2026-09-05T18:01:01.145Z]    O/U 2.5   Over   1.85     Under  1.91 ✓
+[2026-09-05T18:01:01.145Z]    O/U 3.5   Over   3.30     Under  1.32 ✓
+[2026-09-05T18:01:01.146Z] [low-scoring-streak] PATTERN FIRE: 5 consecutive rounds with sum <= 2 (sums: 2, 1, 2, 2, 1) -> Over 2.5 on the next round
+[2026-09-05T18:01:08.968Z] [low-scoring-streak] BET PLACED: round 1629967 ARS - TOT Over 2.5 stake=5 FCFA dryRun=false
+[2026-09-05T18:01:08.971Z] [low-scoring-streak] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T18:05:10.741Z] 
+[2026-09-05T18:05:10.742Z] ── NEXT ── MD 30 · AST - HUL ─────────────────────────── closes in 04:49 ──
+[2026-09-05T18:05:10.742Z]    O/U 1.5   Over   1.10     Under  6.50
+[2026-09-05T18:05:10.742Z]    O/U 2.5   Over   1.44     Under  2.75
+[2026-09-05T18:05:10.742Z]    O/U 3.5   Over   2.17     Under  1.66
+[2026-09-05T18:06:11.220Z] 
+[2026-09-05T18:06:11.221Z] ── RESULT ── MD 29 · ARS - TOT ───────────────────────────────── 2 goals ──
+[2026-09-05T18:06:11.221Z]    score     HT 0 - 0     FT 2 - 0     sum=2
+[2026-09-05T18:06:11.221Z]    O/U 1.5   Over   1.16 ✓   Under  5.00
+[2026-09-05T18:06:11.222Z]    O/U 2.5   Over   1.60     Under  2.30 ✓
+[2026-09-05T18:06:11.222Z]    O/U 3.5   Over   2.60     Under  1.48 ✓
+[2026-09-05T18:06:11.223Z] [low-scoring-streak] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T18:10:13.032Z] 
+[2026-09-05T18:10:13.032Z] ── NEXT ── MD 31 · BHA - ARS ─────────────────────────── closes in 04:46 ──
+[2026-09-05T18:10:13.032Z]    O/U 1.5   Over   1.24     Under  3.90
+[2026-09-05T18:10:13.032Z]    O/U 2.5   Over   1.86     Under  1.90
+[2026-09-05T18:10:13.032Z]    O/U 3.5   Over   3.30     Under  1.31
+[2026-09-05T18:11:13.513Z] 
+[2026-09-05T18:11:13.513Z] ── RESULT ── MD 30 · AST - HUL ───────────────────────────────── 3 goals ──
+[2026-09-05T18:11:13.513Z]    score     HT 1 - 0     FT 2 - 1     sum=3
+[2026-09-05T18:11:13.513Z]    O/U 1.5   Over   1.10 ✓   Under  6.50
+[2026-09-05T18:11:13.513Z]    O/U 2.5   Over   1.44 ✓   Under  2.75
+[2026-09-05T18:11:13.513Z]    O/U 3.5   Over   2.17     Under  1.66 ✓
+[2026-09-05T18:11:13.514Z] [low-scoring-streak] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T18:15:15.341Z] 
+[2026-09-05T18:15:15.341Z] ── NEXT ── MD 32 · AST - CHE ─────────────────────────── closes in 04:44 ──
+[2026-09-05T18:15:15.341Z]    O/U 1.5   Over   1.09     Under  6.75
+[2026-09-05T18:15:15.341Z]    O/U 2.5   Over   1.41     Under  2.85
+[2026-09-05T18:15:15.341Z]    O/U 3.5   Over   2.09     Under  1.71
+[2026-09-05T18:16:00.733Z] 
+[2026-09-05T18:16:00.733Z] ── RESULT ── MD 31 · BHA - ARS ───────────────────────────────── 2 goals ──
+[2026-09-05T18:16:00.733Z]    score     HT 0 - 0     FT 1 - 1     sum=2
+[2026-09-05T18:16:00.733Z]    O/U 1.5   Over   1.24 ✓   Under  3.90
+[2026-09-05T18:16:00.733Z]    O/U 2.5   Over   1.86     Under  1.90 ✓
+[2026-09-05T18:16:00.733Z]    O/U 3.5   Over   3.30     Under  1.31 ✓
+[2026-09-05T18:16:00.734Z] [low-scoring-streak] COOLDOWN: paused — resumes at the next result
+[2026-09-05T18:16:15.803Z] [low-scoring-streak] COOLDOWN over — monitoring resumed
+[2026-09-05T18:20:02.642Z] 
+[2026-09-05T18:20:02.643Z] ── NEXT ── MD 33 · BHA - EVE ─────────────────────────── closes in 04:57 ──
+[2026-09-05T18:20:02.643Z]    O/U 1.5   Over   1.14     Under  5.25
+[2026-09-05T18:20:02.643Z]    O/U 2.5   Over   1.56     Under  2.40
+[2026-09-05T18:20:02.643Z]    O/U 3.5   Over   2.50     Under  1.52
+[2026-09-05T18:21:03.127Z] 
+[2026-09-05T18:21:03.128Z] ── RESULT ── MD 32 · AST - CHE ───────────────────────────────── 3 goals ──
+[2026-09-05T18:21:03.128Z]    score     HT 2 - 1     FT 2 - 1     sum=3
+[2026-09-05T18:21:03.128Z]    O/U 1.5   Over   1.09 ✓   Under  6.75
+[2026-09-05T18:21:03.128Z]    O/U 2.5   Over   1.41 ✓   Under  2.85
+[2026-09-05T18:21:03.128Z]    O/U 3.5   Over   2.09     Under  1.71 ✓
+[2026-09-05T18:25:05.054Z] 
+[2026-09-05T18:25:05.054Z] ── NEXT ── MD 34 · ARS - COV ─────────────────────────── closes in 04:54 ──
+[2026-09-05T18:25:05.054Z]    O/U 1.5   Over   1.26     Under  3.75
+[2026-09-05T18:25:05.054Z]    O/U 2.5   Over   1.90     Under  1.86
+[2026-09-05T18:25:05.054Z]    O/U 3.5   Over   3.40     Under  1.30
+[2026-09-05T18:26:05.546Z] 
+[2026-09-05T18:26:05.546Z] ── RESULT ── MD 33 · BHA - EVE ───────────────────────────────── 4 goals ──
+[2026-09-05T18:26:05.546Z]    score     HT 1 - 0     FT 4 - 0     sum=4
+[2026-09-05T18:26:05.546Z]    O/U 1.5   Over   1.14 ✓   Under  5.25
+[2026-09-05T18:26:05.546Z]    O/U 2.5   Over   1.56 ✓   Under  2.40
+[2026-09-05T18:26:05.546Z]    O/U 3.5   Over   2.50 ✓   Under  1.52
+[2026-09-05T18:30:06.616Z] season: 138860 -> 138861
+[2026-09-05T18:30:07.290Z] 
+[2026-09-05T18:30:07.290Z] ── NEXT ── MD 01 · ARS - NOT ─────────────────────────── closes in 04:52 ──
+[2026-09-05T18:30:07.290Z]    O/U 1.5   Over   1.26     Under  3.75
+[2026-09-05T18:30:07.291Z]    O/U 2.5   Over   1.91     Under  1.86
+[2026-09-05T18:30:07.291Z]    O/U 3.5   Over   3.45     Under  1.29
+[2026-09-05T18:31:07.702Z] 
+[2026-09-05T18:31:07.702Z] ── RESULT ── MD 34 · ARS - COV ───────────────────────────────── 0 goals ──
+[2026-09-05T18:31:07.702Z]    score     HT 0 - 0     FT 0 - 0     sum=0
+[2026-09-05T18:31:07.702Z]    O/U 1.5   Over   1.26     Under  3.75 ✓
+[2026-09-05T18:31:07.702Z]    O/U 2.5   Over   1.90     Under  1.86 ✓
+[2026-09-05T18:31:07.702Z]    O/U 3.5   Over   3.40     Under  1.30 ✓
+[2026-09-05T18:35:09.388Z] 
+[2026-09-05T18:35:09.388Z] ── NEXT ── MD 02 · AST - HUL ─────────────────────────── closes in 04:50 ──
+[2026-09-05T18:35:09.388Z]    O/U 1.5   Over   1.10     Under  6.50
+[2026-09-05T18:35:09.388Z]    O/U 2.5   Over   1.44     Under  2.75
+[2026-09-05T18:35:09.388Z]    O/U 3.5   Over   2.17     Under  1.66
+[2026-09-05T18:36:09.875Z] 
+[2026-09-05T18:36:09.875Z] ── RESULT ── MD 01 · ARS - NOT ───────────────────────────────── 0 goals ──
+[2026-09-05T18:36:09.875Z]    score     HT 0 - 0     FT 0 - 0     sum=0
+[2026-09-05T18:36:09.875Z]    O/U 1.5   Over   1.26     Under  3.75 ✓
+[2026-09-05T18:36:09.875Z]    O/U 2.5   Over   1.91     Under  1.86 ✓
+[2026-09-05T18:36:09.875Z]    O/U 3.5   Over   3.45     Under  1.29 ✓
+[2026-09-05T18:40:11.697Z] 
+[2026-09-05T18:40:11.698Z] ── NEXT ── MD 03 · ARS - FUL ─────────────────────────── closes in 04:48 ──
+[2026-09-05T18:40:11.698Z]    O/U 1.5   Over   1.25     Under  3.85
+[2026-09-05T18:40:11.698Z]    O/U 2.5   Over   1.87     Under  1.89
+[2026-09-05T18:40:11.698Z]    O/U 3.5   Over   3.35     Under  1.31
+[2026-09-05T18:41:12.140Z] 
+[2026-09-05T18:41:12.140Z] ── RESULT ── MD 02 · AST - HUL ───────────────────────────────── 4 goals ──
+[2026-09-05T18:41:12.141Z]    score     HT 1 - 0     FT 2 - 2     sum=4
+[2026-09-05T18:41:12.141Z]    O/U 1.5   Over   1.10 ✓   Under  6.50
+[2026-09-05T18:41:12.141Z]    O/U 2.5   Over   1.44 ✓   Under  2.75
+[2026-09-05T18:41:12.141Z]    O/U 3.5   Over   2.17 ✓   Under  1.66
+[2026-09-05T18:45:13.970Z] 
+[2026-09-05T18:45:13.970Z] ── NEXT ── MD 04 · ARS - IPS ─────────────────────────── closes in 04:46 ──
+[2026-09-05T18:45:13.970Z]    O/U 1.5   Over   1.18     Under  4.60
+[2026-09-05T18:45:13.970Z]    O/U 2.5   Over   1.68     Under  2.14
+[2026-09-05T18:45:13.970Z]    O/U 3.5   Over   2.80     Under  1.42
+[2026-09-05T18:46:14.409Z] 
+[2026-09-05T18:46:14.409Z] ── RESULT ── MD 03 · ARS - FUL ───────────────────────────────── 3 goals ──
+[2026-09-05T18:46:14.409Z]    score     HT 0 - 2     FT 1 - 2     sum=3
+[2026-09-05T18:46:14.410Z]    O/U 1.5   Over   1.25 ✓   Under  3.85
+[2026-09-05T18:46:14.410Z]    O/U 2.5   Over   1.87 ✓   Under  1.89
+[2026-09-05T18:46:14.410Z]    O/U 3.5   Over   3.35     Under  1.31 ✓
+[2026-09-05T18:50:01.113Z] 
+[2026-09-05T18:50:01.113Z] ── NEXT ── MD 05 · ARS - MUN ─────────────────────────── closes in 04:58 ──
+[2026-09-05T18:50:01.113Z]    O/U 1.5   Over   1.24     Under  3.90
+[2026-09-05T18:50:01.113Z]    O/U 2.5   Over   1.85     Under  1.92
+[2026-09-05T18:50:01.113Z]    O/U 3.5   Over   3.25     Under  1.32
+[2026-09-05T18:51:01.600Z] 
+[2026-09-05T18:51:01.600Z] ── RESULT ── MD 04 · ARS - IPS ───────────────────────────────── 2 goals ──
+[2026-09-05T18:51:01.600Z]    score     HT 2 - 0     FT 2 - 0     sum=2
+[2026-09-05T18:51:01.600Z]    O/U 1.5   Over   1.18 ✓   Under  4.60
+[2026-09-05T18:51:01.600Z]    O/U 2.5   Over   1.68     Under  2.14 ✓
+[2026-09-05T18:51:01.600Z]    O/U 3.5   Over   2.80     Under  1.42 ✓
+[2026-09-05T18:55:03.449Z] 
+[2026-09-05T18:55:03.449Z] ── NEXT ── MD 06 · BHA - BOU ─────────────────────────── closes in 04:56 ──
+[2026-09-05T18:55:03.449Z]    O/U 1.5   Over   1.18     Under  4.65
+[2026-09-05T18:55:03.449Z]    O/U 2.5   Over   1.67     Under  2.15
+[2026-09-05T18:55:03.449Z]    O/U 3.5   Over   2.80     Under  1.42
+[2026-09-05T18:56:03.877Z] 
+[2026-09-05T18:56:03.877Z] ── RESULT ── MD 05 · ARS - MUN ───────────────────────────────── 3 goals ──
+[2026-09-05T18:56:03.877Z]    score     HT 1 - 1     FT 1 - 2     sum=3
+[2026-09-05T18:56:03.877Z]    O/U 1.5   Over   1.24 ✓   Under  3.90
+[2026-09-05T18:56:03.877Z]    O/U 2.5   Over   1.85 ✓   Under  1.92
+[2026-09-05T18:56:03.877Z]    O/U 3.5   Over   3.25     Under  1.32 ✓
+[2026-09-05T19:00:05.670Z] 
+[2026-09-05T19:00:05.671Z] ── NEXT ── MD 07 · AST - TOT ─────────────────────────── closes in 04:54 ──
+[2026-09-05T19:00:05.671Z]    O/U 1.5   Over   1.06     Under  8.25
+[2026-09-05T19:00:05.671Z]    O/U 2.5   Over   1.32     Under  3.30
+[2026-09-05T19:00:05.671Z]    O/U 3.5   Over   1.87     Under  1.90
+[2026-09-05T19:01:06.152Z] 
+[2026-09-05T19:01:06.153Z] ── RESULT ── MD 06 · BHA - BOU ───────────────────────────────── 2 goals ──
+[2026-09-05T19:01:06.153Z]    score     HT 0 - 0     FT 1 - 1     sum=2
+[2026-09-05T19:01:06.153Z]    O/U 1.5   Over   1.18 ✓   Under  4.65
+[2026-09-05T19:01:06.153Z]    O/U 2.5   Over   1.67     Under  2.15 ✓
+[2026-09-05T19:01:06.153Z]    O/U 3.5   Over   2.80     Under  1.42 ✓
+[2026-09-05T19:05:08.012Z] 
+[2026-09-05T19:05:08.013Z] ── NEXT ── MD 08 · AST - CHE ─────────────────────────── closes in 04:51 ──
+[2026-09-05T19:05:08.013Z]    O/U 1.5   Over   1.09     Under  6.75
+[2026-09-05T19:05:08.013Z]    O/U 2.5   Over   1.41     Under  2.85
+[2026-09-05T19:05:08.013Z]    O/U 3.5   Over   2.09     Under  1.71
+[2026-09-05T19:06:08.482Z] 
+[2026-09-05T19:06:08.482Z] ── RESULT ── MD 07 · AST - TOT ───────────────────────────────── 2 goals ──
+[2026-09-05T19:06:08.482Z]    score     HT 1 - 1     FT 1 - 1     sum=2
+[2026-09-05T19:06:08.482Z]    O/U 1.5   Over   1.06 ✓   Under  8.25
+[2026-09-05T19:06:08.482Z]    O/U 2.5   Over   1.32     Under  3.30 ✓
+[2026-09-05T19:06:08.482Z]    O/U 3.5   Over   1.87     Under  1.90 ✓
+[2026-09-05T19:10:10.388Z] 
+[2026-09-05T19:10:10.388Z] ── NEXT ── MD 09 · BHA - CRY ─────────────────────────── closes in 04:49 ──
+[2026-09-05T19:10:10.388Z]    O/U 1.5   Over   1.13     Under  5.50
+[2026-09-05T19:10:10.388Z]    O/U 2.5   Over   1.53     Under  2.45
+[2026-09-05T19:10:10.388Z]    O/U 3.5   Over   2.40     Under  1.55
+[2026-09-05T19:11:10.866Z] 
+[2026-09-05T19:11:10.866Z] ── RESULT ── MD 08 · AST - CHE ───────────────────────────────── 2 goals ──
+[2026-09-05T19:11:10.867Z]    score     HT 0 - 1     FT 1 - 1     sum=2
+[2026-09-05T19:11:10.867Z]    O/U 1.5   Over   1.09 ✓   Under  6.75
+[2026-09-05T19:11:10.867Z]    O/U 2.5   Over   1.41     Under  2.85 ✓
+[2026-09-05T19:11:10.867Z]    O/U 3.5   Over   2.09     Under  1.71 ✓
+[2026-09-05T19:15:12.699Z] 
+[2026-09-05T19:15:12.699Z] ── NEXT ── MD 10 · BOU - LEE ─────────────────────────── closes in 04:47 ──
+[2026-09-05T19:15:12.699Z]    O/U 1.5   Over   1.17     Under  4.75
+[2026-09-05T19:15:12.699Z]    O/U 2.5   Over   1.65     Under  2.18
+[2026-09-05T19:15:12.700Z]    O/U 3.5   Over   2.75     Under  1.43
+[2026-09-05T19:16:13.182Z] 
+[2026-09-05T19:16:13.182Z] ── RESULT ── MD 09 · BHA - CRY ───────────────────────────────── 3 goals ──
+[2026-09-05T19:16:13.182Z]    score     HT 0 - 0     FT 2 - 1     sum=3
+[2026-09-05T19:16:13.183Z]    O/U 1.5   Over   1.13 ✓   Under  5.50
+[2026-09-05T19:16:13.183Z]    O/U 2.5   Over   1.53 ✓   Under  2.45
+[2026-09-05T19:16:13.183Z]    O/U 3.5   Over   2.40     Under  1.55 ✓
+[2026-09-05T19:20:15.026Z] 
+[2026-09-05T19:20:15.026Z] ── NEXT ── MD 11 · AST - FUL ─────────────────────────── closes in 04:44 ──
+[2026-09-05T19:20:15.026Z]    O/U 1.5   Over   1.13     Under  5.50
+[2026-09-05T19:20:15.026Z]    O/U 2.5   Over   1.53     Under  2.45
+[2026-09-05T19:20:15.026Z]    O/U 3.5   Over   2.40     Under  1.55
+[2026-09-05T19:21:00.428Z] 
+[2026-09-05T19:21:00.428Z] ── RESULT ── MD 10 · BOU - LEE ───────────────────────────────── 4 goals ──
+[2026-09-05T19:21:00.428Z]    score     HT 2 - 0     FT 3 - 1     sum=4
+[2026-09-05T19:21:00.428Z]    O/U 1.5   Over   1.17 ✓   Under  4.75
+[2026-09-05T19:21:00.428Z]    O/U 2.5   Over   1.65 ✓   Under  2.18
+[2026-09-05T19:21:00.428Z]    O/U 3.5   Over   2.75 ✓   Under  1.43
+[2026-09-05T19:25:02.341Z] 
+[2026-09-05T19:25:02.342Z] ── NEXT ── MD 12 · AST - IPS ─────────────────────────── closes in 04:57 ──
+[2026-09-05T19:25:02.342Z]    O/U 1.5   Over   1.09     Under  6.50
+[2026-09-05T19:25:02.342Z]    O/U 2.5   Over   1.42     Under  2.80
+[2026-09-05T19:25:02.342Z]    O/U 3.5   Over   2.13     Under  1.69
+[2026-09-05T19:26:02.819Z] 
+[2026-09-05T19:26:02.821Z] ── RESULT ── MD 11 · AST - FUL ───────────────────────────────── 6 goals ──
+[2026-09-05T19:26:02.821Z]    score     HT 1 - 1     FT 3 - 3     sum=6
+[2026-09-05T19:26:02.821Z]    O/U 1.5   Over   1.13 ✓   Under  5.50
+[2026-09-05T19:26:02.822Z]    O/U 2.5   Over   1.53 ✓   Under  2.45
+[2026-09-05T19:26:02.822Z]    O/U 3.5   Over   2.40 ✓   Under  1.55
+[2026-09-05T19:26:02.825Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 4, 6) -> Under 3.5 on the next round
+[2026-09-05T19:26:10.592Z] [high-scoring-pair] BET PLACED: round 1629984 AST - IPS Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T19:26:10.597Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T22:31:05.340Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T22:31:05.341Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T22:31:05.341Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T22:31:05.341Z]   [high-scoring-pair] COOLDOWN carried over from a previous run — 3 round(s) still to skip
+[2026-09-05T22:31:05.342Z] Legend:  NEXT = O/U odds on the round now open for betting (the "before")
+[2026-09-05T22:31:05.342Z]          RESULT = how that same round finished, with those odds reprinted (the "after")
+[2026-09-05T22:31:05.342Z]          ✓ marks the side that won; the losing side is dimmed
+[2026-09-05T22:34:47.438Z] Starting virtual-pattern-bot (dryRun=false, maxBetsPerRun=5, pollInterval=15000ms, history=5 rounds)
+[2026-09-05T22:34:47.439Z]   pattern "high-scoring-pair": 2 consecutive rounds with total goals >= 4 -> Under 3.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T22:34:47.440Z]   pattern "low-scoring-streak": 5 consecutive rounds with total goals <= 2 -> Over 2.5 on the next round | stake=5 FCFA, cooldown=3 rounds
+[2026-09-05T22:34:47.440Z]   [high-scoring-pair] COOLDOWN carried over from a previous run — 3 round(s) still to skip
+[2026-09-05T22:34:47.440Z] Legend:  NEXT = O/U odds on the round now open for betting (the "before")
+[2026-09-05T22:34:47.440Z]          RESULT = how that same round finished, with those odds reprinted (the "after")
+[2026-09-05T22:34:47.441Z]          ✓ marks the side that won; the losing side is dimmed
+[2026-09-05T22:34:49.111Z] season: 138861 -> 138862
+[2026-09-05T22:34:53.995Z] 
+[2026-09-05T22:34:53.995Z] ── RESULT ── MD 14 · BHA - TOT ───────────────────────────────── 4 goals ──
+[2026-09-05T22:34:53.996Z]    score     HT 0 - 0     FT 3 - 1     sum=4
+[2026-09-05T22:34:53.996Z]    (odds not captured — this round was already under way when the bot started watching)
+[2026-09-05T22:34:53.997Z] 
+[2026-09-05T22:34:53.997Z] ── NEXT ── MD 15 · AST - TOT ─────────────────────────── closes in 00:06 ──
+[2026-09-05T22:34:53.997Z]    O/U 1.5   Over   1.06     Under  8.25
+[2026-09-05T22:34:53.997Z]    O/U 2.5   Over   1.32     Under  3.30
+[2026-09-05T22:34:53.997Z]    O/U 3.5   Over   1.87     Under  1.90
+[2026-09-05T22:34:53.998Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T22:35:09.635Z] 
+[2026-09-05T22:35:09.636Z] ── NEXT ── MD 16 · AST - IPS ─────────────────────────── closes in 04:50 ──
+[2026-09-05T22:35:09.636Z]    O/U 1.5   Over   1.09     Under  6.50
+[2026-09-05T22:35:09.636Z]    O/U 2.5   Over   1.42     Under  2.80
+[2026-09-05T22:35:09.636Z]    O/U 3.5   Over   2.13     Under  1.69
+[2026-09-05T22:36:10.066Z] 
+[2026-09-05T22:36:10.066Z] ── RESULT ── MD 15 · AST - TOT ────────────────────────────────── 1 goal ──
+[2026-09-05T22:36:10.066Z]    score     HT 0 - 1     FT 0 - 1     sum=1
+[2026-09-05T22:36:10.066Z]    O/U 1.5   Over   1.06     Under  8.25 ✓
+[2026-09-05T22:36:10.066Z]    O/U 2.5   Over   1.32     Under  3.30 ✓
+[2026-09-05T22:36:10.066Z]    O/U 3.5   Over   1.87     Under  1.90 ✓
+[2026-09-05T22:36:10.067Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip
+[2026-09-05T22:40:11.975Z] 
+[2026-09-05T22:40:11.975Z] ── NEXT ── MD 17 · ARS - LEE ─────────────────────────── closes in 04:48 ──
+[2026-09-05T22:40:11.975Z]    O/U 1.5   Over   1.19     Under  4.55
+[2026-09-05T22:40:11.975Z]    O/U 2.5   Over   1.69     Under  2.13
+[2026-09-05T22:40:11.975Z]    O/U 3.5   Over   2.85     Under  1.41
+[2026-09-05T22:41:12.404Z] 
+[2026-09-05T22:41:12.405Z] ── RESULT ── MD 16 · AST - IPS ───────────────────────────────── 3 goals ──
+[2026-09-05T22:41:12.405Z]    score     HT 0 - 0     FT 3 - 0     sum=3
+[2026-09-05T22:41:12.405Z]    O/U 1.5   Over   1.09 ✓   Under  6.50
+[2026-09-05T22:41:12.405Z]    O/U 2.5   Over   1.42 ✓   Under  2.80
+[2026-09-05T22:41:12.405Z]    O/U 3.5   Over   2.13     Under  1.69 ✓
+[2026-09-05T22:41:12.405Z] [high-scoring-pair] COOLDOWN: paused — resumes at the next result
+[2026-09-05T22:41:27.471Z] [high-scoring-pair] COOLDOWN over — monitoring resumed
+[2026-09-05T22:45:14.435Z] 
+[2026-09-05T22:45:14.436Z] ── NEXT ── MD 18 · ARS - HUL ─────────────────────────── closes in 04:45 ──
+[2026-09-05T22:45:14.436Z]    O/U 1.5   Over   1.19     Under  4.50
+[2026-09-05T22:45:14.436Z]    O/U 2.5   Over   1.70     Under  2.11
+[2026-09-05T22:45:14.436Z]    O/U 3.5   Over   2.85     Under  1.41
+[2026-09-05T22:46:14.933Z] 
+[2026-09-05T22:46:14.933Z] ── RESULT ── MD 17 · ARS - LEE ───────────────────────────────── 2 goals ──
+[2026-09-05T22:46:14.933Z]    score     HT 1 - 0     FT 2 - 0     sum=2
+[2026-09-05T22:46:14.933Z]    O/U 1.5   Over   1.19 ✓   Under  4.55
+[2026-09-05T22:46:14.933Z]    O/U 2.5   Over   1.69     Under  2.13 ✓
+[2026-09-05T22:46:14.933Z]    O/U 3.5   Over   2.85     Under  1.41 ✓
+[2026-09-05T22:50:02.077Z] 
+[2026-09-05T22:50:02.078Z] ── NEXT ── MD 19 · ARS - CHE ─────────────────────────── closes in 04:57 ──
+[2026-09-05T22:50:02.078Z]    O/U 1.5   Over   1.21     Under  4.25
+[2026-09-05T22:50:02.078Z]    O/U 2.5   Over   1.76     Under  2.02
+[2026-09-05T22:50:02.078Z]    O/U 3.5   Over   3.00     Under  1.37
+[2026-09-05T22:51:02.526Z] 
+[2026-09-05T22:51:02.526Z] ── RESULT ── MD 18 · ARS - HUL ───────────────────────────────── 5 goals ──
+[2026-09-05T22:51:02.526Z]    score     HT 1 - 0     FT 3 - 2     sum=5
+[2026-09-05T22:51:02.526Z]    O/U 1.5   Over   1.19 ✓   Under  4.50
+[2026-09-05T22:51:02.526Z]    O/U 2.5   Over   1.70 ✓   Under  2.11
+[2026-09-05T22:51:02.526Z]    O/U 3.5   Over   2.85 ✓   Under  1.41
+[2026-09-05T22:55:04.990Z] 
+[2026-09-05T22:55:04.991Z] ── NEXT ── MD 20 · ARS - LIV ─────────────────────────── closes in 04:55 ──
+[2026-09-05T22:55:04.991Z]    O/U 1.5   Over   1.30     Under  3.35
+[2026-09-05T22:55:04.991Z]    O/U 2.5   Over   2.06     Under  1.73
+[2026-09-05T22:55:04.991Z]    O/U 3.5   Over   3.85     Under  1.24
+[2026-09-05T22:56:05.495Z] 
+[2026-09-05T22:56:05.495Z] ── RESULT ── MD 19 · ARS - CHE ───────────────────────────────── 5 goals ──
+[2026-09-05T22:56:05.495Z]    score     HT 1 - 2     FT 3 - 2     sum=5
+[2026-09-05T22:56:05.495Z]    O/U 1.5   Over   1.21 ✓   Under  4.25
+[2026-09-05T22:56:05.495Z]    O/U 2.5   Over   1.76 ✓   Under  2.02
+[2026-09-05T22:56:05.495Z]    O/U 3.5   Over   3.00 ✓   Under  1.37
+[2026-09-05T22:56:05.496Z] [high-scoring-pair] PATTERN FIRE: 2 consecutive rounds with sum >= 4 (sums: 5, 5) -> Under 3.5 on the next round
+[2026-09-05T22:56:15.146Z] [high-scoring-pair] BET PLACED: round 1630026 ARS - LIV Under 3.5 stake=5 FCFA dryRun=false
+[2026-09-05T22:56:15.147Z] [high-scoring-pair] COOLDOWN started: skipping the next 3 rounds (results keep printing)
+[2026-09-05T23:00:01.943Z] 
+[2026-09-05T23:00:01.944Z] ── NEXT ── MD 21 · ARS - BHA ─────────────────────────── closes in 04:58 ──
+[2026-09-05T23:00:01.944Z]    O/U 1.5   Over   1.20     Under  4.30
+[2026-09-05T23:00:01.944Z]    O/U 2.5   Over   1.74     Under  2.05
+[2026-09-05T23:00:01.944Z]    O/U 3.5   Over   2.95     Under  1.38
+[2026-09-05T23:01:02.448Z] 
+[2026-09-05T23:01:02.448Z] ── RESULT ── MD 20 · ARS - LIV ────────────────────────────────── 1 goal ──
+[2026-09-05T23:01:02.448Z]    score     HT 0 - 0     FT 1 - 0     sum=1
+[2026-09-05T23:01:02.448Z]    O/U 1.5   Over   1.30     Under  3.35 ✓
+[2026-09-05T23:01:02.448Z]    O/U 2.5   Over   2.06     Under  1.73 ✓
+[2026-09-05T23:01:02.448Z]    O/U 3.5   Over   3.85     Under  1.24 ✓
+[2026-09-05T23:01:02.449Z] [high-scoring-pair] COOLDOWN: paused — 2 more round(s) to skip
+[2026-09-05T23:05:04.515Z] 
+[2026-09-05T23:05:04.515Z] ── NEXT ── MD 22 · ARS - AST ─────────────────────────── closes in 04:55 ──
+[2026-09-05T23:05:04.515Z]    O/U 1.5   Over   1.22     Under  4.15
+[2026-09-05T23:05:04.515Z]    O/U 2.5   Over   1.78     Under  1.99
+[2026-09-05T23:05:04.515Z]    O/U 3.5   Over   3.10     Under  1.35
+[2026-09-05T23:06:04.948Z] 
+[2026-09-05T23:06:04.948Z] ── RESULT ── MD 21 · ARS - BHA ───────────────────────────────── 5 goals ──
+[2026-09-05T23:06:04.948Z]    score     HT 2 - 1     FT 3 - 2     sum=5
+[2026-09-05T23:06:04.948Z]    O/U 1.5   Over   1.20 ✓   Under  4.30
+[2026-09-05T23:06:04.948Z]    O/U 2.5   Over   1.74 ✓   Under  2.05
+[2026-09-05T23:06:04.948Z]    O/U 3.5   Over   2.95 ✓   Under  1.38
+[2026-09-05T23:06:04.949Z] [high-scoring-pair] COOLDOWN: paused — 1 more round(s) to skip

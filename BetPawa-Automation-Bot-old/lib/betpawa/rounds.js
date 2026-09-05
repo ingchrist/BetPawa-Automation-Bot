@@ -139,3 +139,43 @@ export function formatCountdown(round, nowMs = Date.now()) {
     const s = totalSec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
+// --- Over/Under market -------------------------------------------------
+
+export const OVER_UNDER_MARKET_ID = '5000'; // "Total Score Over/Under - FT"
+
+/**
+ * The Over/Under lines the site offers for a fixture (1.5 / 2.5 / 3.5),
+ * ascending by total: [{ total: 2.5, over: 1.58, under: 2.35 }, ...].
+ *
+ * Confirmed live: a fixture carries `markets` ONLY while its round is the one
+ * currently open for betting. The moment the round kicks off, the by-round
+ * endpoint keeps returning the fixture (with its score, once played) but with
+ * `markets: []` — verified against three consecutive past rounds, all of
+ * which had scores and zero markets. Odds therefore have to be CAPTURED while
+ * the round is still open and cached; they can never be fetched back
+ * afterwards to sit next to the result.
+ */
+export function getOverUnderOdds(fixture) {
+    const market = (fixture?.markets || []).find((m) => m.marketType?.id === OVER_UNDER_MARKET_ID);
+    if (!market) return [];
+    return (market.row || [])
+        .map((row) => {
+            // `specifier.total` is the handicap as the site renders it ("2.5").
+            // `row.handicap` is an unrelated internal integer (6/10/14) — never
+            // use it as the line.
+            const total = Number(row.specifier?.total ?? row.prices?.[0]?.handicap);
+            const over = (row.prices || []).find((p) => p.name === 'Over');
+            const under = (row.prices || []).find((p) => p.name === 'Under');
+            if (!Number.isFinite(total) || !over || !under) return null;
+            return { total, over: Number(over.odds), under: Number(under.odds) };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.total - b.total);
+}
+
+// Which side of each line a final goal total actually landed on. Every line
+// is a .5 handicap, so there is never a push.
+export function settleOverUnderOdds(lines, sum) {
+    return lines.map((line) => ({ ...line, winner: sum > line.total ? 'Over' : 'Under' }));
+}

@@ -95,3 +95,33 @@ test('each pattern gets its own independent slot', () => {
     assert.equal(store.hasAttempted('a', 'r1'), true);
     assert.equal(store.hasAttempted('b', 'r1'), false);
 });
+
+test('captured odds survive a save/load round trip and prune by trading start', () => {
+    const filePath = tmpFile();
+    const lines = [{ total: 1.5, over: 1.15, under: 5.25 }];
+    const store = createStateStore({ filePath, legacyPatternId: 'p' });
+
+    assert.equal(store.getRoundOdds('r1'), null); // nothing captured yet
+    store.recordRoundOdds('r1', lines, '2026-01-01T00:00:00Z');
+    store.save();
+
+    const reloaded = createStateStore({ filePath, legacyPatternId: 'p' });
+    assert.deepEqual(reloaded.getRoundOdds('r1'), lines);
+
+    // Odds captured for a round that started earlier must be the first to go,
+    // regardless of id ordering — ids are not chronological across seasons.
+    for (let i = 0; i < 60; i++) {
+        reloaded.recordRoundOdds(`later-${i}`, lines, new Date(Date.UTC(2026, 1, 1) + i * 1000).toISOString());
+    }
+    assert.equal(reloaded.getRoundOdds('r1'), null);
+    assert.deepEqual(reloaded.getRoundOdds('later-59'), lines);
+});
+
+test('a v2 state file written before odds capture existed still loads', () => {
+    const filePath = tmpFile();
+    fs.writeFileSync(filePath, JSON.stringify({ version: 2, seasonId: '1', roundSums: {}, patterns: {} }));
+    const store = createStateStore({ filePath, legacyPatternId: 'p' });
+    assert.equal(store.getRoundOdds('anything'), null);
+    store.recordRoundOdds('r1', [{ total: 2.5, over: 1.58, under: 2.35 }], '2026-01-01T00:00:00Z');
+    assert.equal(store.getRoundOdds('r1').length, 1);
+});

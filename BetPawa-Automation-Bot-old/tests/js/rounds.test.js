@@ -15,6 +15,8 @@ import {
     getScoreDisplay,
     formatFixtureLine,
     formatCountdown,
+    getOverUnderOdds,
+    settleOverUnderOdds,
     FINALITY_BUFFER_MS,
 } from '../../lib/betpawa/rounds.js';
 
@@ -122,4 +124,66 @@ test('display mirrors the site row: (HT) FT', () => {
 test('countdown mirrors the site and never goes negative', () => {
     assert.equal(formatCountdown(mkRound(1, 222_000), 0), '03:42');
     assert.equal(formatCountdown(mkRound(1, 0), 999_000), '00:00');
+});
+
+// --- Over/Under odds ----------------------------------------------------
+
+// Trimmed from a real by-round response: only the fields the extractor reads.
+const mkOuFixture = () => ({
+    name: 'AST - COV',
+    markets: [
+        { marketType: { id: '3743' }, row: [{ prices: [{ name: '1', odds: 1.53 }] }] },
+        {
+            marketType: { id: '5000' },
+            row: [
+                // Deliberately out of order, and carrying the internal integer
+                // `handicap` (6/10/14) that must NOT be mistaken for the line.
+                {
+                    handicap: 14,
+                    specifier: { total: '3.5' },
+                    prices: [{ name: 'Over', odds: 2.55 }, { name: 'Under', odds: 1.5 }],
+                },
+                {
+                    handicap: 6,
+                    specifier: { total: '1.5' },
+                    prices: [{ name: 'Over', odds: 1.15 }, { name: 'Under', odds: 5.25 }],
+                },
+                {
+                    handicap: 10,
+                    specifier: { total: '2.5' },
+                    prices: [{ name: 'Over', odds: 1.58 }, { name: 'Under', odds: 2.35 }],
+                },
+            ],
+        },
+    ],
+});
+
+test('getOverUnderOdds returns the three lines ascending, using the displayed total', () => {
+    assert.deepEqual(getOverUnderOdds(mkOuFixture()), [
+        { total: 1.5, over: 1.15, under: 5.25 },
+        { total: 2.5, over: 1.58, under: 2.35 },
+        { total: 3.5, over: 2.55, under: 1.5 },
+    ]);
+});
+
+test('getOverUnderOdds is empty for a round that has already kicked off', () => {
+    // Confirmed live: the by-round endpoint keeps returning a played fixture
+    // (with its score) but strips `markets` entirely, which is exactly why the
+    // odds have to be captured while the round is still open.
+    assert.deepEqual(getOverUnderOdds({ name: 'AST - COV', markets: [] }), []);
+    assert.deepEqual(getOverUnderOdds({ name: 'AST - COV' }), []);
+    assert.deepEqual(getOverUnderOdds(null), []);
+});
+
+test('settleOverUnderOdds marks the side the goal total landed on', () => {
+    const lines = getOverUnderOdds(mkOuFixture());
+    assert.deepEqual(settleOverUnderOdds(lines, 3).map((l) => l.winner), ['Over', 'Over', 'Under']);
+    // A goalless round is Under on every line; a rout is Over on every line.
+    assert.deepEqual(settleOverUnderOdds(lines, 0).map((l) => l.winner), ['Under', 'Under', 'Under']);
+    assert.deepEqual(settleOverUnderOdds(lines, 6).map((l) => l.winner), ['Over', 'Over', 'Over']);
+});
+
+test('settleOverUnderOdds keeps the prices intact alongside the verdict', () => {
+    const [first] = settleOverUnderOdds(getOverUnderOdds(mkOuFixture()), 2);
+    assert.deepEqual(first, { total: 1.5, over: 1.15, under: 5.25, winner: 'Over' });
 });

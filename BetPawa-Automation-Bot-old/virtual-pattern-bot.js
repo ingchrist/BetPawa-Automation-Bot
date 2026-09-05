@@ -16,6 +16,7 @@
 //   lib/betpawa/api.js         the virtual-sports HTTP API
 //   lib/betpawa/rounds.js      pure round/score domain logic
 //   lib/betpawa/betting-ui.js  the DOM action layer that actually clicks
+//   lib/display.js             the NEXT/RESULT terminal blocks
 //   lib/patterns/              the pattern registry — add new patterns here
 //   lib/pattern-engine.js      cooldowns, gating, placement orchestration
 //
@@ -45,9 +46,9 @@ import {
     isFixtureFinalized,
     getFullTimeScore,
     getScoreDisplay,
-    formatFixtureLine,
-    formatCountdown,
+    getOverUnderOdds,
 } from './lib/betpawa/rounds.js';
+import { renderUpcomingOdds, renderResult, renderLegend } from './lib/display.js';
 import { ensureActionPage, placeBet, VIRTUAL_SPORTS_URL } from './lib/betpawa/betting-ui.js';
 
 // The pattern that owned the top-level cooldown/betRoundIds fields before
@@ -89,6 +90,7 @@ async function main() {
     for (const p of carriedCooldowns) {
         log(`  [${p.id}] COOLDOWN carried over from a previous run — ${store.forPattern(p.id).cooldownRoundsRemaining} round(s) still to skip`);
     }
+    for (const line of renderLegend()) log(line);
     store.save(); // persist the migrated shape immediately, before any betting decision
 
     let browser = await chromium.connectOverCDP(config.cdpEndpoint);
@@ -162,10 +164,51 @@ async function main() {
         if (store.seasonId !== bettingRound.seasonId) log(`season: ${store.seasonId ?? '(none)'} -> ${bettingRound.seasonId}`);
         store.seasonId = bettingRound.seasonId;
 
+        // The betting round's row-1 fixture, fetched at most once per poll and
+        // shared by the odds capture below and by any pattern that fires.
+        let bettingFixture;
+        const resolveFixture = async () => {
+            if (bettingFixture === undefined) {
+                const events = await retry(() => fetchRoundEvents(apiPage, bettingRound.id));
+                bettingFixture = getRowOneFixture(events);
+            }
+            return bettingFixture;
+        };
+
+        // Capture this round's O/U odds while they still exist. The site drops
+        // a round's markets the moment it kicks off (see getOverUnderOdds), so
+        // this is the only window in which the "before" half of the pairing can
+        // be obtained — miss it and the result prints with no odds beside it,
+        // forever. Guarded by the store, so it costs one fetch per ROUND, not
+        // one per poll, and survives a restart mid-round.
+        let capturedOdds = null;
+        if (!store.getRoundOdds(bettingRound.id)) {
+            const fixture = await resolveFixture();
+            const lines = fixture ? getOverUnderOdds(fixture) : [];
+            if (lines.length) {
+                store.recordRoundOdds(bettingRound.id, lines, bettingRound.tradingTime.start);
+                store.save();
+                capturedOdds = { round: bettingRound, fixture, lines, countdownRound: nextInfo.round };
+            }
+        }
+
+        // Printed AFTER the result block below, so each poll reads
+        // chronologically: how the last round finished, then what is on offer
+        // for the next one. Deferred rather than printed inline because every
+        // early return below still has to emit it.
+        const printCapturedOdds = () => {
+            if (!capturedOdds) return;
+            for (const line of renderUpcomingOdds(capturedOdds)) log(line);
+            capturedOdds = null;
+        };
+
         // Expected/normal on most polls (the newest round is simply still
         // running) — not worth a log line every 15s, so this stays silent.
         const window = getSettledWindow(roundsAsc, nextInfo.index, historySize);
-        if (!window.length) return;
+        if (!window.length) {
+            printCapturedOdds();
+            return;
+        }
 
         const newestRound = window[window.length - 1];
         const needsDisplay = newestRound.id !== lastLoggedResultRoundId;
@@ -176,6 +219,7 @@ async function main() {
         // still has to be printed, since the cache holds sums, not scorelines.
         const sums = [];
         let newestFixture = null;
+        let pending = false;
         for (const round of window) {
             const cached = store.getRoundSum(round.id);
             const isNewest = round.id === newestRound.id;
@@ -185,32 +229,32 @@ async function main() {
             }
             const events = await retry(() => fetchRoundEvents(apiPage, round.id));
             const fixture = getRowOneFixture(events);
-            if (!fixture || !isFixtureFinalized(fixture)) return; // transient, self-corrects on the next poll
+            if (!fixture || !isFixtureFinalized(fixture)) {
+                pending = true; // transient, self-corrects on the next poll
+                break;
+            }
             const { sum } = getFullTimeScore(fixture);
             store.recordRoundSum(round.id, sum, round.tradingTime.start);
             sums.push(sum);
             if (isNewest) newestFixture = fixture;
         }
+        if (pending) {
+            printCapturedOdds();
+            return;
+        }
 
         // Show each newly-completed result exactly once, one fixture at a
-        // time — mirroring the site's own live feed — with the countdown to
-        // the round a bet would go on.
+        // time — mirroring the site's own live feed — alongside the odds this
+        // round had been offering, which were captured a poll cycle ago while
+        // it was still open.
         if (needsDisplay && newestFixture) {
             lastLoggedResultRoundId = newestRound.id;
             const score = getScoreDisplay(newestFixture);
-            log(`${formatFixtureLine(newestFixture, score)}   sum=${score.sum}   |  Next round starts in: ${formatCountdown(nextInfo.round)}`);
+            const lines = store.getRoundOdds(newestRound.id);
+            for (const line of renderResult({ round: newestRound, fixture: newestFixture, score, lines })) log(line);
         }
 
-        // The betting round's own fixture is only needed if something
-        // actually fires, so it is fetched lazily and at most once per poll.
-        let bettingFixture;
-        const resolveFixture = async () => {
-            if (bettingFixture === undefined) {
-                const events = await retry(() => fetchRoundEvents(apiPage, bettingRound.id));
-                bettingFixture = getRowOneFixture(events);
-            }
-            return bettingFixture;
-        };
+        printCapturedOdds();
 
         await engine.run({ sums, settledRoundId: newestRound.id, bettingRound, resolveFixture });
         store.save();

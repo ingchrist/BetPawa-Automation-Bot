@@ -48,6 +48,7 @@ Everything is read in one place, `lib/config.js`. CLI flags beat env, env beats
 | `VIRTUAL_LOG_DIR` | `logs` | where the daily log files go |
 | `VIRTUAL_STATE_PATH` | `storage/virtual-pattern-state.json` | durable state |
 | `VIRTUAL_AUDIT_LOG_PATH` | `storage/logs/virtual-pattern-bets.jsonl` | audit trail |
+| `NO_COLOR` | unset | set to anything to disable terminal colour |
 
 CLI: `--dry-run`, `--stake=25`, `--patterns=low-scoring-streak`.
 
@@ -102,6 +103,7 @@ lib/
   state-store.js              durable state, per-pattern namespaces, migration
   audit-log.js                JSONL record of every placement attempt
   pattern-engine.js           cooldowns, gating, placement orchestration
+  display.js                  the NEXT / RESULT terminal blocks
   betpawa/
     api.js                    the virtual-sports HTTP API
     rounds.js                 pure round/score domain logic (no I/O)
@@ -117,6 +119,51 @@ lib/
 browser. `lib/betpawa/api.js` treats `page` as an opaque fetch executor — the API
 validates a device fingerprint tied to the real browser, so requests must run
 inside the logged-in page rather than from a Node HTTP client.
+
+## What the terminal prints
+
+Each round is printed twice, about five minutes apart, so the odds the market was
+offering can be read directly against the score that followed:
+
+```
+── NEXT ── MD 01 · AST - CRY ─────────────────────────── closes in 03:15 ──
+   O/U 1.5   Over   1.13     Under  5.75
+   O/U 2.5   Over   1.52     Under  2.50
+   O/U 3.5   Over   2.35     Under  1.56
+
+── RESULT ── MD 01 · AST - CRY ───────────────────────────────── 3 goals ──
+   score     HT 1 - 1     FT 2 - 1     sum=3
+   O/U 1.5   Over   1.13 ✓   Under  5.75
+   O/U 2.5   Over   1.52 ✓   Under  2.50
+   O/U 3.5   Over   2.35     Under  1.56 ✓
+```
+
+`NEXT` is the "before": the Over/Under prices on the round that is open for
+betting right now, for the row-1 fixture — the same fixture the patterns bet on.
+`RESULT` is the "after": that same round's score, with **those exact prices
+reprinted** and a `✓` on the side that won (the losing side is dimmed). The two
+blocks for one round are five minutes apart in the scrollback, which is why the
+result repeats the odds rather than making you scroll back for them.
+
+### Why the odds have to be captured, not fetched
+
+A fixture carries its `markets` **only while its round is the one open for
+betting**. The moment the round kicks off, the by-round endpoint keeps returning
+the fixture — with its score once played — but with `markets: []`. Verified live
+against three consecutive past rounds: all had scores, none had markets.
+
+So odds cannot be looked up after the fact. The bot captures them the first time
+it sees a round open and writes them to `roundOdds` in the state file, where the
+result printer picks them up a round later. Consequences:
+
+- The capture costs one API fetch per **round**, not per poll, and the fetched
+  fixture is reused if a pattern fires on the same poll.
+- Odds survive a restart, since they are on disk rather than in memory.
+- A round already under way when the bot starts has no odds to show, and the
+  `RESULT` block says so explicitly instead of printing a blank table.
+
+Colour is emitted only to an interactive TTY (and `NO_COLOR` is honoured); the
+logger strips escape codes on the way to the log file.
 
 ## Timing, and which round is which
 

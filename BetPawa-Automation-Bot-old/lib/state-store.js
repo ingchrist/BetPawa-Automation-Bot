@@ -5,6 +5,11 @@
 //   - roundSums: a rolling cache of settled rounds' full-time goal totals, so
 //     a 5-round window costs one API fetch per new round instead of five per
 //     poll. Authoritative: patterns are evaluated from it.
+//   - roundOdds: the Over/Under prices a round was offering while it was open
+//     for betting. This is a CAPTURE, not a cache: the site drops a round's
+//     markets the instant it kicks off (see getOverUnderOdds), so if these
+//     are not written down while the round is open they are gone for good and
+//     the result can never be shown next to the odds that preceded it.
 //   - patterns[id]: per-pattern bookkeeping (which rounds it has already
 //     attempted, and its own cooldown). Namespacing by pattern id is what
 //     lets patterns run side by side without one's cooldown muting another.
@@ -19,6 +24,10 @@ const ROUND_SUM_HISTORY = 40;
 // recent ones can still be re-offered by the site, so older ids are dead
 // weight. Comfortably larger than any realistic backlog of open rounds.
 const BET_ROUND_HISTORY = 50;
+// Odds are captured one round BEFORE the matching result prints, and are
+// worth keeping around afterwards as the raw material for "what did the
+// market think, and what actually happened". Same order as the sum history.
+const ROUND_ODDS_HISTORY = 40;
 
 function defaultPatternState() {
     return {
@@ -36,6 +45,7 @@ function defaultState() {
         version: 2,
         seasonId: null,
         roundSums: {},   // roundId -> { sum, startsAt }
+        roundOdds: {},   // roundId -> { lines: [{ total, over, under }], startsAt }
         patterns: {},    // patternId -> defaultPatternState()
         updatedAt: null,
     };
@@ -75,6 +85,13 @@ export function migrateState(raw, legacyPatternId) {
         }
     }
     return state;
+}
+
+// Prune by trading-window start, never by id: ids are not chronological
+// across seasons (see rounds.js).
+function pruneByStart(map, keep) {
+    const ids = Object.keys(map).sort((a, b) => Date.parse(map[a].startsAt) - Date.parse(map[b].startsAt));
+    for (const id of ids.slice(0, Math.max(0, ids.length - keep))) delete map[id];
 }
 
 export function createStateStore({ filePath, legacyPatternId }) {
@@ -119,14 +136,17 @@ export function createStateStore({ filePath, legacyPatternId }) {
 
         recordRoundSum(roundId, sum, startsAt) {
             state.roundSums[roundId] = { sum, startsAt };
-            // Prune by trading-window start, never by id: ids are not
-            // chronological across seasons.
-            const ids = Object.keys(state.roundSums).sort(
-                (a, b) => Date.parse(state.roundSums[a].startsAt) - Date.parse(state.roundSums[b].startsAt)
-            );
-            for (const id of ids.slice(0, Math.max(0, ids.length - ROUND_SUM_HISTORY))) {
-                delete state.roundSums[id];
-            }
+            pruneByStart(state.roundSums, ROUND_SUM_HISTORY);
+        },
+
+        /** The captured O/U lines for a round, or null if none were captured. */
+        getRoundOdds(roundId) {
+            return state.roundOdds[roundId]?.lines ?? null;
+        },
+
+        recordRoundOdds(roundId, lines, startsAt) {
+            state.roundOdds[roundId] = { lines, startsAt };
+            pruneByStart(state.roundOdds, ROUND_ODDS_HISTORY);
         },
 
         hasAttempted(patternId, roundId) {
