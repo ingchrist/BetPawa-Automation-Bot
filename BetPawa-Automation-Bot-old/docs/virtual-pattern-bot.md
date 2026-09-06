@@ -21,7 +21,16 @@ npm run virtual-bet:recon        # live selector check against the real page
 | --- | --- | --- |
 | `high-scoring-pair` | 2 consecutive rounds with total goals **>= 4** | `O/U` → **Under 3.5** |
 | `low-scoring-streak` | 5 consecutive rounds with total goals **<= 2** | `O/U` → **Over 2.5** |
-| `low-scoring-trio` | 3 consecutive rounds with total goals **<= 2** | `O/U` → **Over 2.5** |
+| ~~`low-scoring-trio`~~ | 3 consecutive rounds with total goals **<= 2** | `O/U` → **Over 2.5** — **DISABLED** |
+
+`low-scoring-trio` is **switched off** as of 2026-09-06 (operator decision). Its
+module `lib/patterns/low-scoring-trio.js` is untouched and still unit-tested, but
+it is commented out of the registry in `lib/patterns/index.js`, so the bot never
+evaluates it and never places its Over 2.5. Because the switch is the registry
+and not config, no `.env` value or `--patterns` flag can bring it back — only
+uncommenting the two lines in `lib/patterns/index.js` (the header comment there
+says exactly what to restore). Everything below that describes the trio is kept
+for that day; it does not describe the bot's current behaviour.
 
 "Total goals" is the full-time sum of the league's **row-1** fixture — the first
 fixture as actually displayed on the site, which is the alphabetically-first one,
@@ -43,14 +52,15 @@ counter goes back to 0:
 ```
 
 So a pattern of window `N` with skip `S` fires at most once every `N + S`
-rounds. On the default `S = 1` the trio runs on a 4-round rhythm and the streak
-on a 6-round one. Each pattern's counter is its own and is persisted, so a
+rounds. On the default `S = 1` the streak runs on a 6-round rhythm (and the
+disabled trio would run on a 4-round one). Each pattern's counter is its own and is persisted, so a
 restart resumes the block that was in progress rather than re-aligning every
 boundary to whenever the process came up.
 
 **The cost, stated plainly.** Whole blocks cannot see a qualifying run that
-straddles a block boundary. With sums `1, 4, 1, 1, 1` the trio judges `[1,4,1]`,
-misses, restarts its count, and never judges the genuine low trio in rounds 3-5.
+straddles a block boundary. With sums `1, 4, 1, 1, 1` a 3-round pattern judges
+`[1,4,1]`, misses, restarts its count, and never judges the genuine low run in
+rounds 3-5.
 That is inherent to counting blocks, and is the trade the design makes in
 exchange for a rhythm you can predict without simulating a sliding window
 against a cooldown number.
@@ -62,6 +72,12 @@ and begin again from the newest round. Inferring a block boundary from history
 the bot never watched would make the boundary an accident of startup timing.
 
 ### When several patterns fire on the same round
+
+The engine's same-round handling below is live and unchanged. The worked example
+of *which* patterns contend is written against `low-scoring-trio`, which is
+currently disabled — with only `high-scoring-pair` and `low-scoring-streak`
+registered, nothing contends today, since a sum cannot be both `>= 4` and `<= 2`.
+Read it as the rule the engine applies, and as what returns if the trio does.
 
 `low-scoring-trio` **strictly subsumes** `low-scoring-streak`: every 5-round low
 streak contains a 3-round low tail, so whenever the streak *matches*, the trio
@@ -155,22 +171,22 @@ Everything is read in one place, `lib/config.js`. CLI flags beat env, env beats
 | `VIRTUAL_AUDIT_LOG_PATH` | `storage/logs/virtual-pattern-bets.jsonl` | audit trail |
 | `NO_COLOR` | unset | set to anything to disable terminal colour |
 
-CLI: `--dry-run`, `--stake=25`, `--patterns=low-scoring-trio`.
+CLI: `--dry-run`, `--stake=25`, `--patterns=low-scoring-streak`.
 
 Any pattern can override the stake, the cooldown, or be switched off on its own,
 using its id upper-snake-cased:
 
 ```bash
-VIRTUAL_LOW_SCORING_TRIO_STAKE_FCFA=50        # bet 50 FCFA on this pattern only
-VIRTUAL_LOW_SCORING_TRIO_COOLDOWN_ROUNDS=6
+VIRTUAL_LOW_SCORING_STREAK_STAKE_FCFA=50      # bet 50 FCFA on this pattern only
+VIRTUAL_LOW_SCORING_STREAK_COOLDOWN_ROUNDS=6
 VIRTUAL_HIGH_SCORING_PAIR_ENABLED=false       # pause just this one
 
-# Since low-scoring-trio subsumes low-scoring-streak and they bet the same
-# thing, running the trio alone is a reasonable choice:
-VIRTUAL_LOW_SCORING_STREAK_ENABLED=false
+# These knobs only reach REGISTERED patterns. VIRTUAL_LOW_SCORING_TRIO_* is
+# inert while the trio is commented out of lib/patterns/index.js, and
+# `--patterns=low-scoring-trio` is a startup error, not a silent no-op.
 ```
 
-## Adding a fourth pattern
+## Adding another pattern
 
 1. Create `lib/patterns/<your-pattern>.js` and default-export a pattern object.
    For the "N consecutive rounds whose total satisfies a predicate" shape, use
@@ -223,7 +239,7 @@ lib/
     streak.js                 factory + the Pattern contract
     high-scoring-pair.js
     low-scoring-streak.js
-    low-scoring-trio.js
+    low-scoring-trio.js       disabled: present, tested, not registered
 ```
 
 `lib/betpawa/rounds.js` and `lib/patterns/*` are pure and can be tested without a

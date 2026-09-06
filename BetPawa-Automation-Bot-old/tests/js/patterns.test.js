@@ -9,6 +9,9 @@ import { ALL_PATTERNS, getEnabledPatterns, maxWindowSize } from '../../lib/patte
 import { createStreakPattern } from '../../lib/patterns/streak.js';
 import highScoringPair from '../../lib/patterns/high-scoring-pair.js';
 import lowScoringStreak from '../../lib/patterns/low-scoring-streak.js';
+// low-scoring-trio is currently NOT registered (see lib/patterns/index.js).
+// Its module is imported directly here so its rules stay under test while it
+// is switched off, ready for the day it is put back in ALL_PATTERNS.
 import lowScoringTrio from '../../lib/patterns/low-scoring-trio.js';
 
 const cfg = (env = {}, argv = []) => loadConfig({ argv, env });
@@ -132,18 +135,30 @@ test('history depth is driven by the widest enabled pattern', () => {
 
 test('patterns can be selected, and a single one disabled, from config', () => {
     assert.deepEqual(getEnabledPatterns(cfg()).map((p) => p.id),
-        ['high-scoring-pair', 'low-scoring-streak', 'low-scoring-trio']);
-    assert.deepEqual(getEnabledPatterns(cfg({}, ['--patterns=low-scoring-trio'])).map((p) => p.id), ['low-scoring-trio']);
+        ['high-scoring-pair', 'low-scoring-streak']);
+    assert.deepEqual(
+        getEnabledPatterns(cfg({}, ['--patterns=low-scoring-streak'])).map((p) => p.id),
+        ['low-scoring-streak']
+    );
     assert.deepEqual(
         getEnabledPatterns(cfg({ VIRTUAL_HIGH_SCORING_PAIR_ENABLED: 'false' })).map((p) => p.id),
-        ['low-scoring-streak', 'low-scoring-trio']
+        ['low-scoring-streak']
     );
-    // Because the trio subsumes the streak, turning the streak off is a
-    // reasonable operator choice — it must not disturb the others.
     assert.deepEqual(
         getEnabledPatterns(cfg({ VIRTUAL_LOW_SCORING_STREAK_ENABLED: 'false' })).map((p) => p.id),
-        ['high-scoring-pair', 'low-scoring-trio']
+        ['high-scoring-pair']
     );
+});
+
+test('low-scoring-trio is unregistered, so no config can switch it back on', () => {
+    // Turning it off was a deliberate operator decision, and un-registering it
+    // is the switch. Nothing an operator can put in .env or on the CLI should
+    // reach it — only editing lib/patterns/index.js can.
+    assert.ok(!ALL_PATTERNS.some((p) => p.id === 'low-scoring-trio'));
+    assert.ok(!getEnabledPatterns(cfg()).some((p) => p.id === 'low-scoring-trio'));
+    assert.ok(!getEnabledPatterns(cfg({ VIRTUAL_LOW_SCORING_TRIO_ENABLED: 'true' }))
+        .some((p) => p.id === 'low-scoring-trio'));
+    assert.throws(() => getEnabledPatterns(cfg({}, ['--patterns=low-scoring-trio'])), /unknown pattern id/);
 });
 
 test('an unknown pattern id is a startup error, not a silent no-op', () => {

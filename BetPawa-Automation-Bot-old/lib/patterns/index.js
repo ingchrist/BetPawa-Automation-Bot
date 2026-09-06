@@ -13,16 +13,27 @@
 // it rather than staking the same bet twice (see lib/pattern-engine.js). So
 // the earlier-listed pattern is the one whose stake is actually used.
 //
-// low-scoring-streak is listed before low-scoring-trio deliberately: the two
-// bet the same Over 2.5, and the 5-round streak is the narrower, stronger
-// signal, so it should own the placement on the rare rounds where both are
-// off cooldown together.
+// DISABLED PATTERNS
+// ------------------
+// low-scoring-trio is switched off (2026-09-06, operator decision). The module
+// lib/patterns/low-scoring-trio.js is intact and still unit-tested; it is
+// simply not registered, so the engine never evaluates it, never places its
+// Over 2.5 and never allocates it a cycle. Any `low-scoring-trio` entry left in
+// the state file is inert, and re-enabling later resumes from a fresh block.
+//
+// To re-enable: uncomment the import and put lowScoringTrio back at the END of
+// ALL_PATTERNS, after lowScoringStreak. The order matters — the two bet the
+// same Over 2.5, and the 5-round streak is the narrower, stronger signal, so it
+// must stay listed first to own the placement on the rounds where both fire
+// (the later one is then coalesced into it; see lib/pattern-engine.js).
+// Re-enabling also means restoring the trio cases in tests/js/patterns.test.js
+// that assert the registry's contents.
 
 import highScoringPair from './high-scoring-pair.js';
 import lowScoringStreak from './low-scoring-streak.js';
-import lowScoringTrio from './low-scoring-trio.js';
+// import lowScoringTrio from './low-scoring-trio.js';
 
-export const ALL_PATTERNS = Object.freeze([highScoringPair, lowScoringStreak, lowScoringTrio]);
+export const ALL_PATTERNS = Object.freeze([highScoringPair, lowScoringStreak /* , lowScoringTrio */]);
 
 /**
  * Patterns enabled by the current config, validated for id uniqueness.
