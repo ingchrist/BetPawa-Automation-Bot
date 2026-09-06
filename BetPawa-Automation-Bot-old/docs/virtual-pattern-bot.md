@@ -32,12 +32,35 @@ acted on, so they never interfere with each other.
 
 ### When several patterns fire on the same round
 
-They can, and two of them are *guaranteed* to: `low-scoring-trio` **strictly
-subsumes** `low-scoring-streak` — every 5-round low streak contains a 3-round low
-tail — and both want the identical **Over 2.5** on the identical fixture. (The
-per-pattern cooldown usually staggers them in practice: the trio fires at round 3
-and is still paused when the streak reaches round 5. With
-`VIRTUAL_COOLDOWN_ROUNDS=0` they coincide every time.)
+`low-scoring-trio` **strictly subsumes** `low-scoring-streak`: every 5-round low
+streak contains a 3-round low tail, so whenever the streak *matches*, the trio
+matches too — for the identical **Over 2.5** on the identical fixture.
+
+Matching together is not the same as *firing* together, though, and on default
+settings they never do. Both patterns run on a 4-round rhythm (fire, then skip
+`VIRTUAL_COOLDOWN_ROUNDS=3`), and the trio always reaches its window two rounds
+before the streak reaches its own, so they lock into anti-phase and stay there:
+
+```
+7 consecutive rounds with sum <= 2, cooldown 3:
+  round 3  trio fires     (streak has only 3 rounds of history — no match)
+  round 4  —              (trio on cooldown)
+  round 5  streak fires   (trio still on cooldown)
+  round 6  —
+  round 7  trio fires     (streak now on cooldown)   ... and so on, alternating
+```
+
+Three things break that lock and produce a genuine collision:
+
+1. **`VIRTUAL_COOLDOWN_ROUNDS=0`** — they collide on every round from the fifth
+   low onwards.
+2. **The bot starts, or restarts, when the last 5 settled rounds are already all
+   `<= 2`.** Both are off cooldown and both have a full window, so both fire on
+   the very first poll. This is the realistic one: it is purely a matter of when
+   the process happens to come up.
+3. **Unequal per-pattern cooldowns**, e.g.
+   `VIRTUAL_LOW_SCORING_TRIO_COOLDOWN_ROUNDS=1` against the streak's `3` — they
+   drift into phase and then collide every 4 rounds.
 
 `high-scoring-pair` can never contend with either: a sum cannot be both `>= 4`
 and `<= 2`.

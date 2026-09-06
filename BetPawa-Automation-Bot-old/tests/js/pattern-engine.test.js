@@ -207,6 +207,32 @@ test('the per-run cap counts bets across patterns within a single round', async 
     assert.deepEqual(h.patternState.c.betRoundIds, [], 'the capped pattern stays eligible');
 });
 
+test('the real trio/streak pair alternates on default cooldown, and coalesces on a mid-run start', async () => {
+    // Guards the reasoning in docs: the two low-scoring patterns match
+    // together by construction, but on cooldown 3 they lock into anti-phase
+    // and never actually contend...
+    const trio = alwaysFiresWanting('trio', 'Over 2.5', 3);
+    const streak = alwaysFiresWanting('streak', 'Over 2.5', 5);
+    const lows = [1, 2, 1, 2, 1, 2, 1];
+
+    const alt = harness({ patterns: [streak, trio], cooldownRounds: 3 });
+    const firedAt = [];
+    for (let i = 0; i < lows.length; i++) {
+        const before = alt.audits.length;
+        await alt.tick(lows.slice(0, i + 1).slice(-5));
+        for (const a of alt.audits.slice(before)) firedAt.push(`${i + 1}:${a.pattern}`);
+    }
+    assert.deepEqual(firedAt, ['3:trio', '5:streak', '7:trio']);
+
+    // ...but a bot STARTING with five low rounds already settled has both off
+    // cooldown with a full window, so both fire on the very first poll. That
+    // is the case the coalescing exists for.
+    const cold = harness({ patterns: [streak, trio], cooldownRounds: 3 });
+    await cold.tick([1, 2, 1, 2, 1]);
+    assert.equal(cold.placed.length, 1, 'one Over 2.5, not two');
+    assert.deepEqual(cold.audits.map((a) => [a.pattern, a.placed !== false]), [['streak', true], ['trio', false]]);
+});
+
 test("one pattern's cooldown does not mute another", async () => {
     const h = harness({ patterns: [alwaysFires('a'), neverFires('b')], cooldownRounds: 5 });
     await h.tick();                       // 'a' bets and goes on cooldown

@@ -11,11 +11,17 @@
 // RELATIONSHIP TO low-scoring-streak: this is the same rule with a shorter
 // window, so it STRICTLY SUBSUMES it — every 5-round low streak contains a
 // 3-round low tail, and both bet the identical Over 2.5 on the identical
-// row-1 fixture. They fire together whenever both are off cooldown, which the
-// engine resolves by coalescing the duplicate rather than staking twice on one
-// selection (see the same-round handling in lib/pattern-engine.js). In
-// practice the per-pattern cooldown usually staggers them: this one fires at
-// round 3 and is still paused when the streak pattern reaches round 5.
+// row-1 fixture. Whenever the streak MATCHES, this one matches too.
+//
+// Matching together is not firing together, though. On the default cooldown of
+// 3 both run on a 4-round rhythm, and this one always reaches its window two
+// rounds ahead of the streak, so they lock into anti-phase and alternate
+// indefinitely (trio at low 3, streak at low 5, trio at low 7, ...). They only
+// genuinely collide when something breaks that lock: a cooldown of 0, unequal
+// per-pattern cooldowns, or — the realistic one — the bot starting up when the
+// last 5 settled rounds are already all <= 2, so both fire on the first poll.
+// The engine coalesces that duplicate rather than staking twice on one
+// selection; see the same-round handling in lib/pattern-engine.js.
 
 import { createStreakPattern } from './streak.js';
 
