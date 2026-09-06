@@ -13,15 +13,21 @@
 // 3-round low tail, and both bet the identical Over 2.5 on the identical
 // row-1 fixture. Whenever the streak MATCHES, this one matches too.
 //
-// Matching together is not firing together, though. On the default cooldown of
-// 3 both run on a 4-round rhythm, and this one always reaches its window two
-// rounds ahead of the streak, so they lock into anti-phase and alternate
-// indefinitely (trio at low 3, streak at low 5, trio at low 7, ...). They only
-// genuinely collide when something breaks that lock: a cooldown of 0, unequal
-// per-pattern cooldowns, or — the realistic one — the bot starting up when the
-// last 5 settled rounds are already all <= 2, so both fire on the first poll.
-// The engine coalesces that duplicate rather than staking twice on one
-// selection; see the same-round handling in lib/pattern-engine.js.
+// Matching together is not firing together, though. Each pattern runs its own
+// life cycle of non-overlapping blocks (lib/pattern-cycle.js), so on the
+// default skip of 1 this one fires every 3 + 1 = 4 rounds and the streak every
+// 5 + 1 = 6. Over an unbroken low run starting at round 1 that puts the trio on
+// rounds 3, 7, 11, 15, 19, 23 and the streak on 5, 11, 17, 23: they contend on
+// round 11 and every 12 rounds after it, where the two rhythms come back into
+// phase. Independent cycles reduce collisions; they do not remove them.
+//
+// What independent cycles DO remove is the cold-start collision: a cycle that
+// cannot be resumed starts counting at the newest settled round, so both
+// patterns begin from the same origin and neither can arrive at a full window
+// on the first poll off the back of history it never watched.
+//
+// When they do contend, the engine coalesces the duplicate rather than staking
+// twice on one selection; see the same-round handling in lib/pattern-engine.js.
 
 import { createStreakPattern } from './streak.js';
 

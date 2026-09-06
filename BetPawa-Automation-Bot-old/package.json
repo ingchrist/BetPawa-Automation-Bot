@@ -15,6 +15,7 @@
         "virtual-bet:dry": "node virtual-pattern-bot.js --dry-run",
         "virtual-bet:check": "node scripts/check-patterns.js",
         "virtual-bet:recon": "node scripts/recon-virtual-betslip.js",
+        "virtual-bet:simulate": "node scripts/simulate-cycles.js",
         "test:js": "node --test tests/js/*.test.js"
     },
     "dependencies": {

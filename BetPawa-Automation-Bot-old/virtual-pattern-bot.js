@@ -18,7 +18,8 @@
 //   lib/betpawa/betting-ui.js  the DOM action layer that actually clicks
 //   lib/display.js             the NEXT/RESULT terminal blocks
 //   lib/patterns/              the pattern registry — add new patterns here
-//   lib/pattern-engine.js      cooldowns, gating, placement orchestration
+//   lib/pattern-cycle.js       the per-pattern count/fire/skip life cycle
+//   lib/pattern-engine.js      gating and placement orchestration
 //
 // Usage:
 //   node virtual-pattern-bot.js
@@ -97,9 +98,10 @@ async function main() {
         const s = config.forPattern(p.id);
         log(`  pattern "${p.id}": ${p.name} | stake=${s.stakeFcfa} FCFA, cooldown=${s.cooldownRounds} rounds`);
     }
-    const carriedCooldowns = patterns.filter((p) => store.forPattern(p.id).cooldownRoundsRemaining > 0);
-    for (const p of carriedCooldowns) {
-        log(`  [${p.id}] COOLDOWN carried over from a previous run — ${store.forPattern(p.id).cooldownRoundsRemaining} round(s) still to skip`);
+    for (const p of patterns) {
+        const { counted, skipRemaining } = store.forPattern(p.id).cycle;
+        if (skipRemaining > 0) log(`  [${p.id}] carried over from a previous run — ${skipRemaining} round(s) still to skip before counting restarts`);
+        else if (counted > 0) log(`  [${p.id}] carried over from a previous run — ${counted}/${p.windowSize} of the way through a counting block`);
     }
     for (const line of renderLegend()) log(line);
     store.save(); // persist the migrated shape immediately, before any betting decision
@@ -311,7 +313,12 @@ async function main() {
         }
         waitingOnRoundId = null;
 
-        await engine.run({ sums, settledRoundId: newestRound.id, bettingRound, resolveFixture });
+        // `sums` is the TRAILING run of `window`, so the round ids that go with
+        // it are that same tail — the engine needs them to tell which rounds a
+        // pattern's cycle has already consumed.
+        const roundIds = window.slice(window.length - sums.length).map((r) => r.id);
+
+        await engine.run({ sums, roundIds, bettingRound, resolveFixture });
         store.save();
     }
 

@@ -1,130 +1,74 @@
 // Orchestration layer: given the settled-round history and the round that is
-// currently open for betting, decides which patterns fire and places their
-// bets.
+// currently open for betting, runs each pattern's life cycle and places the
+// bets that come out of it.
 //
-// Each pattern carries its own cooldown and its own record of attempted
-// rounds, so adding, removing or pausing one has no effect on the others.
-// The engine itself contains no pattern-specific knowledge.
+// Each pattern owns its own cycle (lib/pattern-cycle.js) and its own record of
+// attempted rounds, so adding, removing or pausing one has no effect on the
+// others. The engine itself contains no pattern-specific knowledge.
 //
-// SEVERAL PATTERNS CAN FIRE ON ONE ROUND. When they do, their bets are placed
-// STRICTLY ONE AFTER ANOTHER — each placement is awaited to completion, and
-// the placement layer starts every bet from a provably empty betslip, so two
-// bets can never merge into a multi-leg accumulator (which is a different,
-// far worse bet than the two singles the patterns actually asked for).
+// THE CYCLE IS THE ONCE-PER-ROUND GATE. A pattern's cycle advances only when a
+// settled round it has not consumed appears, and that state is persisted — so
+// re-polling the same round, or restarting the process, cannot make a pattern
+// judge the same block twice, and no separate "already announced" or cooldown
+// bookkeeping is needed to suppress it.
 //
-// The exception is a DUPLICATE: two patterns wanting the same selection on
-// the same round is not two bets, it is one bet at double stake. That is
-// never what a pattern asked for, so the second is coalesced into the first —
-// no second placement, but the pattern is still recorded and still goes on
-// cooldown, because the bet it wanted is on. This is not hypothetical:
-// low-scoring-trio subsumes low-scoring-streak and both bet Over 2.5.
+// INDEPENDENT CYCLES STILL COLLIDE. Running on their own rhythms does not keep
+// the patterns apart: over an unbroken low run the trio fires on rounds
+// 3, 7, 11, ... and the streak on 5, 11, 17, ..., so they contend every 12
+// rounds — and a cold start puts both at round N of a fresh cycle together.
+// When they do collide their bets are placed STRICTLY ONE AFTER ANOTHER — each
+// placement is awaited to completion, and the placement layer starts every bet
+// from a provably empty betslip, so two bets can never merge into a multi-leg
+// accumulator (a different, far worse bet than the two singles the patterns
+// actually asked for).
+//
+// The exception is a DUPLICATE: two patterns wanting the same selection on the
+// same round is not two bets, it is one bet at double stake. That is never what
+// a pattern asked for, so the second is coalesced into the first — no second
+// placement, but it is still recorded and audited, because the bet it wanted is
+// on. This is not hypothetical: low-scoring-trio subsumes low-scoring-streak
+// and both bet Over 2.5.
 
-/**
- * Post-bet cooldown, counted in ROUNDS rather than wall-clock time: the rule
- * is "skip the next N rounds", and counting settled results themselves can't
- * drift with round length or expire on a timing knife edge the way a fixed
- * duration does.
- *
- * Pure: reports what the cooldown should become after observing the settled
- * round `roundId`; the caller writes the result back to state. `counted` is
- * false when this round was already counted (a repeat poll inside the same
- * round window, or a restart mid-cooldown), so the count advances exactly
- * once per round and the caller knows when to log.
- */
-export function advanceCooldown(patternState, roundId) {
-    const remaining = Number(patternState?.cooldownRoundsRemaining) || 0;
-    if (remaining <= 0) return { paused: false, roundsRemaining: 0, counted: false };
-    const counted = roundId !== patternState.cooldownLastCountedRoundId;
-    return { paused: true, roundsRemaining: counted ? remaining - 1 : remaining, counted };
-}
+import { advanceCycle, rewindBeforeBlock } from './pattern-cycle.js';
 
 /** The identity of a bet, for spotting two patterns asking for the same one. */
 const selectionKey = (bet) => `${bet.marketTab}|${bet.selectionLabel}`;
 
 export function createPatternEngine({ patterns, config, store, auditLog, log, placeBet }) {
-    // Process-local counters and display de-duplication. Deliberately not
-    // persisted: the bet cap is documented as per-RUN, and the announcement
-    // guards only exist to stop the same line repeating on every poll.
+    // Process-local: the bet cap is documented as per-RUN.
     let betsPlacedThisRun = 0;
-    const announcedFireForRound = new Map(); // patternId -> bettingRoundId
 
     /**
-     * @param {{ sums: number[], settledRoundId: string, bettingRound: object,
-     *           fixture: object }} ctx  `sums` is oldest -> newest, long enough
-     *           for the widest enabled pattern; `fixture` is the row-1 fixture
-     *           of the betting round (fetched lazily by the caller only when
-     *           something is about to fire).
+     * @param {{ sums: number[], roundIds: string[], bettingRound: object,
+     *           resolveFixture: () => Promise<object|null> }} ctx
+     *   `sums` and `roundIds` are the same unbroken run of settled rounds,
+     *   oldest -> newest and index-aligned; `resolveFixture` yields the row-1
+     *   fixture of the betting round, fetched lazily only when something is
+     *   about to fire.
      */
-    async function run({ sums, settledRoundId, bettingRound, resolveFixture }) {
+    async function run({ sums, roundIds, bettingRound, resolveFixture }) {
         // Selections acted on during THIS round -> which pattern acted, and
         // whether the placement was confirmed. Process-local: it exists only
         // to keep a second pattern from re-staking a bet that is already on
         // (or already in doubt).
         const claimedSelections = new Map(); // "O/U|Over 2.5" -> { patternId, confirmed }
         let placementsThisRound = 0;
+        const newestIndex = roundIds.length - 1;
 
         /**
-         * Placement was attempted (or the bet is already on via another
-         * pattern), so this pattern goes quiet for its cooldown. A failed
-         * placement pauses just the same: it is unconfirmed, and must never be
-         * effectively retried.
+         * Everything that happens once a block has fired on the newest settled
+         * round. Returns true when the bet could not be attempted yet and the
+         * cycle should be rewound so the next poll reaches this block again.
          */
-        const startCooldown = (patternState, settings, tag) => {
-            patternState.cooldownRoundsRemaining = settings.cooldownRounds;
-            // Seed with the round that fired: it is the one just evaluated,
-            // not one of the rounds being skipped, so it must not consume a
-            // slot in the count.
-            patternState.cooldownLastCountedRoundId = settledRoundId;
-            store.save();
-            if (settings.cooldownRounds > 0) {
-                log(`${tag} COOLDOWN started: skipping the next ${settings.cooldownRounds} rounds (results keep printing)`);
-            }
-        };
-
-        for (const pattern of patterns) {
-            const patternState = store.forPattern(pattern.id);
-            const settings = config.forPattern(pattern.id);
-            const tag = `[${pattern.id}]`;
-
-            // Cooldown gate first: a paused pattern announces nothing and
-            // places nothing, while results keep printing in the caller.
-            const cooldown = advanceCooldown(patternState, settledRoundId);
-            if (cooldown.paused) {
-                if (cooldown.counted) {
-                    patternState.cooldownRoundsRemaining = cooldown.roundsRemaining;
-                    patternState.cooldownLastCountedRoundId = settledRoundId;
-                    store.save();
-                    log(cooldown.roundsRemaining > 0
-                        ? `${tag} COOLDOWN: paused — ${cooldown.roundsRemaining} more round(s) to skip`
-                        : `${tag} COOLDOWN: paused — resumes at the next result`);
-                }
-                continue;
-            }
-            if (patternState.cooldownLastCountedRoundId) {
-                patternState.cooldownLastCountedRoundId = null;
-                store.save();
-                log(`${tag} COOLDOWN over — monitoring resumed`);
-            }
-
-            // Not enough settled history yet (fresh state, or right after a
-            // season rollover). Expected on startup, so it stays silent.
-            const window = sums.slice(-pattern.windowSize);
-            if (window.length < pattern.windowSize) continue;
-
-            if (!pattern.evaluate(window)) continue;
-
-            const alreadyAnnounced = announcedFireForRound.get(pattern.id) === bettingRound.id;
-            if (!alreadyAnnounced) {
-                announcedFireForRound.set(pattern.id, bettingRound.id);
-                log(`${tag} PATTERN FIRE: ${pattern.explain(window)} -> ${pattern.bet.selection} on the next round`);
-            }
-
-            if (store.hasAttempted(pattern.id, bettingRound.id)) continue; // handled already — stay quiet on repeat polls
+        async function handleFire({ pattern, settings, tag, window, bettingRound, resolveFixture, claimedSelections, onPlaced, placementsThisRound }) {
+            // Already handled — a rewind that raced a placement, say. Let the
+            // cycle move on rather than rewinding onto it forever.
+            if (store.hasAttempted(pattern.id, bettingRound.id)) return false;
 
             // Another pattern has already acted on this exact selection for
-            // this round, so this one is coalesced into it: recorded, audited
-            // as having moved no money of its own, and paused as if it had
-            // placed. Two cases, both ending here:
+            // this round, so this one is coalesced into it: recorded, and
+            // audited as having moved no money of its own. Two cases, both
+            // ending here:
             //   - the earlier placement was CONFIRMED: re-placing would double
             //     the stake on one bet, not add a second one.
             //   - it FAILED, i.e. is unconfirmed: the bet may well be on at
@@ -152,31 +96,29 @@ export function createPatternEngine({ patterns, config, store, auditLog, log, pl
                 log(claim.confirmed
                     ? `${tag} also fired for round ${bettingRound.id} wanting the same ${pattern.bet.selection} — already placed by [${claim.patternId}], not staking it twice`
                     : `${tag} also fired for round ${bettingRound.id} wanting the same ${pattern.bet.selection} — [${claim.patternId}]'s attempt is unconfirmed, not re-placing it`);
-                startCooldown(patternState, settings, tag);
-                continue;
+                return false;
             }
 
             if (betsPlacedThisRun >= config.maxBetsPerRun) {
-                // Deliberately not marked as attempted: never attempted, so it
-                // stays eligible if the operator raises the cap or restarts.
-                if (!alreadyAnnounced) log(`${tag} cap reached (${config.maxBetsPerRun}/run) — skipping bet placement`);
-                continue;
+                // Never attempted, so the cycle is rewound and this block stays
+                // eligible if the operator raises the cap or restarts.
+                log(`${tag} cap reached (${config.maxBetsPerRun}/run) — holding this fire for a later poll`);
+                return true;
             }
 
             const fixture = await resolveFixture();
             if (!fixture) {
                 log(`${tag} no row-1 fixture yet for round ${bettingRound.id}, will retry next poll`);
-                continue;
+                return true;
             }
 
             // Mark attempted BEFORE clicking, so a crash mid-click can never
             // result in a retry that double-bets the same round.
             store.markAttempted(pattern.id, bettingRound.id);
             store.save();
-            // Claimed BEFORE the await: if this placement throws, the claim
-            // is what stops a later pattern from re-placing an unconfirmed
-            // bet. Upgraded to confirmed only once the bookmaker has
-            // acknowledged it.
+            // Claimed BEFORE the await: if this placement throws, the claim is
+            // what stops a later pattern from re-placing an unconfirmed bet.
+            // Upgraded to confirmed only once the bookmaker has acknowledged it.
             claimedSelections.set(key, { patternId: pattern.id, confirmed: false });
             if (placementsThisRound > 0) {
                 log(`${tag} a bet has already gone on this round — placing this one after it, as a separate single (never one multi-leg slip)`);
@@ -200,18 +142,87 @@ export function createPatternEngine({ patterns, config, store, auditLog, log, pl
                     stakeFcfa: settings.stakeFcfa,
                 });
                 betsPlacedThisRun++;
-                placementsThisRound++;
+                onPlaced();
                 claimedSelections.set(key, { patternId: pattern.id, confirmed: true });
                 auditLog.append({ ...record, success: true, ...result });
                 log(`${tag} BET PLACED: round ${bettingRound.id} ${fixture.name} ${pattern.bet.selection} stake=${settings.stakeFcfa} FCFA dryRun=${config.dryRun}`);
             } catch (err) {
+                // A failed placement is UNCONFIRMED, never retried: the bet may
+                // be on at the bookmaker. The cycle moves on exactly as if it
+                // had succeeded.
                 auditLog.append({ ...record, success: false, error: err.message });
                 log(`${tag} BET FAILED: round ${bettingRound.id}: ${err.message}`);
-            } finally {
-                // In `finally` so an unexpected throw from the audit write
-                // can't leave a pattern un-paused and free to fire again.
-                startCooldown(patternState, settings, tag);
             }
+            return false;
+        }
+
+        for (const pattern of patterns) {
+            const patternState = store.forPattern(pattern.id);
+            const settings = config.forPattern(pattern.id);
+            const tag = `[${pattern.id}]`;
+
+            const { cycle, events, restarted } = advanceCycle({
+                cycle: patternState.cycle,
+                windowSize: pattern.windowSize,
+                skipRounds: settings.cooldownRounds,
+                roundIds,
+                judge: (from, to) => pattern.evaluate(sums.slice(from, to + 1)),
+            });
+
+            if (!events.length) continue; // no round this pattern has not already consumed — stay silent
+
+            // A cold start is the normal case and says nothing interesting; a
+            // cycle that was running and could not be continued does.
+            if (restarted && patternState.cycle?.lastRoundId) {
+                log(`${tag} CYCLE RESTARTED: the round history no longer reaches round ${patternState.cycle.lastRoundId}, so the block in progress cannot be trusted — counting starts again from 0`);
+            }
+
+            // The advanced cycle is not written back until every event has
+            // been handled: a fire the engine cannot act on YET has to leave
+            // the cycle standing just before that block, so the next poll
+            // reaches it again instead of the bet being lost to a cycle that
+            // has already moved past it.
+            let pending = cycle;
+
+            for (const ev of events) {
+                const at = `${ev.counted}/${pattern.windowSize}`;
+                if (ev.type === 'skip') {
+                    log(`${tag} SKIP round ${ev.roundId} — the round it bet on, so it is not counted${ev.skipRemaining > 0 ? ` (${ev.skipRemaining} more to skip)` : `; the next block starts at the next round`}`);
+                } else if (ev.type === 'count') {
+                    log(`${tag} cycle ${at} — round ${ev.roundId} counted (sum ${sums[ev.index]})`);
+                } else if (ev.type === 'blind') {
+                    log(`${tag} cycle ${at} — block complete but its earlier rounds are no longer in view, so it cannot be judged; counting restarts at 0`);
+                } else if (ev.type === 'miss') {
+                    log(`${tag} cycle ${at} — no fire (sums: ${sums.slice(ev.blockStart, ev.index + 1).join(', ')}); counting restarts at 0`);
+                } else if (ev.type === 'fire') {
+                    const window = sums.slice(ev.blockStart, ev.index + 1);
+                    log(`${tag} PATTERN FIRE: ${pattern.explain(window)} -> ${pattern.bet.selection} on the next round`);
+
+                    // Only a block ending at the NEWEST settled round can be
+                    // acted on: `bettingRound` is the round after that one, so
+                    // a fire further back is judging rounds that no longer
+                    // immediately precede the bet — a different strategy from
+                    // the one the pattern describes. The cycle still advances
+                    // past it, exactly as it would have live.
+                    if (ev.index !== newestIndex) {
+                        log(`${tag} that block ended at round ${ev.roundId}, which is no longer the last settled round — the bet it called for is gone, no placement`);
+                        continue;
+                    }
+
+                    const deferred = await handleFire({
+                        pattern, settings, tag, window,
+                        bettingRound, resolveFixture, claimedSelections,
+                        onPlaced: () => { placementsThisRound++; },
+                        placementsThisRound,
+                    });
+                    if (deferred) {
+                        pending = rewindBeforeBlock({ windowSize: pattern.windowSize, roundIds, index: ev.index });
+                    }
+                }
+            }
+
+            patternState.cycle = pending;
+            store.save();
         }
     }
 

@@ -27,8 +27,39 @@ npm run virtual-bet:recon        # live selector check against the real page
 fixture as actually displayed on the site, which is the alphabetically-first one,
 not the first in API order.
 
-Each pattern has its **own** cooldown and its own record of rounds it has already
-acted on, so they never interfere with each other.
+### The life cycle: each pattern counts its own blocks
+
+A pattern does **not** re-judge the last N rounds on every round. It runs a
+counter, and judges **non-overlapping blocks**:
+
+```
+counter starts at 0
+each newly settled round advances it: 1, 2, ... up to the window size
+at the window size the block just counted is judged, and either way the
+counter goes back to 0:
+   FIRES  -> bet on the next round, then SKIP `cooldownRounds` round(s)
+             (the round being bet on) before counting starts again
+   MISSES -> counting starts again immediately, at the very next round
+```
+
+So a pattern of window `N` with skip `S` fires at most once every `N + S`
+rounds. On the default `S = 1` the trio runs on a 4-round rhythm and the streak
+on a 6-round one. Each pattern's counter is its own and is persisted, so a
+restart resumes the block that was in progress rather than re-aligning every
+boundary to whenever the process came up.
+
+**The cost, stated plainly.** Whole blocks cannot see a qualifying run that
+straddles a block boundary. With sums `1, 4, 1, 1, 1` the trio judges `[1,4,1]`,
+misses, restarts its count, and never judges the genuine low trio in rounds 3-5.
+That is inherent to counting blocks, and is the trade the design makes in
+exchange for a rhythm you can predict without simulating a sliding window
+against a cooldown number.
+
+**A cycle that cannot be resumed starts at the newest settled round.** A fresh
+state file, a permanent hole in the round history, or an outage long enough that
+the last consumed round has scrolled out of the API's window all zero the counter
+and begin again from the newest round. Inferring a block boundary from history
+the bot never watched would make the boundary an accident of startup timing.
 
 ### When several patterns fire on the same round
 
@@ -36,31 +67,43 @@ acted on, so they never interfere with each other.
 streak contains a 3-round low tail, so whenever the streak *matches*, the trio
 matches too — for the identical **Over 2.5** on the identical fixture.
 
-Matching together is not the same as *firing* together, though, and on default
-settings they never do. Both patterns run on a 4-round rhythm (fire, then skip
-`VIRTUAL_COOLDOWN_ROUNDS=3`), and the trio always reaches its window two rounds
-before the streak reaches its own, so they lock into anti-phase and stay there:
+Matching together is not the same as *firing* together. Each runs its own block
+cycle, so on the default skip of 1 the trio fires every 4 rounds and the streak
+every 6. Over an unbroken low run they contend where those rhythms come back
+into phase — every 12 rounds:
 
 ```
-7 consecutive rounds with sum <= 2, cooldown 3:
-  round 3  trio fires     (streak has only 3 rounds of history — no match)
-  round 4  —              (trio on cooldown)
-  round 5  streak fires   (trio still on cooldown)
-  round 6  —
-  round 7  trio fires     (streak now on cooldown)   ... and so on, alternating
+unbroken run of sums <= 2, skip 1:
+  round 3   trio fires     (streak is 3/5 through its first block)
+  round 5   streak fires
+  round 7   trio fires
+  round 11  trio AND streak fire together   <- coalesced into one Over 2.5
+  round 15  trio fires
+  round 17  streak fires
+  ...
+  round 23  both again, and every 12 rounds after that
 ```
 
-Three things break that lock and produce a genuine collision:
+Independent cycles reduce contention; they do **not** remove it. What they do
+remove is the cold-start collision: both patterns begin counting at the same
+newest settled round, so neither can arrive at a full window on the first poll
+off the back of history it never watched.
 
-1. **`VIRTUAL_COOLDOWN_ROUNDS=0`** — they collide on every round from the fifth
-   low onwards.
-2. **The bot starts, or restarts, when the last 5 settled rounds are already all
-   `<= 2`.** Both are off cooldown and both have a full window, so both fire on
-   the very first poll. This is the realistic one: it is purely a matter of when
-   the process happens to come up.
-3. **Unequal per-pattern cooldowns**, e.g.
-   `VIRTUAL_LOW_SCORING_TRIO_COOLDOWN_ROUNDS=1` against the streak's `3` — they
-   drift into phase and then collide every 4 rounds.
+Whether they collide at all is decided by their two periods. The trio's first
+fire lands on round 3 and the streak's on round 5 — two apart — so they meet
+only when `gcd(N_trio + S_trio, N_streak + S_streak)` divides 2:
+
+| setting | trio period | streak period | gcd | collides |
+| --- | --- | --- | --- | --- |
+| skip `1` (default) | 4 | 6 | 2 | every 12 rounds |
+| `VIRTUAL_COOLDOWN_ROUNDS=0` | 3 | 5 | 1 | every 15 rounds |
+| trio skip `3`, streak skip `1` | 6 | 6 | 6 | **never** |
+| trio skip `1`, streak skip `3` | 4 | 8 | 4 | **never** |
+
+Note the counter-intuitive row: giving the two patterns *equal* periods by
+raising the trio's skip separates them permanently, because they can never come
+back into phase from two rounds apart. If you want the two to stop contending
+entirely, that — not a shorter skip — is the lever.
 
 `high-scoring-pair` can never contend with either: a sum cannot be both `>= 4`
 and `<= 2`.
@@ -75,8 +118,8 @@ The engine handles a shared round in two ways:
 - **The same selection** → placed **once**. Two patterns wanting the same bet is
   not two bets, it is one bet at double stake, which is not what either pattern
   asked for. The later one is *coalesced*: no second placement, but it is still
-  marked as attempted, still goes on cooldown (its bet is on), and still gets an
-  audit record — one carrying `placed: false`, `stake: 0` and
+  marked as attempted, its cycle still consumed the block (its bet is on), and it
+  still gets an audit record — one carrying `placed: false`, `stake: 0` and
   `coalescedInto: <the pattern that placed it>`, so reconciling the audit log
   against the bookmaker still adds up.
 
@@ -105,7 +148,7 @@ Everything is read in one place, `lib/config.js`. CLI flags beat env, env beats
 | `VIRTUAL_POLL_INTERVAL_MS` | `15000` | how often to poll for results |
 | `VIRTUAL_MAX_BETS_PER_RUN` | `5` | safety cap, across all patterns |
 | `VIRTUAL_STAKE_FCFA` | `5` | stake per bet — any amount |
-| `VIRTUAL_COOLDOWN_ROUNDS` | `3` | rounds to skip after a placement attempt |
+| `VIRTUAL_COOLDOWN_ROUNDS` | `1` | rounds skipped after a fire, before the pattern's next counting block begins |
 | `VIRTUAL_PATTERNS` | all | comma-separated pattern ids to enable |
 | `VIRTUAL_LOG_DIR` | `logs` | where the daily log files go |
 | `VIRTUAL_STATE_PATH` | `storage/virtual-pattern-state.json` | durable state |
@@ -152,7 +195,7 @@ VIRTUAL_LOW_SCORING_STREAK_ENABLED=false
 
 2. Register it in `lib/patterns/index.js`.
 
-That is the whole change. Config keys, state namespacing, cooldowns, the audit
+That is the whole change. Config keys, state namespacing, the life cycle, the audit
 log, history depth and the placement flow are all derived from the pattern's
 `id`, `windowSize` and `bet`.
 
@@ -167,8 +210,9 @@ lib/
   config.js                   CLI + env  -> one frozen config object
   logger.js                   file + console logging, 7-day retention
   state-store.js              durable state, per-pattern namespaces, migration
+  pattern-cycle.js            the per-pattern count/fire/skip life cycle
   audit-log.js                JSONL record of every placement attempt
-  pattern-engine.js           cooldowns, gating, placement orchestration
+  pattern-engine.js           gating and placement orchestration
   display.js                  the NEXT / RESULT terminal blocks
   betpawa/
     api.js                    the virtual-sports HTTP API
@@ -264,5 +308,5 @@ text and logged all nine of its genuinely-successful bets as failures.
 
 Building the betslip is retried; the submit click never is. Retrying an ambiguous
 submit risks placing the same real-money bet twice, so it fails closed: the round
-is marked as attempted *before* the click, and the pattern goes on cooldown
+is marked as attempted *before* the click, and the pattern's cycle consumes the block
 whether the attempt succeeded or not.

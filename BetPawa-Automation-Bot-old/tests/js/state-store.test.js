@@ -20,12 +20,13 @@ test('v1 state moves its cooldown and bet history under the pattern that owned t
         cooldownLastCountedRoundId: '9',
     }, 'high-scoring-pair');
 
-    assert.equal(migrated.version, 2);
+    assert.equal(migrated.version, 3);
     assert.equal(migrated.seasonId, '138853');
     assert.deepEqual(migrated.patterns['high-scoring-pair'], {
         betRoundIds: ['1', '2'],
-        cooldownRoundsRemaining: 2,
-        cooldownLastCountedRoundId: '9',
+        // The pause becomes rounds still to SKIP, resuming after the round it
+        // had already counted; the block itself restarts from 0.
+        cycle: { counted: 0, skipRemaining: 2, lastRoundId: '9' },
     });
     // v1 sums carried no timestamp and round ids are not chronological across
     // seasons, so they cannot be safely ordered — history re-seeds itself.
@@ -34,12 +35,12 @@ test('v1 state moves its cooldown and bet history under the pattern that owned t
 
 test('a v0 wall-clock cooldown is converted into whole rounds, never dropped', () => {
     const migrated = migrateState({ cooldownUntil: new Date(Date.now() + 11 * 60_000).toISOString() }, 'p');
-    assert.ok(migrated.patterns.p.cooldownRoundsRemaining >= 2, 'an in-flight pause must survive the upgrade');
+    assert.ok(migrated.patterns.p.cycle.skipRemaining >= 2, 'an in-flight pause must survive the upgrade');
 });
 
 test('an expired v0 cooldown does not resurrect a pause', () => {
     const migrated = migrateState({ cooldownUntil: new Date(Date.now() - 60_000).toISOString() }, 'p');
-    assert.equal(migrated.patterns.p.cooldownRoundsRemaining, 0);
+    assert.equal(migrated.patterns.p.cycle.skipRemaining, 0);
 });
 
 test('migration is idempotent', () => {
@@ -49,9 +50,9 @@ test('migration is idempotent', () => {
 
 test('a missing or corrupt state file starts clean instead of crashing', () => {
     const file = tmpFile();
-    assert.equal(createStateStore({ filePath: file, legacyPatternId: 'p' }).raw.version, 2);
+    assert.equal(createStateStore({ filePath: file, legacyPatternId: 'p' }).raw.version, 3);
     fs.writeFileSync(file, 'not json{');
-    assert.equal(createStateStore({ filePath: file, legacyPatternId: 'p' }).raw.version, 2);
+    assert.equal(createStateStore({ filePath: file, legacyPatternId: 'p' }).raw.version, 3);
 });
 
 test('state round-trips through disk', () => {
@@ -124,4 +125,25 @@ test('a v2 state file written before odds capture existed still loads', () => {
     assert.equal(store.getRoundOdds('anything'), null);
     store.recordRoundOdds('r1', [{ total: 2.5, over: 1.58, under: 2.35 }], '2026-01-01T00:00:00Z');
     assert.equal(store.getRoundOdds('r1').length, 1);
+});
+
+test('v2 -> v3 keeps every pattern\'s pause and its cached history', () => {
+    const migrated = migrateState({
+        version: 2,
+        seasonId: '7',
+        roundSums: { r1: { sum: 2, startsAt: '2026-01-01T00:00:00Z' } },
+        roundOdds: { r1: { lines: [{ total: 2.5, over: 1.5, under: 2.4 }], startsAt: '2026-01-01T00:00:00Z' } },
+        patterns: {
+            paused: { betRoundIds: ['b1'], cooldownRoundsRemaining: 2, cooldownLastCountedRoundId: 'r9' },
+            idle: { betRoundIds: [], cooldownRoundsRemaining: 0, cooldownLastCountedRoundId: null },
+        },
+    }, 'legacy');
+
+    assert.equal(migrated.version, 3);
+    assert.deepEqual(migrated.patterns.paused.cycle, { counted: 0, skipRemaining: 2, lastRoundId: 'r9' });
+    // Not paused, so there is no cycle to resume: it starts a fresh block at
+    // the next settled round rather than inheriting a boundary it never had.
+    assert.deepEqual(migrated.patterns.idle.cycle, { counted: 0, skipRemaining: 0, lastRoundId: null });
+    assert.equal(migrated.roundSums.r1.sum, 2, 'the settled-round cache is not thrown away');
+    assert.equal(migrated.roundOdds.r1.lines.length, 1);
 });

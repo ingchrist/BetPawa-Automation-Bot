@@ -7,7 +7,9 @@
 //   VIRTUAL_POLL_INTERVAL_MS     default 15000
 //   VIRTUAL_MAX_BETS_PER_RUN     default 5   (across ALL patterns)
 //   VIRTUAL_STAKE_FCFA           default 5   (any amount; per-pattern overridable)
-//   VIRTUAL_COOLDOWN_ROUNDS      default 3   (per-pattern overridable)
+//   VIRTUAL_COOLDOWN_ROUNDS      default 1   (per-pattern overridable) — rounds
+//                                SKIPPED after a fire before the pattern's next
+//                                counting block begins; see lib/pattern-cycle.js
 //   VIRTUAL_PATTERNS             comma-separated pattern ids to enable (default: all)
 //   VIRTUAL_LOG_DIR              default logs
 //   VIRTUAL_STATE_PATH           default storage/virtual-pattern-state.json
@@ -34,7 +36,7 @@ const DEFAULTS = {
     pollIntervalMs: 15000,
     maxBetsPerRun: 5,
     stakeFcfa: 5,
-    cooldownRounds: 3,
+    cooldownRounds: 1,
 };
 
 /** "low-scoring-streak" -> "LOW_SCORING_STREAK" */
@@ -95,7 +97,9 @@ export function loadConfig({ argv = process.argv.slice(2), env = process.env } =
 
         /**
          * Resolved settings for one pattern: its own override if present,
-         * otherwise the global default.
+         * otherwise the global default. `cooldownRounds` is the number of
+         * rounds the pattern SKIPS after firing — a pattern of window N with
+         * cooldown S therefore fires at most once every N + S rounds.
          * @returns {{ enabled: boolean, stakeFcfa: number, cooldownRounds: number }}
          */
         forPattern(patternId) {

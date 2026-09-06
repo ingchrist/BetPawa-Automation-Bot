@@ -1,6 +1,12 @@
 // Read-only pattern inspector: prints the recent settled rounds with their
-// goal totals and reports, for every registered pattern, whether it would
-// fire on the round that is currently open for betting.
+// goal totals and reports, for every registered pattern, whether its window
+// currently MATCHES.
+//
+// A match is not a fire. The bot judges non-overlapping blocks on a per-pattern
+// counter (lib/pattern-cycle.js), so a pattern whose last N rounds all qualify
+// still will not bet unless its counter happens to be at N right now. This
+// script deliberately does not read that counter — it answers "does the recent
+// history look like this pattern", not "will the bot bet on the next round".
 //
 // Touches no betslip, clicks nothing, writes no state — safe to run at any
 // time, including alongside a live bot.
@@ -56,7 +62,7 @@ async function main() {
             console.log(`  ${round.id}  ${formatFixtureLine(fixture, score)}   sum=${score.sum}`);
         }
 
-        console.log('\npattern evaluation:');
+        console.log('\npattern windows (a MATCH is not a bet — see the note at the top of this file):');
         for (const pattern of ALL_PATTERNS) {
             const slice = sums.slice(-pattern.windowSize);
             const usable = slice.length === pattern.windowSize && slice.every((s) => s !== null);
@@ -64,8 +70,8 @@ async function main() {
                 console.log(`  ${pattern.id.padEnd(20)} not enough settled history (needs ${pattern.windowSize}, has ${slice.filter((s) => s !== null).length})`);
                 continue;
             }
-            const fires = pattern.evaluate(slice);
-            console.log(`  ${pattern.id.padEnd(20)} ${fires ? 'FIRES' : 'no   '}  sums=[${slice.join(', ')}] -> ${pattern.bet.marketTab} / ${pattern.bet.selectionLabel}`);
+            const matches = pattern.evaluate(slice);
+            console.log(`  ${pattern.id.padEnd(20)} ${matches ? 'MATCH' : 'no   '}  sums=[${slice.join(', ')}] -> ${pattern.bet.marketTab} / ${pattern.bet.selectionLabel}`);
         }
     } finally {
         await page.close().catch(() => {});

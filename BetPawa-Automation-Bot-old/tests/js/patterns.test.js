@@ -170,5 +170,5 @@ test('a malformed tuning value falls back to the default instead of becoming NaN
     const c = cfg({ VIRTUAL_STAKE_FCFA: 'abc', VIRTUAL_MAX_BETS_PER_RUN: '', VIRTUAL_COOLDOWN_ROUNDS: '-1' });
     assert.equal(c.stakeFcfa, 5);
     assert.equal(c.maxBetsPerRun, 5);
-    assert.equal(c.cooldownRounds, 3);
+    assert.equal(c.cooldownRounds, 1);
 });
