@@ -44,6 +44,8 @@ import {
     getSettledWindow,
     getRowOneFixture,
     isFixtureFinalized,
+    isResultOverdue,
+    trailingKnownSums,
     getFullTimeScore,
     getScoreDisplay,
     getOverUnderOdds,
@@ -54,6 +56,15 @@ import { ensureActionPage, placeBet, VIRTUAL_SPORTS_URL } from './lib/betpawa/be
 // The pattern that owned the top-level cooldown/betRoundIds fields before
 // state was namespaced per pattern; see migrateState.
 const LEGACY_PATTERN_ID = 'high-scoring-pair';
+
+// Rounds of history to resolve BEYOND what the widest pattern needs. A result
+// can land long after its round has stopped being the newest one (see
+// RESULT_GRACE_MS); without this slack nothing would ever fetch it — the round
+// has already dropped out of the pattern window by the time it posts — and it
+// would stay a hole in the history forever, blocking every future window that
+// spans it. Cached rounds cost no request, so reaching further back is close
+// to free.
+const LATE_RESULT_SLACK = 6;
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -102,7 +113,9 @@ async function main() {
     await apiPage.goto(VIRTUAL_SPORTS_URL, { waitUntil: 'domcontentloaded' });
     let actionPage = null;
 
-    let lastLoggedResultRoundId = null; // display dedupe: print each new result once, not every poll
+    const printedResults = new Set();      // display dedupe: print each result once, not every poll
+    const unresolvableRounds = new Set();  // rounds whose result never posted — don't re-fetch them forever
+    let waitingOnRoundId = null;           // the round the "waiting on results" line was last logged for
 
     const engine = createPatternEngine({
         patterns,
@@ -204,57 +217,99 @@ async function main() {
 
         // Expected/normal on most polls (the newest round is simply still
         // running) — not worth a log line every 15s, so this stays silent.
-        const window = getSettledWindow(roundsAsc, nextInfo.index, historySize);
+        // Deliberately reaches further back than any pattern needs: see
+        // LATE_RESULT_SLACK.
+        const window = getSettledWindow(roundsAsc, nextInfo.index, historySize + LATE_RESULT_SLACK);
         if (!window.length) {
             printCapturedOdds();
             return;
         }
 
         const newestRound = window[window.length - 1];
-        const needsDisplay = newestRound.id !== lastLoggedResultRoundId;
 
-        // Resolve each round's goal total, reusing the cached value where we
-        // already have it — a 5-round window therefore costs one fetch per new
-        // round, not five per poll. The newest round is (re)fetched when it
-        // still has to be printed, since the cache holds sums, not scorelines.
-        const sums = [];
-        let newestFixture = null;
-        let pending = false;
+        // Resolve each round's goal total, oldest -> newest, reusing the
+        // cached value where we already have it — a settled round therefore
+        // costs one fetch ever, not one per poll.
+        //
+        // A round that will not resolve does NOT stop the scan. Two very
+        // different things look identical at a single point in time: a result
+        // that is merely late, and one that will never come (confirmed live —
+        // the four rounds either side of a season rollover published no result
+        // for any of their fixtures, and still had none an hour later). The
+        // old code abandoned the whole poll at the first of either, which is
+        // what let one unresolvable round silence the bot completely: no
+        // results printed, no patterns evaluated, and so no bets placed, for
+        // as long as that round sat in the window.
+        const resolved = [];
+        let recorded = false;
         for (const round of window) {
-            const cached = store.getRoundSum(round.id);
             const isNewest = round.id === newestRound.id;
-            if (cached !== null && !(isNewest && needsDisplay)) {
-                sums.push(cached);
+            const cached = store.getRoundSum(round.id);
+            // The newest round is re-fetched once per process when its sum was
+            // already cached by an earlier run: the cache holds sums, not
+            // scorelines, so a restart would otherwise print no RESULT block
+            // at all until the next round landed.
+            if (cached !== null && !(isNewest && !printedResults.has(round.id))) {
+                resolved.push(cached);
                 continue;
             }
+            if (unresolvableRounds.has(round.id)) {
+                resolved.push(null);
+                continue;
+            }
+
             const events = await retry(() => fetchRoundEvents(apiPage, round.id));
             const fixture = getRowOneFixture(events);
             if (!fixture || !isFixtureFinalized(fixture)) {
-                pending = true; // transient, self-corrects on the next poll
-                break;
+                if (isResultOverdue(round)) {
+                    unresolvableRounds.add(round.id);
+                    log(`MD ${round.name} (round ${round.id}) never published a result — treating it as a permanent gap in the history`);
+                    resolved.push(null);
+                } else {
+                    resolved.push(undefined); // still settling; try again next poll
+                }
+                continue;
             }
+
             const { sum } = getFullTimeScore(fixture);
             store.recordRoundSum(round.id, sum, round.tradingTime.start);
-            sums.push(sum);
-            if (isNewest) newestFixture = fixture;
-        }
-        if (pending) {
-            printCapturedOdds();
-            return;
-        }
+            recorded = true;
+            resolved.push(sum);
 
-        // Show each newly-completed result exactly once, one fixture at a
-        // time — mirroring the site's own live feed — alongside the odds this
-        // round had been offering, which were captured a poll cycle ago while
-        // it was still open.
-        if (needsDisplay && newestFixture) {
-            lastLoggedResultRoundId = newestRound.id;
-            const score = getScoreDisplay(newestFixture);
-            const lines = store.getRoundOdds(newestRound.id);
-            for (const line of renderResult({ round: newestRound, fixture: newestFixture, score, lines })) log(line);
+            // Printed the moment a round resolves rather than only while it is
+            // still the newest one, so a result that arrives a few rounds late
+            // gets its RESULT block — in the order the rounds were played —
+            // instead of being swallowed for being overtaken.
+            if (!printedResults.has(round.id)) {
+                printedResults.add(round.id);
+                const score = getScoreDisplay(fixture);
+                const lines = store.getRoundOdds(round.id);
+                for (const line of renderResult({ round, fixture, score, lines })) log(line);
+            }
         }
+        if (recorded) store.save();
 
         printCapturedOdds();
+
+        // Patterns judge the rounds IMMEDIATELY before the one they would bet
+        // on, so only an unbroken run of results ending at the newest settled
+        // round can be acted on. When the newest one has not landed yet that
+        // run is empty and nothing fires: quietly evaluating a window that is
+        // a few rounds stale would be a different strategy from the one each
+        // pattern actually describes.
+        const sums = trailingKnownSums(resolved);
+        if (!sums.length) {
+            // Once per round, not once per poll — this is the normal shape of
+            // a settlement backlog, and it has to be visible rather than
+            // looking like the bot has simply stopped.
+            if (waitingOnRoundId !== newestRound.id) {
+                waitingOnRoundId = newestRound.id;
+                const lateMin = Math.round((Date.now() - Date.parse(newestRound.tradingTime.end)) / 60000);
+                log(`waiting on results: MD ${newestRound.name} (round ${newestRound.id}) closed ${lateMin}m ago and has not settled — no pattern can be judged for MD ${bettingRound.name} until it does`);
+            }
+            return;
+        }
+        waitingOnRoundId = null;
 
         await engine.run({ sums, settledRoundId: newestRound.id, bettingRound, resolveFixture });
         store.save();

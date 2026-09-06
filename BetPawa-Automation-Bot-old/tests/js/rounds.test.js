@@ -17,7 +17,10 @@ import {
     formatCountdown,
     getOverUnderOdds,
     settleOverUnderOdds,
+    isResultOverdue,
+    trailingKnownSums,
     FINALITY_BUFFER_MS,
+    RESULT_GRACE_MS,
 } from '../../lib/betpawa/rounds.js';
 
 const ROUND_MS = 5 * 60 * 1000;
@@ -186,4 +189,41 @@ test('settleOverUnderOdds marks the side the goal total landed on', () => {
 test('settleOverUnderOdds keeps the prices intact alongside the verdict', () => {
     const [first] = settleOverUnderOdds(getOverUnderOdds(mkOuFixture()), 2);
     assert.deepEqual(first, { total: 1.5, over: 1.15, under: 5.25, winner: 'Over' });
+});
+
+test('a missing result is only called permanent once the grace period is up', () => {
+    // Round 6 ends at t=35min. Late is normal — results have been observed
+    // posting ~20 minutes after a round closed — so it stays "still settling"
+    // until the grace period, and only then becomes a hole in the history.
+    const round = rounds[6];
+    const closedAt = 7 * ROUND_MS;
+    assert.equal(isResultOverdue(round, closedAt + 20 * 60 * 1000), false);
+    assert.equal(isResultOverdue(round, closedAt + RESULT_GRACE_MS - 1), false);
+    assert.equal(isResultOverdue(round, closedAt + RESULT_GRACE_MS), true);
+});
+
+test('the grace period outlasts a round\'s stay in the resolution window', () => {
+    // A round must be declared unresolvable while it is still being looked at,
+    // otherwise the bot gives up on it only after it has already scrolled out
+    // of the window and can never be recorded at all.
+    assert.ok(RESULT_GRACE_MS > FINALITY_BUFFER_MS);
+});
+
+test('trailingKnownSums takes the unbroken run ending at the newest round', () => {
+    assert.deepEqual(trailingKnownSums([1, 2, 3]), [1, 2, 3]);
+    // A hole (never published) or a still-settling round truncates from the
+    // left: only what is contiguous with the newest result can be judged.
+    assert.deepEqual(trailingKnownSums([1, null, 2, 3]), [2, 3]);
+    assert.deepEqual(trailingKnownSums([1, undefined, 2, 3]), [2, 3]);
+    // 0 goals is a real result, not a missing one.
+    assert.deepEqual(trailingKnownSums([null, 0, 0]), [0, 0]);
+});
+
+test('trailingKnownSums is empty when the newest round has not settled', () => {
+    // Every pattern judges the rounds immediately before the one it bets on,
+    // so a run that stops short of the newest settled round is unusable —
+    // acting on it would silently bet a window a few rounds stale.
+    assert.deepEqual(trailingKnownSums([1, 2, undefined]), []);
+    assert.deepEqual(trailingKnownSums([1, 2, null]), []);
+    assert.deepEqual(trailingKnownSums([]), []);
 });

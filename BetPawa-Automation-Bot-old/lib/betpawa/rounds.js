@@ -19,6 +19,40 @@ export function isRoundSettled(round, nowMs = Date.now()) {
     return Date.parse(round.tradingTime.end) + FINALITY_BUFFER_MS <= nowMs;
 }
 
+// The buffer above is how long a result is normally worth WAITING for; this
+// is the point past which it is worth giving up on. That lag is not bounded
+// by anything: results normally post within seconds of a round closing, but
+// were observed taking ~20 minutes for every round of an evening, and the
+// four rounds either side of one season rollover (2026-09-06T00:10Z, when the
+// incoming season was issued from an unrelated round-id block) published no
+// result for any of their fixtures at all, ever. Past this point a missing
+// result is treated as permanently missing: the round becomes a known hole in
+// the history rather than something still worth re-fetching every poll.
+export const RESULT_GRACE_MS = 40 * 60 * 1000;
+
+export function isResultOverdue(round, nowMs = Date.now()) {
+    return Date.parse(round.tradingTime.end) + RESULT_GRACE_MS <= nowMs;
+}
+
+/**
+ * The unbroken run of known goal totals ending at the newest entry, given a
+ * window resolved oldest -> newest in which a round with no result yet (still
+ * settling, or never published) is anything other than a number.
+ *
+ * Empty when the newest round itself has no result: every pattern judges the
+ * rounds IMMEDIATELY before the one it bets on, so a run that stops short of
+ * the newest settled round describes a different, staler window than the one
+ * the pattern actually asks about, and nothing may be read from it.
+ */
+export function trailingKnownSums(resolved) {
+    const out = [];
+    for (let i = resolved.length - 1; i >= 0; i--) {
+        if (typeof resolved[i] !== 'number') break;
+        out.unshift(resolved[i]);
+    }
+    return out;
+}
+
 // Round `id` is NOT chronological across seasons — confirmed live that a
 // later season can have lower ids than the currently-active one (e.g.
 // season N+1's ids were numerically *below* season N's while N was still
@@ -51,10 +85,15 @@ export function getBettingRound(roundsAsc, nextIndex) {
 
 // The consecutive settled rounds immediately preceding the betting round,
 // oldest -> newest, at most `maxSize` of them. Confirmed live that a round's
-// result only posts within seconds of its own window closing, i.e. right as
-// it would stop being the betting round, so the betting round itself can
-// never be observed finalized while still open — the newest usable result is
-// always nextIndex-2.
+// result can never post before its own window closes, i.e. before it would
+// stop being the betting round, so the betting round itself can never be
+// observed finalized while still open — the newest CANDIDATE result is always
+// nextIndex-2.
+//
+// Candidate, not guaranteed: a round being in this window means its result is
+// due, not that it has arrived. See RESULT_GRACE_MS — the lag between the two
+// has been observed to run into tens of minutes, so callers must expect to
+// find rounds in here that they cannot resolve yet, or ever.
 //
 // Returns the LONGEST fully-settled suffix, which may be shorter than
 // `maxSize` (early in a round list, or just after a season rollover) and is

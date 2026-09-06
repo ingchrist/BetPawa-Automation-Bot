@@ -1,7 +1,7 @@
 // Presentation layer: the blocks the operator actually reads in the terminal.
 //
 // The point of these two blocks is a before/after pairing. Each round is
-// printed twice, five minutes apart:
+// printed twice:
 //
 //   NEXT   — the O/U prices the site is offering on the round now open for
 //            betting. This is the "before": the market's own prediction.
@@ -9,8 +9,13 @@
 //            prices reprinted next to the score and the winning side ticked.
 //            This is the "after".
 //
-// The odds are reprinted on the RESULT block rather than left five minutes up
-// the scrollback so each block stands on its own and a single line of log is
+// Normally the two are five minutes apart, but the gap is set by whenever the
+// site actually publishes the result, which has been observed running to tens
+// of minutes — so several NEXT blocks can go by before the matching RESULT
+// lands. The matchday number in each header ("MD 07") is what pairs them up.
+//
+// The odds are reprinted on the RESULT block rather than left further up the
+// scrollback so each block stands on its own and a single line of log is
 // enough to see what was offered and what happened.
 //
 // Every function returns an ARRAY of lines, so the caller pushes each through
