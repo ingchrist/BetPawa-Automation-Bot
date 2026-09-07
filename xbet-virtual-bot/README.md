@@ -261,18 +261,18 @@ services/aggregator/   state machine, odds settlement, results history log
 services/display/      rich-rendered terminal blocks, history replay
 run.sh                 installs the venv, starts Redis + all three services
 data/results.jsonl     machine-readable finished-match log (gitignored)
-data/result.log         human-readable RESULT block per finished round (gitignored)
+data/result.log         human-readable RESULT block per finished round (tracked in git — see below)
 logs/                  per-service log files (gitignored)
 ```
 
 `data/results.jsonl` and `data/result.log` are deliberately two different
-files rather than one:
+files rather than one, and are treated differently by `.gitignore`:
 
 - `results.jsonl` is JSON Lines, written by the **aggregator**, and exists
   so the **display** service can backfill recent results into scrollback
   after a restart (see `services/aggregator/history.py`) — it's an
   internal implementation detail of that replay, not meant to be read
-  directly.
+  directly. Stays gitignored.
 - `result.log` is plain text, written by the **display** service, and
   exists for *you* — the exact RESULT block the terminal prints (halves
   table, settled Total ladder, ✓ on the winning side), one per finished
@@ -281,7 +281,11 @@ files rather than one:
   across results for predictions. Only genuinely new finishes are
   appended — the startup backfill replay is deliberately not written here,
   or every restart would duplicate however many rounds it replays (see
-  `BACKFILL_COUNT` in `services/display/main.py`).
+  `BACKFILL_COUNT` in `services/display/main.py`). **Tracked in git** (see
+  the `!data/result.log` exception in `.gitignore`) rather than gitignored
+  like everything else this bot generates, since it's the actual data the
+  project exists to produce — commit it whenever you want the latest
+  rounds captured in history.
 
 ## Known limitations
 

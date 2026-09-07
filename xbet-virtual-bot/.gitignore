@@ -5,5 +5,10 @@ __pycache__/
 logs/*.log
 logs/*.out
 data/*.jsonl
+# data/result.log is deliberately NOT ignored — it's the human-readable
+# round-by-round history the user tracks for prediction/feature analysis,
+# so it belongs in version control. Only other *.log files under data/ (if
+# any ever show up) stay ignored.
 data/*.log
+!data/result.log
 run/
