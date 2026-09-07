@@ -7,47 +7,53 @@ clears the screen or redraws in place: that's a deliberate choice, not an
 oversight — the whole point is that scrolling up shows you every past
 event, live score change and result exactly in the order they happened.
 
-Layout follows a reference design (a compact two-box scoreboard card: league
-+ score + clock on the left, the Total O/U ladder on the right) rather than
-the tall single-column table this started with — that original layout
-burned too much vertical space, especially once several matches' blocks
-piled up in scrollback. Two rules came out of that redesign, both intentional
-product decisions, not omissions:
+Layout follows a reference design: a "Result" grid (home/away rows, goals
+per half, plus the *combined* both-teams goal total for each half and for
+the match overall) with a plain elapsed-time line underneath, rather than
+the odds-ladder ("Total" O/U price) box this used to sit next to. A raw
+goal count answers an Over/Under question on its own — the ladder was
+printed on every single goal (`render_live_score` fires that often) and
+duplicating a mostly-unchanging price table that many times in scrollback
+was noise, not signal. Two rules carried over from the layout before this
+one, both intentional product decisions, not omissions:
 
-  - Odds only ever appear next to a score. UPCOMING shows just the kickoff
-    countdown — no market moves while nothing's happening yet to move it
-    against — and the Total ladder only starts appearing once a match is
-    actually live (`render_live_score`), continuing through RESULT.
+  - UPCOMING shows just the kickoff countdown — no score/result data to
+    show yet.
   - Only one upcoming match is ever shown, the very next one to kick off —
     this file just renders whatever MatchDiscovered it's given; the
     one-at-a-time selection itself happens in
     `services/aggregator/state.py` (`_update_upcoming_queue`).
+
+A live match's 1st/2nd-half split isn't in MatchScoreChanged (it only
+carries the running total) — `_half_time_cache` below holds the 1st-half
+score last reported by MatchHalfTime, per match, purely so the live grid
+can show a real split instead of dumping everything into "2nd half" until
+the match actually finishes.
 
 Color language:
   yellow  — upcoming (the "before")
   green   — live / in progress
   cyan    — finished (the "after")
   dim     — losing side of a settled odds line
-  bold    — the number that matters most in a line (a score, a price)
+  bold    — the number that matters most in a line (a score, a total)
 """
 from __future__ import annotations
 
 from datetime import datetime
 
-from rich.columns import Columns
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 from shared.events import (
+    HalfScore,
     MatchDiscovered,
     MatchFinished,
     MatchHalfTime,
     MatchScoreChanged,
     MatchStarted,
     MoneylineOdds,
-    TotalLine,
 )
 
 console = Console(highlight=False)
@@ -99,28 +105,59 @@ def _moneyline_row(odds: MoneylineOdds | None) -> Text | None:
     return text
 
 
-def _totals_grid(totals: list[TotalLine]) -> Table | None:
-    """The "O 15.5  1.195   U 15.5  4.08" ladder, one line per threshold,
-    Over and Under side by side rather than stacked — this is the layout
-    the reference design uses for the "Total" box."""
-    if not totals:
-        return None
-    grid = Table.grid(padding=(0, 2, 0, 0))
-    grid.add_column()
-    grid.add_column()
-    for line in totals:
-        over = Text(f"O {line.line:g}  {line.over:g}")
-        under = Text(f"U {line.line:g}  {line.under:g}")
-        if line.winner == "over":
-            over.stylize("bold green")
-            over.append(" ✓", style="bold green")
-            under.stylize("dim")
-        elif line.winner == "under":
-            under.stylize("bold green")
-            under.append(" ✓", style="bold green")
-            over.stylize("dim")
-        grid.add_row(over, under)
-    return grid
+# The 1st-half score last seen via render_half_time(), keyed by match_id —
+# see the module docstring for why the live grid needs this. Popped once a
+# match finishes (render_finished()) so this doesn't grow unbounded.
+_half_time_cache: dict[int, HalfScore] = {}
+
+
+def _result_table(
+    home: str,
+    away: str,
+    h1_home: int | None,
+    h1_away: int | None,
+    h2_home: int | None,
+    h2_away: int | None,
+    total_home: int,
+    total_away: int,
+) -> Table:
+    """The "Result" grid from the reference design: goals per half for each
+    team, plus the *combined* (both-teams) goal count for each half and for
+    the match overall — that combined number is what actually answers an
+    Over/Under question, in place of the price ladder this replaced. A half
+    stays "–" until that half's score is actually known, rather than
+    guessed at from a still-in-progress running total."""
+    table = Table(header_style="bold")
+    table.add_column("Result")
+    table.add_column("1st half", justify="right")
+    table.add_column("total for\n1st half", justify="center")
+    table.add_column("2nd half", justify="right")
+    table.add_column("total for\n2nd half", justify="center")
+    table.add_column("final total", justify="center")
+
+    def cell(value: int | None) -> str:
+        return "–" if value is None else str(value)
+
+    h1_total = None if h1_home is None or h1_away is None else h1_home + h1_away
+    h2_total = None if h2_home is None or h2_away is None else h2_home + h2_away
+
+    table.add_row(
+        home,
+        cell(h1_home),
+        Text(cell(h1_total), style="bold") if h1_total is not None else "",
+        cell(h2_home),
+        "",
+        "",
+    )
+    table.add_row(
+        away,
+        cell(h1_away),
+        "",
+        cell(h2_away),
+        Text(cell(h2_total), style="bold") if h2_total is not None else "",
+        Text(str(total_home + total_away), style="bold"),
+    )
+    return table
 
 
 def render_discovered(event: MatchDiscovered) -> None:
@@ -145,28 +182,46 @@ def render_started(event: MatchStarted) -> None:
 
 def render_live_score(event: MatchScoreChanged) -> None:
     """The recurring live scoreboard card — printed on every goal, each one
-    a self-contained snapshot (score, period, clock, current Total ladder)
-    rather than a bare "+1" line, so scrolling back through a match's goals
-    reads as a series of complete moments, not a diff you have to replay in
-    your head."""
-    score_card = Panel(
-        Group(
-            Text(event.league_name, style="bold"),
-            Text(""),
-            _score_line(event.home, event.home_goals, event.away_goals, event.away),
-            Text(f"{event.period_label} · {_match_clock(event.clock_seconds)}", style="dim"),
-        ),
-        border_style="green",
+    a self-contained snapshot (score, half-by-half Result grid, elapsed
+    time) rather than a bare "+1" line, so scrolling back through a match's
+    goals reads as a series of complete moments, not a diff you have to
+    replay in your head."""
+    half1 = _half_time_cache.get(event.match_id)
+    if "1st" in event.period_label:
+        h1_home, h1_away = event.home_goals, event.away_goals
+        h2_home = h2_away = None
+    elif half1 is not None:
+        h1_home, h1_away = half1.home_goals, half1.away_goals
+        h2_home, h2_away = event.home_goals - half1.home_goals, event.away_goals - half1.away_goals
+    else:
+        # 2nd half already under way but no half-time score was ever cached
+        # for it (e.g. display restarted mid-match) — show the running
+        # total as "2nd half" rather than guess at a 1st-half split we
+        # don't actually have.
+        h1_home = h1_away = None
+        h2_home, h2_away = event.home_goals, event.away_goals
+
+    console.print(
+        Panel(
+            Group(
+                _score_line(event.home, event.home_goals, event.away_goals, event.away),
+                Text(""),
+                _result_table(event.home, event.away, h1_home, h1_away, h2_home, h2_away, event.home_goals, event.away_goals),
+                Text(
+                    f"time elapse   {event.period_label} · {_match_clock(event.clock_seconds)}",
+                    style="dim",
+                    justify="center",
+                ),
+            ),
+            title=f"[green]● LIVE[/green]  [bold]{event.league_name}[/bold]  ·  {event.home} vs {event.away}",
+            border_style="green",
+            title_align="left",
+        )
     )
-    totals = _totals_grid(event.totals)
-    if totals is None:
-        console.print(score_card)
-        return
-    total_card = Panel(Group(Text("Total", style="bold"), totals), border_style="blue")
-    console.print(Columns([score_card, total_card], equal=False, expand=False))
 
 
 def render_half_time(event: MatchHalfTime) -> None:
+    _half_time_cache[event.match_id] = event.first_half
     console.print(
         f"[green]● HALF-TIME[/green]  {event.league_name}  ·  "
         f"{event.home} {event.first_half.home_goals} - {event.first_half.away_goals} {event.away}"
@@ -182,33 +237,21 @@ def build_finished_panel(event: MatchFinished, *, earlier: bool = False) -> Pane
     style = "dim cyan" if earlier else "cyan"
 
     h1, h2 = event.first_half, event.second_half
-    halves = Table.grid(padding=(0, 2, 0, 0))
-    halves.add_column()
-    halves.add_column(justify="right")
-    halves.add_column(justify="right")
-    halves.add_column(justify="right")
-    halves.add_row("", "1st half", "2nd half", "Total")
-    halves.add_row(
+    result = _result_table(
         event.home,
-        str(h1.home_goals) if h1 else "–",
-        str(h2.home_goals) if h2 else "–",
-        Text(str(event.total_home_goals), style="bold"),
-    )
-    halves.add_row(
         event.away,
-        str(h1.away_goals) if h1 else "–",
-        str(h2.away_goals) if h2 else "–",
-        Text(str(event.total_away_goals), style="bold"),
+        h1.home_goals if h1 else None,
+        h1.away_goals if h1 else None,
+        h2.home_goals if h2 else None,
+        h2.away_goals if h2 else None,
+        event.total_home_goals,
+        event.total_away_goals,
     )
 
-    parts = [halves]
+    parts = [result]
     moneyline = _moneyline_row(event.moneyline)
     if moneyline:
         parts.append(moneyline)
-    totals = _totals_grid(event.totals)
-    if totals:
-        parts.append(Text("Total", style="bold"))
-        parts.append(totals)
 
     return Panel(
         Group(*parts),
@@ -221,6 +264,7 @@ def build_finished_panel(event: MatchFinished, *, earlier: bool = False) -> Pane
 
 
 def render_finished(event: MatchFinished, *, earlier: bool = False) -> None:
+    _half_time_cache.pop(event.match_id, None)
     console.print(build_finished_panel(event, earlier=earlier))
 
 
@@ -237,8 +281,8 @@ def log_finished(event: MatchFinished, target: Console) -> None:
 
 def render_legend() -> None:
     console.print(
-        "[dim]Legend: [yellow]UPCOMING[/yellow] = the next match to kick off (no odds yet) · "
-        "[green]●[/green] live update, with the current Total O/U ladder · "
+        "[dim]Legend: [yellow]UPCOMING[/yellow] = the next match to kick off (no score yet) · "
+        "[green]●[/green] live update, with the Result grid and elapsed time so far · "
         "[cyan]RESULT[/cyan] = final score. "
         "✓ marks the settled winning side; scroll up for earlier results.[/dim]"
     )

@@ -47,37 +47,45 @@ reference](#configuration-reference).
 
 Captured from a real run (team names are illustrative — whatever's actually
 on in the target league prints the same way). Layout follows a reference
-design: a compact two-box scoreboard (league + score + clock, Total O/U
-ladder) rather than the tall single-column table this started with:
+design: a "Result" grid — goals per half for each team, plus the *combined*
+both-teams goal total for each half and for the match overall — with the
+elapsed match time underneath, rather than the odds-ladder box this used to
+sit next to:
 
 ```
-Legend: UPCOMING = the next match to kick off (no odds yet) · ● live update,
-with the current Total O/U ladder · RESULT = final score. ✓ marks the settled
-winning side; scroll up for earlier results.
+Legend: UPCOMING = the next match to kick off (no score yet) · ● live update, with the Result grid
+and elapsed time so far · RESULT = final score. ✓ marks the settled winning side; scroll up for
+earlier results.
 
 — now watching live —
 
-╭─ UPCOMING  FC 25. 3x3. Conference League  ·  Borussia Monchengladbach vs Lil─╮
-│ Kickoff: Starting in 13 minutes                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ UPCOMING  FC 25. 3x3. Conference League  ·  Borussia Monchengladbach vs Lille ──────────────────╮
+│ Kickoff: Starting in 13 minutes                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ● KICK-OFF  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht
-╭────────────────────────────────────────╮ ╭──────────────────────────────╮
-│ FC 25. 3x3. Conference League          │ │ Total                        │
-│                                        │ │ O 15.5  1.195  U 15.5  4.08  │
-│ Chelsea  4 : 4  Anderlecht             │ │ O 16.5  1.56   U 16.5  2.36  │
-│ 1st half · 02:30                       │ │ O 17.5  2.26   U 17.5  1.64  │
-╰────────────────────────────────────────╯ │ O 18.5  3.58   U 18.5  1.275 │
-                                           ╰──────────────────────────────╯
+╭─ ● LIVE  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ────────────────────────────────╮
+│ Chelsea  4 : 4  Anderlecht                                                                       │
+│                                                                                                  │
+│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓                       │
+│ ┃            ┃          ┃ total for ┃          ┃ total for ┃             ┃                       │
+│ ┃ Result     ┃ 1st half ┃ 1st half  ┃ 2nd half ┃ 2nd half  ┃ final total ┃                       │
+│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━┩                       │
+│ │ Chelsea    │        4 │     8     │        – │           │             │                       │
+│ │ Anderlecht │        4 │           │        – │           │      8      │                       │
+│ └────────────┴──────────┴───────────┴──────────┴───────────┴─────────────┘                       │
+│                                  time elapse   1st half · 02:30                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ● HALF-TIME  FC 25. 3x3. Conference League  ·  Chelsea 6 - 4 Anderlecht
-╭─ RESULT  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ────────────╮
-│             1st half  2nd half  Total                                        │
-│ Chelsea            6         2      8                                        │
-│ Anderlecht         4         1      5                                        │
-│ W1 1.97 ✓  X 7.60  W2 2.30                                                   │
-│ Total                                                                        │
-│ O 15.5  1.2    U 15.5  4 ✓                                                   │
-│ O 12.5  1.4 ✓  U 12.5  3                                                     │
-╰─────────────────────────────────────────────────────────────────── 13 goals ─╯
+╭─ RESULT  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ────────────────────────────────╮
+│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓                       │
+│ ┃            ┃          ┃ total for ┃          ┃ total for ┃             ┃                       │
+│ ┃ Result     ┃ 1st half ┃ 1st half  ┃ 2nd half ┃ 2nd half  ┃ final total ┃                       │
+│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━┩                       │
+│ │ Chelsea    │        6 │    10     │        2 │           │             │                       │
+│ │ Anderlecht │        4 │           │        1 │     3     │     13      │                       │
+│ └────────────┴──────────┴───────────┴──────────┴───────────┴─────────────┘                       │
+│ W1 1.97 ✓  X 7.60  W2 2.30                                                                       │
+╰─────────────────────────────────────────────────────────────────────────────────────── 13 goals ─╯
 ```
 
 In the real terminal, `UPCOMING` panels border yellow, `●` live lines and the
@@ -88,10 +96,11 @@ history of the session, in order, exactly as it happened.
 
 Two rules behind this layout, both deliberate:
 
-- **Odds only ever appear next to a score.** `UPCOMING` shows just the
-  kickoff countdown, nothing else — there's no live score yet for a market
-  move to mean anything against. The Total ladder only starts appearing
-  once a match is actually live, and stays through `RESULT`.
+- **No odds-price ladder in the terminal.** The "total for 1st/2nd half" and
+  "final total" columns are the actual, settled goal counts — the number
+  that answers an Over/Under question directly, without a price table next
+  to it that only ever changed on a handful of the many goal events it used
+  to be reprinted on.
 - **Only one upcoming match is ever shown** — the very next one to kick
   off, not the whole queue. This league runs several matches back to back,
   each with its own countdown, and the site exposes all of them at once;
@@ -178,9 +187,9 @@ discriminator field used to route a message off the wire (see
 | `xbet.snapshots` | `MatchSnapshot` (`snapshot`) | Every poll, for every match currently in the target league — collector → aggregator only, not usually of interest downstream. | `status` (upcoming/live/finished), `period_label`, `clock_seconds`, `home_goals`/`away_goals`, `half_scores`, `moneyline`, `totals` |
 | `xbet.match_events` | `MatchDiscovered` (`discovered`) | The soonest-kickoff match currently known becomes a *different* match than the one last announced — at most one match is ever the "announced next" at a time. See [Architecture](#architecture). | `starting_in_label`, `moneyline`, `totals` (not currently rendered — see [Example output](#example-output)) |
 | `xbet.match_events` | `MatchStarted` (`started`) | Status flips to live (or the bot starts watching a match already live/finished — see [Known limitations](#known-limitations)). | — |
-| `xbet.match_events` | `MatchScoreChanged` (`score_changed`) | The running score changes while live — one event per goal, essentially. | `period_label`, `clock_seconds`, `home_goals`, `away_goals`, `totals` (the live Total O/U ladder at this instant) |
+| `xbet.match_events` | `MatchScoreChanged` (`score_changed`) | The running score changes while live — one event per goal, essentially. | `period_label`, `clock_seconds`, `home_goals`, `away_goals`, `totals` (carried on the event but not rendered — the terminal shows the actual combined goal total instead, see [Example output](#example-output)) |
 | `xbet.match_events` | `MatchHalfTime` (`half_time`) | First-half data becomes available and the match has moved past the first half. Fires exactly once per match — see the note on `_half_time_emitted` in `services/aggregator/state.py` for why it's edge-triggered rather than a literal frame-to-frame comparison. | `first_half` |
-| `xbet.match_events` | `MatchFinished` (`finished`) | Status flips to finished. Appended to `data/results.jsonl` (by the aggregator) and `data/result.log` (by the display) in the same step. | `first_half`, `second_half`, `total_home_goals`/`total_away_goals`, settled `moneyline`/`totals` (winning side marked) |
+| `xbet.match_events` | `MatchFinished` (`finished`) | Status flips to finished. Appended to `data/results.jsonl` (by the aggregator) and `data/result.log` (by the display) in the same step. | `first_half`, `second_half`, `total_home_goals`/`total_away_goals`, settled `moneyline` (rendered), `totals` (settled but not rendered — see [Example output](#example-output)) |
 
 `MatchStateMachine.process()` (in `services/aggregator/state.py`) always
 returns events in the order above for a single poll, even if a match jumps
@@ -274,8 +283,8 @@ files rather than one, and are treated differently by `.gitignore`:
   internal implementation detail of that replay, not meant to be read
   directly. Stays gitignored.
 - `result.log` is plain text, written by the **display** service, and
-  exists for *you* — the exact RESULT block the terminal prints (halves
-  table, settled Total ladder, ✓ on the winning side), one per finished
+  exists for *you* — the exact RESULT block the terminal prints (Result
+  grid, moneyline, ✓ on the winning side), one per finished
   round, timestamped, at a fixed width regardless of terminal size, meant
   to be opened directly for reviewing rounds — e.g. spotting patterns
   across results for predictions. Only genuinely new finishes are
