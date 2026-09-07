@@ -5,8 +5,8 @@
 // Global knobs (env, or .env):
 //   CDP_ENDPOINT                 default http://127.0.0.1:9222
 //   VIRTUAL_POLL_INTERVAL_MS     default 15000
-//   VIRTUAL_MAX_BETS_PER_RUN     default 5   (across ALL patterns)
-//   VIRTUAL_STAKE_FCFA           default 5   (any amount; per-pattern overridable)
+//   VIRTUAL_MAX_BETS_PER_RUN     default 100 (across ALL patterns)
+//   VIRTUAL_STAKE_FCFA           default 100 (any amount; per-pattern overridable)
 //   VIRTUAL_COOLDOWN_ROUNDS      default 3   (per-pattern overridable)
 //   VIRTUAL_PATTERNS             comma-separated pattern ids to enable (default: all)
 //   VIRTUAL_LOG_DIR              default logs
@@ -32,8 +32,8 @@ const DEFAULTS = {
     statePath: 'storage/virtual-pattern-state.json',
     auditLogPath: 'storage/logs/virtual-pattern-bets.jsonl',
     pollIntervalMs: 15000,
-    maxBetsPerRun: 5,
-    stakeFcfa: 5,
+    maxBetsPerRun: 100,
+    stakeFcfa: 100,
     cooldownRounds: 3,
 };
 
