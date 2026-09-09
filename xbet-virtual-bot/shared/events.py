@@ -138,14 +138,60 @@ class MatchFinished(BaseModel):
         return self.total_home_goals + self.total_away_goals
 
 
-MatchEvent = MatchDiscovered | MatchStarted | MatchHalfTime | MatchScoreChanged | MatchFinished
+class PatternArmed(BaseModel):
+    kind: Literal["pattern_armed"] = "pattern_armed"
+    pattern_name: str
+    qualifying_totals: list[int]
+
+
+class BetPlaced(BaseModel):
+    kind: Literal["bet_placed"] = "bet_placed"
+    match_id: int
+    league_name: str
+    home: str
+    away: str
+    stake: float
+    line: float
+    odds: float | None = None
+
+
+class BetFailed(BaseModel):
+    kind: Literal["bet_failed"] = "bet_failed"
+    match_id: int | None = None
+    reason: str
+
+
+class BetSettled(BaseModel):
+    kind: Literal["bet_settled"] = "bet_settled"
+    match_id: int
+    home: str
+    away: str
+    won: bool
+    first_half_total: int
+
+
+MatchEvent = (
+    MatchDiscovered
+    | MatchStarted
+    | MatchHalfTime
+    | MatchScoreChanged
+    | MatchFinished
+    | PatternArmed
+    | BetPlaced
+    | BetFailed
+    | BetSettled
+)
 
 # kind -> model, used by the bus to parse an incoming domain event without
-# the subscriber having to guess which of the five shapes it received.
+# the subscriber having to guess which of the nine shapes it received.
 MATCH_EVENT_TYPES: dict[str, type[BaseModel]] = {
     "discovered": MatchDiscovered,
     "started": MatchStarted,
     "half_time": MatchHalfTime,
     "score_changed": MatchScoreChanged,
     "finished": MatchFinished,
+    "pattern_armed": PatternArmed,
+    "bet_placed": BetPlaced,
+    "bet_failed": BetFailed,
+    "bet_settled": BetSettled,
 }
