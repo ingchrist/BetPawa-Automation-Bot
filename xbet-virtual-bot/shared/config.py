@@ -26,6 +26,12 @@ class Config:
     results_log_path: Path
     result_log_txt_path: Path
     log_dir: Path
+    bets_log_path: Path
+    bet_stake_amount: float
+    pattern_streak_length: int
+    pattern_low_threshold: int
+    pattern_bet_line: float
+    cdp_url: str
 
     # Redis pub/sub channels — the event-bus "contract" shared by every
     # service. Defined here rather than scattered as string literals so a
@@ -52,4 +58,10 @@ def load_config() -> Config:
         results_log_path=_path("RESULTS_LOG_PATH", "data/results.jsonl"),
         result_log_txt_path=_path("RESULT_LOG_PATH", "data/result.log"),
         log_dir=_path("LOG_DIR", "logs"),
+        bets_log_path=_path("BETS_LOG_PATH", "data/bets.log"),
+        bet_stake_amount=float(os.environ.get("BET_STAKE_AMOUNT", "90")),
+        pattern_streak_length=int(os.environ.get("PATTERN_STREAK_LENGTH", "3")),
+        pattern_low_threshold=int(os.environ.get("PATTERN_LOW_THRESHOLD", "6")),
+        pattern_bet_line=float(os.environ.get("PATTERN_BET_LINE", "6.5")),
+        cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),
     )
