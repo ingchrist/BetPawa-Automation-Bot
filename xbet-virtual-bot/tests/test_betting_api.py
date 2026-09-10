@@ -20,8 +20,8 @@ def _game_zip_response(events: list[dict]) -> dict:
     return {"Value": {"E": events}}
 
 
-def _matching_event(coef: float = 1.408, line: float = 6.5) -> dict:
-    return {"T": 9, "P": line, "G": 17, "C": coef}
+def _matching_event(coef: float = 1.408, line: float = 6.5, t: int = 9) -> dict:
+    return {"T": t, "P": line, "G": 17, "C": coef}
 
 
 def _executor(handler, auth_reader=_fake_auth_ok) -> BetExecutor:
@@ -170,3 +170,51 @@ def test_make_bet_network_error_is_reported():
 
     assert result.success is False
     assert "request failed" in result.reason
+
+
+def test_period_2_over_false_targets_second_half_under():
+    seen_ids = []
+    seen_types = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            seen_ids.append(int(request.url.params["id"]))
+            return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=7.5)]))
+        body = json.loads(request.content)
+        seen_ids.append(body["Events"][0]["GameId"])
+        seen_types.append(body["Events"][0]["Type"])
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=751444117, home="A", away="B", stake=90, line=7.5, period=2, over=False,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert seen_ids == [751444119, 751444119]  # match_id + SECOND_HALF_ID_OFFSET
+    assert seen_types == [10]
+    assert result.success is True
+
+
+def test_period_and_over_defaults_leave_pattern_1s_request_shape_unchanged():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event()]))
+        body = json.loads(request.content)
+        assert body["Events"][0]["GameId"] == 751444118  # match_id + FIRST_HALF_ID_OFFSET
+        assert body["Events"][0]["Type"] == 9
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(match_id=751444117, home="A", away="B", stake=90, line=6.5)
+    )
+    asyncio.run(executor.aclose())
+
+    assert result.success is True

@@ -75,12 +75,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Literal
 
 import httpx
 from playwright.async_api import async_playwright
 
-from services.collector.xbet_client import TOTAL_OVER_T
+from services.collector.xbet_client import TOTAL_OVER_T, TOTAL_UNDER_T
 
 # Corrected 2026-09-10, superseding the original "G=17 on the raw match_id
 # is Total. 1st half" belief: each match actually spawns three separate
@@ -96,6 +96,7 @@ from services.collector.xbet_client import TOTAL_OVER_T
 # unambiguous regardless of match phase, so betting always targets those
 # directly instead of X.
 FIRST_HALF_ID_OFFSET = 1
+SECOND_HALF_ID_OFFSET = 2
 TOTALS_GROUP = 17
 
 
@@ -163,9 +164,18 @@ class BetExecutor:
         await self._client.aclose()
 
     async def place_bet(
-        self, match_id: int, home: str, away: str, stake: float, line: float = 6.5
+        self,
+        match_id: int,
+        home: str,
+        away: str,
+        stake: float,
+        line: float = 6.5,
+        period: Literal[1, 2] = 1,
+        over: bool = True,
     ) -> BetResult:
-        game_id = match_id + FIRST_HALF_ID_OFFSET
+        offset = FIRST_HALF_ID_OFFSET if period == 1 else SECOND_HALF_ID_OFFSET
+        game_id = match_id + offset
+        bet_type = TOTAL_OVER_T if over else TOTAL_UNDER_T
 
         try:
             auth = await self._auth_reader()
@@ -173,7 +183,7 @@ class BetExecutor:
             return BetResult(success=False, reason=f"auth read failed: {exc}")
 
         try:
-            coef = await self._current_odds(game_id, line)
+            coef = await self._current_odds(game_id, line, bet_type)
         except Exception as exc:
             return BetResult(success=False, reason=f"odds lookup failed: {exc}")
         if coef is None:
@@ -193,7 +203,7 @@ class BetExecutor:
             "Events": [
                 {
                     "GameId": game_id,
-                    "Type": TOTAL_OVER_T,
+                    "Type": bet_type,
                     "Coef": coef,
                     "Param": line,
                     "PV": None,
@@ -238,7 +248,7 @@ class BetExecutor:
 
         return BetResult(success=True, odds=coef)
 
-    async def _current_odds(self, game_id: int, line: float) -> float | None:
+    async def _current_odds(self, game_id: int, line: float, bet_type: int) -> float | None:
         resp = await self._client.get(
             "/LiveFeed/GetGameZip", params={"id": game_id, "lng": "en"}
         )
@@ -248,7 +258,7 @@ class BetExecutor:
             return None
         for event in detail.get("E") or []:
             if (
-                event.get("T") == TOTAL_OVER_T
+                event.get("T") == bet_type
                 and event.get("P") == line
                 and event.get("G") == TOTALS_GROUP
             ):
