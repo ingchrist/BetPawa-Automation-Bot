@@ -12,14 +12,20 @@ from __future__ import annotations
 
 from shared.events import MatchDiscovered
 
-_STALE_STATUSES = {"half_time", "finished"}
+_DEFAULT_STALE_STATUSES = {"half_time", "finished"}
 
 
 class TargetTracker:
-    def __init__(self) -> None:
+    def __init__(self, stale_statuses: set[str] | None = None) -> None:
+        """`stale_statuses` controls which match statuses this instance
+        treats as "too late to bet" — default is Pattern 1's shape (the
+        1st-half market closes at half-time). Pattern 2 passes
+        `{"finished"}` since half-time is exactly when its 2nd-half
+        market *opens*, not when it closes."""
         self._latest_discovered: MatchDiscovered | None = None
         self._status: dict[int, str] = {}
         self._pending = False
+        self._stale_statuses = stale_statuses if stale_statuses is not None else _DEFAULT_STALE_STATUSES
         self.bet_targets: set[int] = set()
 
     def on_discovered(self, event: MatchDiscovered) -> MatchDiscovered | None:
@@ -56,7 +62,7 @@ class TargetTracker:
         if (
             latest is not None
             and latest.match_id not in self.bet_targets
-            and self._status.get(latest.match_id) not in _STALE_STATUSES
+            and self._status.get(latest.match_id) not in self._stale_statuses
         ):
             self.bet_targets.add(latest.match_id)
             return latest
@@ -68,4 +74,20 @@ class TargetTracker:
         checked immediately before actually clicking a bet, since real
         wall-clock time passes during browser navigation while this
         tracker keeps receiving events in the background."""
-        return self._status.get(match_id) in _STALE_STATUSES
+        return self._status.get(match_id) in self._stale_statuses
+
+
+def mutual_exclusion_reason(
+    match_id: int, other_pattern_name: str, other_bet_targets: set[int]
+) -> str | None:
+    """A ready-to-publish BetFailed reason when `match_id` is already
+    targeted by a *different* pattern's TargetTracker -- callers check
+    this immediately before invoking BetExecutor, so two independent
+    patterns never both stake money on the same match in the same round.
+    Returns None when there's no conflict, i.e. the bet should proceed.
+    Deliberately a plain function, not a TargetTracker method -- keeps
+    the class itself pattern-agnostic, unaware that a second pattern
+    even exists."""
+    if match_id in other_bet_targets:
+        return f"mutual exclusion: match {match_id} already targeted by {other_pattern_name}"
+    return None

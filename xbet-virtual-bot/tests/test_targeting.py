@@ -1,5 +1,5 @@
 from shared.events import MatchDiscovered
-from services.bettor.targeting import TargetTracker
+from services.bettor.targeting import TargetTracker, mutual_exclusion_reason
 
 
 def _discovered(match_id: int, home: str = "A", away: str = "B") -> MatchDiscovered:
@@ -93,3 +93,47 @@ def test_arm_defers_a_target_that_is_already_at_half_time():
     tracker.on_half_time(8)  # 1st half already over — genuinely stale
     target = tracker.arm()
     assert target is None  # falls back to waiting for the next discovery
+
+
+def test_default_stale_statuses_unchanged_half_time_is_stale():
+    tracker = TargetTracker()  # default: {"half_time", "finished"}
+    tracker.on_discovered(_discovered(10))
+    tracker.on_started(10)
+    tracker.on_half_time(10)
+    assert tracker.is_stale(10) is True
+
+
+def test_custom_stale_statuses_half_time_is_not_stale():
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(11))
+    tracker.on_started(11)
+    tracker.on_half_time(11)
+    assert tracker.is_stale(11) is False
+
+
+def test_custom_stale_statuses_finished_is_still_stale():
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(12))
+    tracker.on_finished(12)
+    assert tracker.is_stale(12) is True
+
+
+def test_custom_stale_statuses_arm_targets_a_match_already_at_half_time():
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(13))
+    tracker.on_started(13)
+    tracker.on_half_time(13)  # not stale for this tracker's definition
+    target = tracker.arm()
+    assert target is not None
+    assert target.match_id == 13
+    assert 13 in tracker.bet_targets
+
+
+def test_mutual_exclusion_reason_none_when_match_not_claimed_by_other():
+    assert mutual_exclusion_reason(1, "pattern2", set()) is None
+    assert mutual_exclusion_reason(1, "pattern2", {2, 3}) is None
+
+
+def test_mutual_exclusion_reason_set_when_match_already_claimed_by_other():
+    reason = mutual_exclusion_reason(1, "pattern2", {1, 2})
+    assert reason == "mutual exclusion: match 1 already targeted by pattern2"
