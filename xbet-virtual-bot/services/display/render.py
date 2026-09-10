@@ -289,9 +289,10 @@ def render_pattern_armed(event: PatternArmed) -> None:
     totals = ", ".join(str(t) for t in event.qualifying_totals)
     console.print(
         Panel(
-            f"3 consecutive rounds at or under the threshold: {totals}\n"
-            "Betting on the next round's 1st-half Over line.",
-            title="[magenta]◈ PATTERN FIRED[/magenta]  1st Half Over — streak",
+            f"{event.condition_label}\n"
+            f"Qualifying totals: {totals}\n"
+            f"Betting on the next round's {event.market_label}.",
+            title=f"[magenta]◈ PATTERN FIRED[/magenta]  {event.market_label}",
             border_style="magenta",
             title_align="left",
         )
@@ -301,35 +302,46 @@ def render_pattern_armed(event: PatternArmed) -> None:
 def render_pattern_progress(event: PatternProgress) -> None:
     """One dim line narrating what the just-finished round did to the
     streak — printed for every round (see render_pattern_armed for the
-    moment it actually fires, which this deliberately doesn't duplicate)."""
+    moment it actually fires, which this deliberately doesn't duplicate).
+    `direction` picks the qualify/reset comparison wording so this reads
+    correctly for both Pattern 1 (at_or_under) and Pattern 2 (at_or_over)."""
+    qualify_cmp = "≤" if event.direction == "at_or_under" else "≥"
+    reset_cmp = ">" if event.direction == "at_or_under" else "<"
     this_round = f"this round: {event.total}" if event.total is not None else "this round: unknown"
     if event.outcome == "reset":
-        detail = f"{this_round} > {event.low_threshold}, resets" if event.total is not None else f"{this_round}, resets"
+        detail = (
+            f"{this_round} {reset_cmp} {event.threshold}, resets"
+            if event.total is not None
+            else f"{this_round}, resets"
+        )
     elif event.outcome == "skipped":
         detail = f"{this_round}, skipped — bet target"
     else:  # qualifying
-        detail = f"{this_round} ≤ {event.low_threshold}, qualifies"
-    console.print(f"[bold bright_red]streak: {event.streak}/{event.streak_length} ({detail})[/bold bright_red]")
+        detail = f"{this_round} {qualify_cmp} {event.threshold}, qualifies"
+    console.print(
+        f"[bold bright_red]{event.pattern_name} streak: {event.streak}/{event.streak_length} ({detail})[/bold bright_red]"
+    )
 
 
 def render_bet_placed(event: BetPlaced) -> None:
     odds_str = f" @ {event.odds:.2f}" if event.odds is not None else ""
     console.print(
         f"[green]✓ BET PLACED[/green]  {event.stake:g} on {event.home} vs {event.away} "
-        f"— Total. 1st half Over {event.line:g}{odds_str}"
+        f"— {event.market_label}{odds_str}"
     )
 
 
 def render_bet_failed(event: BetFailed) -> None:
     where = f" (match {event.match_id})" if event.match_id is not None else ""
-    console.print(f"[red]✗ BET FAILED[/red]{where}  {event.reason}")
+    market = f" [{event.market_label}]" if event.market_label is not None else ""
+    console.print(f"[red]✗ BET FAILED[/red]{where}{market}  {event.reason}")
 
 
 def render_bet_settled(event: BetSettled) -> None:
     label = "[bold green]WON[/bold green]" if event.won else "[bold red]LOST[/bold red]"
     console.print(
         f"[cyan]● SETTLED[/cyan]  {event.home} vs {event.away} "
-        f"— 1st half total {event.first_half_total} — {label}"
+        f"— {event.market_label} total {event.period_total} — {label}"
     )
 
 
@@ -341,20 +353,21 @@ def log_bet_event(event: BettorEvent, target: Console) -> None:
     data/bets.log — same convention as log_finished()/data/result.log."""
     target.print(_datetime(time.time()))
     if isinstance(event, PatternArmed):
-        target.print(f"PATTERN ARMED — streak {event.qualifying_totals}")
+        target.print(f"PATTERN ARMED — {event.market_label} — streak {event.qualifying_totals}")
     elif isinstance(event, BetPlaced):
         odds_str = f" @ {event.odds:.2f}" if event.odds is not None else ""
         target.print(
             f"BET PLACED — {event.stake:g} on {event.home} vs {event.away} "
-            f"(match {event.match_id}) Total. 1st half Over {event.line:g}{odds_str}"
+            f"(match {event.match_id}) {event.market_label}{odds_str}"
         )
     elif isinstance(event, BetFailed):
-        target.print(f"BET FAILED — match {event.match_id}: {event.reason}")
+        market = f" [{event.market_label}]" if event.market_label is not None else ""
+        target.print(f"BET FAILED{market} — match {event.match_id}: {event.reason}")
     elif isinstance(event, BetSettled):
         outcome = "WON" if event.won else "LOST"
         target.print(
             f"SETTLED — {event.home} vs {event.away}: {outcome} "
-            f"(1st half total {event.first_half_total})"
+            f"({event.market_label} total {event.period_total})"
         )
     target.print()
 

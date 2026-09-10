@@ -44,6 +44,20 @@ from shared.events import (
 )
 from shared.logging import get_logger
 
+PATTERN1_NAME = "1st_half_over_6.5_streak"
+
+
+def _market_label(period: int, over: bool, line: float) -> str:
+    half = "1st half" if period == 1 else "2nd half"
+    side = "Over" if over else "Under"
+    return f"Total. {half} {side} {line:g}"
+
+
+def _condition_label(direction: str, period: int, threshold: int, streak_length: int) -> str:
+    half = "1st half" if period == 1 else "2nd half"
+    cmp = "<=" if direction == "at_or_under" else ">="
+    return f"{streak_length} consecutive rounds with {half} total {cmp} {threshold}"
+
 
 async def run() -> None:
     config = load_config()
@@ -63,18 +77,23 @@ async def run() -> None:
     )
 
     async def place(target: MatchDiscovered) -> None:
+        market_label = _market_label(1, True, config.pattern_bet_line)
+
         if targets.is_stale(target.match_id):
             reason = (
                 f"stale: match {target.match_id} ({target.home} vs {target.away}) "
                 "already past 1st half by the time the bet was attempted"
             )
             log.warning(reason)
-            await bus.publish(config.channel_match_events, BetFailed(match_id=target.match_id, reason=reason))
+            await bus.publish(
+                config.channel_match_events,
+                BetFailed(match_id=target.match_id, reason=reason, market_label=market_label),
+            )
             return
 
         log.info(
             f"placing bet: {config.bet_stake_amount:g} on {target.home} vs {target.away} "
-            f"(match {target.match_id}) Total. 1st half Over {config.pattern_bet_line:g}"
+            f"(match {target.match_id}) {market_label}"
         )
         result = await executor.place_bet(
             match_id=target.match_id,
@@ -94,12 +113,16 @@ async def run() -> None:
                     away=target.away,
                     stake=config.bet_stake_amount,
                     line=config.pattern_bet_line,
+                    market_label=market_label,
                     odds=result.odds,
                 ),
             )
         else:
             log.error(f"bet failed for match {target.match_id}: {result.reason}")
-            await bus.publish(config.channel_match_events, BetFailed(match_id=target.match_id, reason=result.reason))
+            await bus.publish(
+                config.channel_match_events,
+                BetFailed(match_id=target.match_id, reason=result.reason, market_label=market_label),
+            )
 
     async def consume() -> None:
         async for event in bus.subscribe_match_events(config.channel_match_events):
@@ -123,7 +146,8 @@ async def run() -> None:
                                 home=event.home,
                                 away=event.away,
                                 won=first_half_total > config.pattern_bet_line,
-                                first_half_total=first_half_total,
+                                period_total=first_half_total,
+                                market_label=_market_label(1, True, config.pattern_bet_line),
                             ),
                         )
 
@@ -133,8 +157,12 @@ async def run() -> None:
                         await bus.publish(
                             config.channel_match_events,
                             PatternArmed(
-                                pattern_name="1st_half_over_6.5_streak",
+                                pattern_name=PATTERN1_NAME,
                                 qualifying_totals=list(tracker.last_streak_totals),
+                                market_label=_market_label(1, True, config.pattern_bet_line),
+                                condition_label=_condition_label(
+                                    "at_or_under", 1, config.pattern_low_threshold, config.pattern_streak_length
+                                ),
                             ),
                         )
                         target = targets.arm()
@@ -145,9 +173,11 @@ async def run() -> None:
                             config.channel_match_events,
                             PatternProgress(
                                 match_id=event.match_id,
+                                pattern_name=PATTERN1_NAME,
+                                direction="at_or_under",
                                 streak=tracker.streak,
                                 streak_length=config.pattern_streak_length,
-                                low_threshold=config.pattern_low_threshold,
+                                threshold=config.pattern_low_threshold,
                                 total=tracker.last_total,
                                 outcome=tracker.last_outcome,
                             ),
