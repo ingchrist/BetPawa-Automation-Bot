@@ -39,6 +39,7 @@ Color language:
 """
 from __future__ import annotations
 
+import time
 from datetime import datetime
 
 from rich.console import Console, Group
@@ -47,6 +48,9 @@ from rich.table import Table
 from rich.text import Text
 
 from shared.events import (
+    BetFailed,
+    BetPlaced,
+    BetSettled,
     HalfScore,
     MatchDiscovered,
     MatchFinished,
@@ -54,6 +58,7 @@ from shared.events import (
     MatchScoreChanged,
     MatchStarted,
     MoneylineOdds,
+    PatternArmed,
 )
 
 console = Console(highlight=False)
@@ -276,6 +281,66 @@ def log_finished(event: MatchFinished, target: Console) -> None:
     terminal's scrollback and the machine-readable data/results.jsonl."""
     target.print(_datetime(event.finished_at))
     target.print(build_finished_panel(event))
+    target.print()
+
+
+def render_pattern_armed(event: PatternArmed) -> None:
+    totals = ", ".join(str(t) for t in event.qualifying_totals)
+    console.print(
+        Panel(
+            f"3 consecutive rounds at or under the threshold: {totals}\n"
+            "Betting on the next round's 1st-half Over line.",
+            title="[magenta]◈ PATTERN FIRED[/magenta]  1st Half Over — streak",
+            border_style="magenta",
+            title_align="left",
+        )
+    )
+
+
+def render_bet_placed(event: BetPlaced) -> None:
+    odds_str = f" @ {event.odds:.2f}" if event.odds is not None else ""
+    console.print(
+        f"[green]✓ BET PLACED[/green]  {event.stake:g} on {event.home} vs {event.away} "
+        f"— Total. 1st half Over {event.line:g}{odds_str}"
+    )
+
+
+def render_bet_failed(event: BetFailed) -> None:
+    where = f" (match {event.match_id})" if event.match_id is not None else ""
+    console.print(f"[red]✗ BET FAILED[/red]{where}  {event.reason}")
+
+
+def render_bet_settled(event: BetSettled) -> None:
+    label = "[bold green]WON[/bold green]" if event.won else "[bold red]LOST[/bold red]"
+    console.print(
+        f"[cyan]● SETTLED[/cyan]  {event.home} vs {event.away} "
+        f"— 1st half total {event.first_half_total} — {label}"
+    )
+
+
+BettorEvent = PatternArmed | BetPlaced | BetFailed | BetSettled
+
+
+def log_bet_event(event: BettorEvent, target: Console) -> None:
+    """Plain-text twin of the four render_* functions above, appended to
+    data/bets.log — same convention as log_finished()/data/result.log."""
+    target.print(_datetime(time.time()))
+    if isinstance(event, PatternArmed):
+        target.print(f"PATTERN ARMED — streak {event.qualifying_totals}")
+    elif isinstance(event, BetPlaced):
+        odds_str = f" @ {event.odds:.2f}" if event.odds is not None else ""
+        target.print(
+            f"BET PLACED — {event.stake:g} on {event.home} vs {event.away} "
+            f"(match {event.match_id}) Total. 1st half Over {event.line:g}{odds_str}"
+        )
+    elif isinstance(event, BetFailed):
+        target.print(f"BET FAILED — match {event.match_id}: {event.reason}")
+    elif isinstance(event, BetSettled):
+        outcome = "WON" if event.won else "LOST"
+        target.print(
+            f"SETTLED — {event.home} vs {event.away}: {outcome} "
+            f"(1st half total {event.first_half_total})"
+        )
     target.print()
 
 

@@ -21,24 +21,33 @@ from rich.console import Console
 
 from services.aggregator.history import ResultsHistory
 from services.display.render import (
+    log_bet_event,
     log_finished,
     render_backfill_header,
+    render_bet_failed,
+    render_bet_placed,
+    render_bet_settled,
     render_discovered,
     render_finished,
     render_half_time,
     render_legend,
     render_live_header,
     render_live_score,
+    render_pattern_armed,
     render_started,
 )
 from shared.bus import EventBus
 from shared.config import load_config
 from shared.events import (
+    BetFailed,
+    BetPlaced,
+    BetSettled,
     MatchDiscovered,
     MatchFinished,
     MatchHalfTime,
     MatchScoreChanged,
     MatchStarted,
+    PatternArmed,
 )
 from shared.logging import get_logger
 
@@ -76,6 +85,10 @@ async def run() -> None:
     result_log_file = config.result_log_txt_path.open("a", encoding="utf-8")
     result_log_console = Console(file=result_log_file, no_color=True, width=RESULT_LOG_WIDTH, highlight=False)
 
+    config.bets_log_path.parent.mkdir(parents=True, exist_ok=True)
+    bets_log_file = config.bets_log_path.open("a", encoding="utf-8")
+    bets_log_console = Console(file=bets_log_file, no_color=True, width=RESULT_LOG_WIDTH, highlight=False)
+
     bus = EventBus(config.redis_url)
     await bus.connect()
 
@@ -99,8 +112,28 @@ async def run() -> None:
                     render_finished(event)
                     log_finished(event, result_log_console)
                     result_log_file.flush()
+                elif isinstance(event, PatternArmed):
+                    render_pattern_armed(event)
+                    log_bet_event(event, bets_log_console)
+                    bets_log_file.flush()
+                elif isinstance(event, BetPlaced):
+                    render_bet_placed(event)
+                    log_bet_event(event, bets_log_console)
+                    bets_log_file.flush()
+                elif isinstance(event, BetFailed):
+                    render_bet_failed(event)
+                    log_bet_event(event, bets_log_console)
+                    bets_log_file.flush()
+                elif isinstance(event, BetSettled):
+                    render_bet_settled(event)
+                    log_bet_event(event, bets_log_console)
+                    bets_log_file.flush()
             except Exception as err:  # noqa: BLE001 — a bad render must not kill the stream
-                log.error(f"render failed for {event.kind} (match {event.match_id}): {err}")
+                # PatternArmed carries no match_id (it's not about one
+                # specific match) -- getattr avoids a second, masking
+                # AttributeError from this handler itself on that event kind.
+                match_id = getattr(event, "match_id", None)
+                log.error(f"render failed for {event.kind} (match {match_id}): {err}")
 
     consumer_task = asyncio.create_task(consume())
     await stop.wait()
@@ -108,6 +141,7 @@ async def run() -> None:
     log.info("shutting down...")
     consumer_task.cancel()
     result_log_file.close()
+    bets_log_file.close()
     await bus.close()
 
 
