@@ -52,7 +52,7 @@ async def run() -> None:
     bus = EventBus(config.redis_url)
     await bus.connect()
 
-    tracker = PatternTracker(low_threshold=config.pattern_low_threshold, streak_length=config.pattern_streak_length)
+    tracker = PatternTracker(threshold=config.pattern_low_threshold, streak_length=config.pattern_streak_length)
     targets = TargetTracker()
     executor = BetExecutor(config.api_base, config.cdp_url, config.http_timeout_seconds)
 

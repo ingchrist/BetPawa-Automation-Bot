@@ -44,14 +44,14 @@ def test_fire_then_skip_one_round_then_restart():
 
 
 def test_boundary_value_at_threshold_qualifies():
-    tracker = PatternTracker(low_threshold=6, streak_length=3)
+    tracker = PatternTracker(threshold=6, streak_length=3)
     assert tracker.process(6) is False
     assert tracker.process(6) is False
     assert tracker.process(6) is True
 
 
 def test_boundary_value_above_threshold_does_not_qualify():
-    tracker = PatternTracker(low_threshold=6, streak_length=3)
+    tracker = PatternTracker(threshold=6, streak_length=3)
     assert tracker.process(6) is False
     assert tracker.process(6) is False
     assert tracker.process(7) is False
@@ -61,7 +61,7 @@ def test_boundary_value_above_threshold_does_not_qualify():
 
 
 def test_streak_length_and_threshold_are_configurable():
-    tracker = PatternTracker(low_threshold=5, streak_length=2)
+    tracker = PatternTracker(threshold=5, streak_length=2)
     assert tracker.process(5) is False
     assert tracker.process(5) is True
     assert tracker.last_streak_totals == [5, 5]
@@ -93,3 +93,69 @@ def test_progress_reports_reset_on_none_total():
     tracker.process(4)
     tracker.process(None)
     assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, None, "reset")
+
+
+def test_at_or_over_direction_fires_on_three_consecutive_high_rounds():
+    tracker = PatternTracker(threshold=8, streak_length=3, direction="at_or_over")
+    assert tracker.process(9) is False
+    assert tracker.process(10) is False
+    assert tracker.process(8) is True
+    assert tracker.last_streak_totals == [9, 10, 8]
+
+
+def test_at_or_over_direction_low_round_breaks_the_streak():
+    tracker = PatternTracker(threshold=8, streak_length=3, direction="at_or_over")
+    assert tracker.process(9) is False
+    assert tracker.process(7) is False  # breaks it -- below threshold
+    assert tracker.process(9) is False  # restarts at 1
+    assert tracker.process(9) is False
+    assert tracker.process(9) is True
+
+
+def test_at_or_over_direction_none_total_breaks_the_streak():
+    tracker = PatternTracker(threshold=8, streak_length=3, direction="at_or_over")
+    assert tracker.process(9) is False
+    assert tracker.process(None) is False
+    assert tracker.process(9) is False
+    assert tracker.process(9) is False
+    assert tracker.process(9) is True
+
+
+def test_at_or_over_direction_fire_then_skip_one_round_then_restart():
+    tracker = PatternTracker(threshold=8, streak_length=3, direction="at_or_over")
+    tracker.process(9)
+    tracker.process(10)
+    assert tracker.process(8) is True  # fires
+
+    assert tracker.process(2) is False  # the skipped bet-target round
+
+    assert tracker.process(9) is False
+    assert tracker.process(9) is False
+    assert tracker.process(9) is True
+    assert tracker.last_streak_totals == [9, 9, 9]
+
+
+def test_at_or_over_direction_progress_reporting():
+    tracker = PatternTracker(threshold=8, streak_length=3, direction="at_or_over")
+
+    tracker.process(9)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (1, 9, "qualifying")
+
+    tracker.process(3)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 3, "reset")
+
+    tracker.process(9)
+    tracker.process(10)
+    tracker.process(8)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 8, "armed")
+
+    tracker.process(2)  # the skipped bet-target round
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 2, "skipped")
+
+
+def test_at_or_under_direction_default_is_pattern_1s_exact_existing_behavior():
+    tracker = PatternTracker()  # direction defaults to "at_or_under"
+    assert tracker.process(4) is False
+    assert tracker.process(5) is False
+    assert tracker.process(6) is True
+    assert tracker.last_streak_totals == [4, 5, 6]
