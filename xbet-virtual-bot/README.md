@@ -1,8 +1,10 @@
 # xbet-virtual-bot
 
-Phase 1: watch 1xbet.cm's FIFA 3x3 virtual esports (currently "FC 25. 3x3.
-Conference League") and print scores — live and upcoming — to the terminal
-in real time. No betting actions yet; that's a later phase.
+Watches 1xbet.cm's FIFA 3x3 virtual esports (currently "FC 25. 3x3.
+Conference League") and prints scores — live and upcoming — to the terminal
+in real time. Also runs one live betting pattern (`services/bettor/`) that
+places real bets automatically when its trigger condition fires — see
+[Betting patterns](#betting-patterns).
 
 ## Contents
 
@@ -10,6 +12,7 @@ in real time. No betting actions yet; that's a later phase.
 - [Example output](#example-output)
 - [Architecture](#architecture)
 - [Event catalogue](#event-catalogue)
+- [Betting patterns](#betting-patterns)
 - [How data is sourced](#how-data-is-sourced)
 - [Configuration reference](#configuration-reference)
 - [Project layout](#project-layout)
@@ -26,15 +29,17 @@ this box).
 ./run.sh            # installs deps into .venv on first run, starts everything
 ```
 
-This starts `collector` and `aggregator` in the background (logs under
-`logs/`) and attaches `display` to your terminal. Ctrl+C stops *watching* —
-the background services keep running (no state is lost) so you can reattach
-with `./run.sh` again, or `.venv/bin/python -m services.display.main`
-directly.
+This starts `collector`, `aggregator`, and `bettor` in the background (logs
+under `logs/`) and attaches `display` to your terminal. Ctrl+C stops
+*watching* — the background services keep running (no state is lost) so you
+can reattach with `./run.sh` again, or `.venv/bin/python -m
+services.display.main` directly. `bettor` places real bets automatically
+once its pattern fires — see [Betting patterns](#betting-patterns) before
+running this for the first time.
 
 ```
 ./run.sh status      # what's running
-./run.sh stop        # stop collector + aggregator
+./run.sh stop        # stop collector + aggregator + bettor
 ./run.sh restart
 ```
 
@@ -111,7 +116,7 @@ Two rules behind this layout, both deliberate:
 
 ## Architecture
 
-Three independent processes talking only through Redis pub/sub — kill,
+Four independent processes talking only through Redis pub/sub — kill,
 restart, or swap any one of them and the others don't notice:
 
 ```
@@ -153,6 +158,13 @@ restart, or swap any one of them and the others don't notice:
     recovering — both impossible in a self-consistent feed. `_is_stale_reading`
     drops these outright rather than let them become duplicate KICK-OFF
     lines or a goal that appears to un-score itself.
+- **bettor** (`services/bettor/`) — subscribes to `xbet.match_events` like
+  display does, but also publishes back onto it: feeds every finished
+  round's 1st-half total into a pure streak-detector (`pattern.py`),
+  resolves which upcoming match a fired pattern bets on (`targeting.py`),
+  and places the bet via a direct API call (`betting_api.py`), publishing
+  `PatternArmed`/`BetPlaced`/`BetFailed`/`BetSettled` back onto the same
+  channel — see [Betting patterns](#betting-patterns).
 - **display** (`services/display/`) — a dumb renderer. Subscribes to domain
   events, prints a block per event via `rich`. Replays the last few results
   from `data/results.jsonl` on startup before switching to live streaming,
@@ -161,14 +173,16 @@ restart, or swap any one of them and the others don't notice:
   appends every newly-finished result's RESULT block, as plain text, to
   `data/result.log` — see [the note in Project
   layout](#project-layout) for why this is a separate file from
-  `data/results.jsonl`.
+  `data/results.jsonl`. It renders bettor's four event kinds too, logging
+  them to `data/bets.log` the same way.
 
-`shared/` holds what all three agree on: the event schemas
+`shared/` holds what all four agree on: the event schemas
 (`events.py`, pydantic — this is the real contract between the services),
 the Redis wrapper (`bus.py`), and config (`config.py`). Because that
-contract is explicit and typed, a fourth service (a Telegram notifier, a DB
-writer, a web dashboard) is just another subscriber to `xbet.match_events` —
-it costs nothing to add and can't destabilize collector or aggregator.
+contract is explicit and typed, bettor itself was added this way — just
+another subscriber to `xbet.match_events` — and a further service (a
+Telegram notifier, a DB writer, a web dashboard, another betting pattern)
+costs nothing to add the same way, without destabilizing anything upstream.
 
 Every service is independently restartable via its own `if __name__ ==
 "__main__"` entrypoint (`python -m services.<name>.main`) and logs to both
@@ -190,12 +204,71 @@ discriminator field used to route a message off the wire (see
 | `xbet.match_events` | `MatchScoreChanged` (`score_changed`) | The running score changes while live — one event per goal, essentially. | `period_label`, `clock_seconds`, `home_goals`, `away_goals`, `totals` (carried on the event but not rendered — the terminal shows the actual combined goal total instead, see [Example output](#example-output)) |
 | `xbet.match_events` | `MatchHalfTime` (`half_time`) | First-half data becomes available and the match has moved past the first half. Fires exactly once per match — see the note on `_half_time_emitted` in `services/aggregator/state.py` for why it's edge-triggered rather than a literal frame-to-frame comparison. | `first_half` |
 | `xbet.match_events` | `MatchFinished` (`finished`) | Status flips to finished. Appended to `data/results.jsonl` (by the aggregator) and `data/result.log` (by the display) in the same step. | `first_half`, `second_half`, `total_home_goals`/`total_away_goals`, settled `moneyline` (rendered), `totals` (settled but not rendered — see [Example output](#example-output)) |
+| `xbet.match_events` | `PatternArmed` (`pattern_armed`) | A betting pattern's trigger condition is met. | `pattern_name`, `qualifying_totals` |
+| `xbet.match_events` | `BetPlaced` (`bet_placed`) | A bet was successfully placed. | `match_id`, `stake`, `line`, `odds` |
+| `xbet.match_events` | `BetFailed` (`bet_failed`) | A bet was skipped or failed. | `match_id?`, `reason` |
+| `xbet.match_events` | `BetSettled` (`bet_settled`) | The bet's target match finished. | `match_id`, `won`, `first_half_total` |
+
+All four are published by `services/bettor/` — see [Betting patterns](#betting-patterns).
 
 `MatchStateMachine.process()` (in `services/aggregator/state.py`) always
 returns events in the order above for a single poll, even if a match jumps
 several states between two polls (a slow poll, a missed frame) — so the
 display never prints e.g. a `RESULT` block before the `HALF-TIME` block it
 belongs after.
+
+## Betting patterns
+
+### Pattern 1 — "1st Half Over 6.5" streak
+
+`services/bettor/` (see `services/bettor/pattern.py` for the exact state
+machine) watches every finished round's 1st-half combined goal total. 3
+consecutive rounds at or under `PATTERN_LOW_THRESHOLD` (default 6) fire a
+real bet — `BET_STAKE_AMOUNT` (default 90, FCFA) on the *next* round's
+`Total. 1st half` market, `Over PATTERN_BET_LINE` (default 6.5). After a
+fire, the streak resets and the very next round is excluded from
+counting (it's the one just bet on) — the round after that restarts the
+count from 0.
+
+Bets are placed live, from the very first run — there is no dry-run
+mode. Placement (`services/bettor/betting_api.py`) follows the same
+philosophy as the read path described in [How data is
+sourced](#how-data-is-sourced): a direct authenticated POST to the site's
+own `LiveFeed`/`LiveBet` JSON API, reverse-engineered by capturing one
+real, authorized bet — not by driving the betting UI with browser clicks
+(an earlier design did that, proved too flaky live to trust with real
+money, and was abandoned; see the module's docstring for the full story).
+It does still need `CDP_URL` (default `http://127.0.0.1:9222`, the same
+already-running, already-logged-in Chrome the bot never launches or logs
+into itself) for one thing: reading two auth values — a bearer token and a
+device/session token — straight out of that browser's cookies and
+`localStorage` fresh before every bet, since both expire on a ~4-hour
+window. That's a read-only touch, not navigation or clicking, so it
+doesn't carry the flakiness the abandoned UI-click design did.
+
+If the target round's 1st half is already over (half-time or finished) by
+the moment the bet is actually attempted — real time passes between
+detection and placement — the bet is skipped and logged as failed rather
+than placed into a stale market.
+
+Every pattern fire / bet placed / bet failed / bet settled is rendered
+in the terminal (same panel style as the RESULT grid) and appended to
+`data/bets.log` (plain text, tracked in git, same convention as
+`data/result.log`) so the pattern's real hit-rate is reviewable over
+time.
+
+Config knobs: `BET_STAKE_AMOUNT`, `PATTERN_STREAK_LENGTH`,
+`PATTERN_LOW_THRESHOLD`, `PATTERN_BET_LINE`, `CDP_URL`, `BETS_LOG_PATH` —
+see `.env.example`.
+
+**Verified end-to-end (2026-09-10)**: beyond the original capture bet (used
+to observe the real request shape), a second real bet was placed through
+`BetExecutor` itself against a live match/coefficient it resolved on its
+own, confirming the client actually places bets correctly rather than just
+replaying one captured shape. The odds-ladder field disambiguating "1st
+half" markets from other periods was open too, and is now confirmed
+correct by directly matching a live UI price against the raw feed — see
+`services/bettor/betting_api.py`'s docstring for both.
 
 ## How data is sourced
 
@@ -233,9 +306,13 @@ it didn't before): this was reverse-engineered by probing with plain
 same thing again — hit `GetChampsZip?lng=en` to re-find the current league's
 `LI`, hit `Get1x2_VZip?sports=85&count=100&lng=en&getEmpty=true` to confirm
 the bulk shape, hit `GetGameZip?id=<a live match id>&lng=en` and diff its
-`E` array against the `T`/`G` codes documented in `xbet_client.py`. There is
-no dependency on the browser/CDP setup anywhere in this bot — don't
-reintroduce it as a "fix" for an API change; the geo-block is still there.
+`E` array against the `T`/`G` codes documented in `xbet_client.py`. The
+read path (collector) has no browser/CDP dependency at all — don't
+reintroduce one as a "fix" for an API change; the geo-block is still
+there. (The betting path does use a lightweight, read-only CDP touch to
+source auth tokens — see [Betting patterns](#betting-patterns) — but that's
+reading cookies/localStorage from an already-open browser tab, not
+scraping rendered HTML, so it isn't affected by the geo-block either way.)
 
 ## Configuration reference
 
@@ -255,6 +332,12 @@ you change.
 | `RESULTS_LOG_PATH` | `data/results.jsonl` | Machine-readable append-only finished-match history, used by `display` to backfill on its own startup (see [Known limitations](#known-limitations)). |
 | `RESULT_LOG_PATH` | `data/result.log` | Human-readable twin of the above — the plain-text RESULT block for every finished round, meant to be opened directly. Note the singular "RESULT," easy to confuse with `RESULTS_LOG_PATH` above; they're different files serving different purposes. |
 | `LOG_DIR` | `logs` | Per-service log files. |
+| `BET_STAKE_AMOUNT` | `90` | FCFA staked per fired bet (Pattern 1). See [Betting patterns](#betting-patterns). |
+| `PATTERN_STREAK_LENGTH` | `3` | Consecutive qualifying rounds required to fire. |
+| `PATTERN_LOW_THRESHOLD` | `6` | A round qualifies when its 1st-half combined goal total is at or under this. |
+| `PATTERN_BET_LINE` | `6.5` | The Over line bet on in `Total. 1st half`. |
+| `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser the bettor reads fresh auth from (read-only touch, not UI automation). |
+| `BETS_LOG_PATH` | `data/bets.log` | Human-readable audit trail of every pattern fire / bet placed / failed / settled — tracked in git like `RESULT_LOG_PATH`. |
 
 Redis pub/sub channel names (`xbet.snapshots`, `xbet.match_events`) are
 **not** env-configurable — they're the fixed contract between services and
@@ -267,10 +350,12 @@ so they can't drift out of sync between a publisher and its subscribers.
 shared/                event schemas, Redis bus, config, logging — the contract
 services/collector/    1xbet API client, raw JSON → MatchSnapshot, poll loop
 services/aggregator/   state machine, odds settlement, results history log
+services/bettor/       Pattern 1 streak detector + live bet placement
 services/display/      rich-rendered terminal blocks, history replay
-run.sh                 installs the venv, starts Redis + all three services
+run.sh                 installs the venv, starts Redis + all four services
 data/results.jsonl     machine-readable finished-match log (gitignored)
 data/result.log         human-readable RESULT block per finished round (tracked in git — see below)
+data/bets.log           human-readable betting audit trail (tracked in git — see Betting patterns)
 logs/                  per-service log files (gitignored)
 ```
 
@@ -327,7 +412,7 @@ Honest gaps, not hidden ones — worth knowing before relying on this:
   goal that appears to un-score itself. If a *new* class of upstream
   glitch shows up that this doesn't already cover, that function is where
   to extend the guard.
-- **No automated tests yet.** Verified so far by running the full stack
+- **No automated tests yet** (for the collector/aggregator/display trio — `services/bettor/` does have unit tests for its pure state machines and its bet-placement client, plus two independent real-money verifications: the original capture bet and a second real bet placed through `BetExecutor` itself resolving its own match/coefficient). Verified so far by running the full stack
   live against the real feed and reading the resulting logs / terminal
   output / `data/results.jsonl` for correctness — this is how every bug
   fixed so far (half-time edge-triggering, duplicate finished events, the
@@ -363,9 +448,9 @@ Honest gaps, not hidden ones — worth knowing before relying on this:
 
 ## Roadmap
 
-Phase 1 (this) is extraction + real-time terminal display only — no
-betting actions. Later phases build on the same event bus: a betting
-service subscribing to `xbet.match_events` (or a new pattern-detection
-service sitting between aggregator and it) is the natural next addition,
-following the same "just another subscriber" shape described in
+Extraction + real-time terminal display, plus one live betting pattern
+(see [Betting patterns](#betting-patterns)), are both implemented. Later
+patterns build on the same event bus — each is just another subscriber to
+`xbet.match_events` publishing its own `PatternArmed`/`Bet*` events, the
+same shape `services/bettor/` already follows, described in
 [Architecture](#architecture).

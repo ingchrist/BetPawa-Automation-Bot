@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Orchestrates the three services + their Redis event bus.
+# Orchestrates the four services + their Redis event bus.
 #
-#   ./run.sh            install-if-missing, start collector+aggregator in the
-#                        background, then attach the display service to this
-#                        terminal (Ctrl+C stops *watching* — the background
-#                        services keep running so the display can be
-#                        reattached, or another one started, without losing
-#                        any in-flight match state).
-#   ./run.sh stop        stop collector + aggregator.
+#   ./run.sh            install-if-missing, start collector+aggregator+bettor
+#                        in the background, then attach the display service
+#                        to this terminal (Ctrl+C stops *watching* — the
+#                        background services keep running so the display can
+#                        be reattached, or another one started, without
+#                        losing any in-flight match state).
+#   ./run.sh stop        stop collector + aggregator + bettor.
 #   ./run.sh status       what's running.
 #   ./run.sh restart      stop then start.
 set -euo pipefail
@@ -66,7 +66,7 @@ stop_bg() {
 }
 
 status() {
-    for name in collector aggregator; do
+    for name in collector aggregator bettor; do
         if [ -f "$PIDDIR/$name.pid" ] && kill -0 "$(cat "$PIDDIR/$name.pid")" 2>/dev/null; then
             echo "$name: running (pid $(cat "$PIDDIR/$name.pid"))"
         else
@@ -83,6 +83,7 @@ start)
     ensure_redis
     start_bg collector services.collector.main
     start_bg aggregator services.aggregator.main
+    start_bg bettor services.bettor.main
     echo
     echo "[display] attaching — Ctrl+C stops watching only; run './run.sh stop' to fully stop the bot"
     echo
@@ -91,6 +92,7 @@ start)
 stop)
     stop_bg collector
     stop_bg aggregator
+    stop_bg bettor
     echo "[stop] redis-server left running (shared resource) — 'redis-cli shutdown' to stop it too"
     ;;
 status)
