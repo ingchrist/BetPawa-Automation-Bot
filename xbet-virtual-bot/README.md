@@ -270,6 +270,35 @@ half" markets from other periods was open too, and is now confirmed
 correct by directly matching a live UI price against the raw feed — see
 `services/bettor/betting_api.py`'s docstring for both.
 
+### Pattern 2 — "2nd Half Under 7.5" streak
+
+The mirror image of Pattern 1, run as a second, independent pattern in
+the same `services/bettor/` process — no separate service, no separate
+CDP session. It watches every finished round's **2nd-half** combined
+goal total instead of the 1st-half's. 3 consecutive rounds at or above
+`PATTERN2_HIGH_THRESHOLD` (default 8) fire a real bet —
+`PATTERN2_BET_STAKE_AMOUNT` (default 90, FCFA, independently
+configurable from Pattern 1's stake) on the *next* round's `Total. 2nd
+half` market, `Under PATTERN2_BET_LINE` (default 7.5). Same fire → skip
+one round → restart life cycle as Pattern 1, evaluated in the opposite
+direction.
+
+Because a final 2nd-half score is only known once a round actually
+finishes (unlike the 1st half, whose score is known at half-time),
+Pattern 2 evaluates at each round's `MatchFinished` event rather than
+`MatchHalfTime` — one event later in the round's lifecycle than
+Pattern 1.
+
+**Mutual exclusion:** since both patterns watch the same "next match to
+kick off," they can resolve to targeting the same match in the same
+round. Only one bet per match is ever placed — whichever pattern's
+target resolves first wins it; the other logs a `BET FAILED` with a
+`mutual exclusion: ...` reason instead of also staking money on it.
+
+Config knobs: `PATTERN2_HIGH_THRESHOLD`, `PATTERN2_STREAK_LENGTH`,
+`PATTERN2_BET_LINE`, `PATTERN2_BET_STAKE_AMOUNT` — see `.env.example`.
+Shares `CDP_URL` and `BETS_LOG_PATH` with Pattern 1.
+
 ## How data is sourced
 
 The original plan was to drive the shared Chrome-over-CDP setup this box
@@ -448,9 +477,10 @@ Honest gaps, not hidden ones — worth knowing before relying on this:
 
 ## Roadmap
 
-Extraction + real-time terminal display, plus one live betting pattern
-(see [Betting patterns](#betting-patterns)), are both implemented. Later
-patterns build on the same event bus — each is just another subscriber to
-`xbet.match_events` publishing its own `PatternArmed`/`Bet*` events, the
-same shape `services/bettor/` already follows, described in
-[Architecture](#architecture).
+Extraction + real-time terminal display, plus two live betting patterns
+(see [Betting patterns](#betting-patterns)), are all implemented. Both
+patterns run in the same `services/bettor/` process, coordinated so they
+never both bet on the same match in the same round. Any future pattern
+follows the same shape: extend `PatternTracker`/`TargetTracker`/
+`BetExecutor` rather than forking them, and publish its own
+`PatternArmed`/`Bet*` events onto the same `xbet.match_events` bus.
