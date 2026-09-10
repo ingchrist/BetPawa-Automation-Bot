@@ -1,11 +1,22 @@
 """bettor — Pattern 1: "1st Half Over 6.5" streak detector + live bet
 placement.
 
-Subscribes to xbet.match_events like display does, feeds every finished
-round's 1st-half total into PatternTracker, resolves the bet target via
-TargetTracker, and drives BetExecutor to actually place it. Publishes
-PatternArmed/BetPlaced/BetFailed/BetSettled back onto the same channel —
-just another producer on the existing bus, same shape as the aggregator.
+Subscribes to xbet.match_events like display does, feeds every round's
+1st-half total into PatternTracker the moment it's known — at
+MatchHalfTime, not MatchFinished, since the pattern only ever looks at
+1st-half data and MatchHalfTime.first_half is available well before the
+2nd half (and hence MatchFinished) plays out. Waiting for MatchFinished
+would delay pattern firing by a full 2nd half's worth of wall-clock time,
+which is exactly the lag that let the real "next match to kick off"
+(the aggregator's own soonest-upcoming pick — see
+services/aggregator/state.py's _update_upcoming_queue) slip from
+"upcoming" to "started" before TargetTracker.arm() ever got a chance to
+target it.
+
+Resolves the bet target via TargetTracker, and drives BetExecutor to
+actually place it. Publishes PatternArmed/PatternProgress/BetPlaced/
+BetFailed/BetSettled back onto the same channel — just another producer
+on the existing bus, same shape as the aggregator.
 
 Run standalone:
     python -m services.bettor.main
@@ -29,14 +40,9 @@ from shared.events import (
     MatchHalfTime,
     MatchStarted,
     PatternArmed,
+    PatternProgress,
 )
 from shared.logging import get_logger
-
-
-def _first_half_total(event: MatchFinished) -> int | None:
-    if event.first_half is None:
-        return None
-    return event.first_half.home_goals + event.first_half.away_goals
 
 
 async def run() -> None:
@@ -106,11 +112,10 @@ async def run() -> None:
                     targets.on_started(event.match_id)
                 elif isinstance(event, MatchHalfTime):
                     targets.on_half_time(event.match_id)
-                elif isinstance(event, MatchFinished):
-                    targets.on_finished(event.match_id)
 
-                    if event.match_id in targets.bet_targets and event.first_half is not None:
-                        first_half_total = event.first_half.home_goals + event.first_half.away_goals
+                    first_half_total = event.first_half.home_goals + event.first_half.away_goals
+
+                    if event.match_id in targets.bet_targets:
                         await bus.publish(
                             config.channel_match_events,
                             BetSettled(
@@ -122,7 +127,7 @@ async def run() -> None:
                             ),
                         )
 
-                    fired = tracker.process(_first_half_total(event))
+                    fired = tracker.process(first_half_total)
                     if fired:
                         log.info(f"PATTERN ARMED — streak {tracker.last_streak_totals}")
                         await bus.publish(
@@ -135,6 +140,20 @@ async def run() -> None:
                         target = targets.arm()
                         if target is not None:
                             await place(target)
+                    else:
+                        await bus.publish(
+                            config.channel_match_events,
+                            PatternProgress(
+                                match_id=event.match_id,
+                                streak=tracker.streak,
+                                streak_length=config.pattern_streak_length,
+                                low_threshold=config.pattern_low_threshold,
+                                total=tracker.last_total,
+                                outcome=tracker.last_outcome,
+                            ),
+                        )
+                elif isinstance(event, MatchFinished):
+                    targets.on_finished(event.match_id)
             except Exception as err:  # noqa: BLE001 — one bad event must not kill the subscription
                 log.error(f"failed to process {event.kind}: {err}")
 

@@ -65,3 +65,31 @@ def test_streak_length_and_threshold_are_configurable():
     assert tracker.process(5) is False
     assert tracker.process(5) is True
     assert tracker.last_streak_totals == [5, 5]
+
+
+def test_progress_reporting_across_qualify_reset_skip():
+    tracker = PatternTracker()
+
+    tracker.process(4)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (1, 4, "qualifying")
+
+    tracker.process(9)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 9, "reset")
+
+    tracker.process(4)
+    tracker.process(5)
+    tracker.process(6)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 6, "armed")
+
+    tracker.process(9)  # the skipped bet-target round, regardless of its own total
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 9, "skipped")
+
+    tracker.process(3)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (1, 3, "qualifying")
+
+
+def test_progress_reports_reset_on_none_total():
+    tracker = PatternTracker()
+    tracker.process(4)
+    tracker.process(None)
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, None, "reset")

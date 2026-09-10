@@ -45,14 +45,18 @@ class TargetTracker:
 
     def arm(self) -> MatchDiscovered | None:
         """Called when the pattern fires. Returns the match to bet on now
-        if it's already known, still upcoming, and not yet targeted;
-        otherwise marks that a bet is owed to whichever match is
+        if it's already known, not yet targeted, and not yet stale (i.e.
+        still upcoming, or already started but not yet at half-time) —
+        pregame and early-live are both fair game, since BetExecutor
+        prices the bet fresh either way and the stale-fire guard in
+        place()/is_stale() still catches anything past half-time.
+        Otherwise marks that a bet is owed to whichever match is
         discovered next."""
         latest = self._latest_discovered
         if (
             latest is not None
             and latest.match_id not in self.bet_targets
-            and self._status.get(latest.match_id) == "upcoming"
+            and self._status.get(latest.match_id) not in _STALE_STATUSES
         ):
             self.bet_targets.add(latest.match_id)
             return latest

@@ -43,7 +43,7 @@ def test_successful_bet_returns_success_with_odds():
         body = json.loads(request.content)
         assert body["UserId"] == 298028641
         assert body["Summ"] == 90
-        assert body["Events"][0]["GameId"] == 751444117
+        assert body["Events"][0]["GameId"] == 751444118  # match_id + FIRST_HALF_ID_OFFSET
         assert body["Events"][0]["Coef"] == 1.408
         assert body["Events"][0]["Param"] == 6.5
         assert request.headers["x-auth"] == "Bearer jwt-abc"
@@ -61,6 +61,30 @@ def test_successful_bet_returns_success_with_odds():
     assert result.success is True
     assert result.odds == 1.408
     assert result.reason is None
+
+
+def test_odds_lookup_and_bet_both_target_the_first_half_sub_id():
+    """The raw match_id is the whole-match ("Main game") id, not the
+    1st-half market -- confirmed 2026-09-10 by placing/inspecting real
+    bets against match_id, match_id+1, and match_id+2 side by side.
+    match_id+1 is the unambiguous 1st-half sub-game id."""
+    seen_ids = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            seen_ids.append(int(request.url.params["id"]))
+            return httpx.Response(200, json=_game_zip_response([_matching_event()]))
+        body = json.loads(request.content)
+        seen_ids.append(body["Events"][0]["GameId"])
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    asyncio.run(executor.place_bet(match_id=751444117, home="A", away="B", stake=90, line=6.5))
+    asyncio.run(executor.aclose())
+
+    assert seen_ids == [751444118, 751444118]
 
 
 def test_auth_failure_does_not_hit_the_network():

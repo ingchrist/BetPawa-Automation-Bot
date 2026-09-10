@@ -59,6 +59,7 @@ from shared.events import (
     MatchStarted,
     MoneylineOdds,
     PatternArmed,
+    PatternProgress,
 )
 
 console = Console(highlight=False)
@@ -295,6 +296,20 @@ def render_pattern_armed(event: PatternArmed) -> None:
             title_align="left",
         )
     )
+
+
+def render_pattern_progress(event: PatternProgress) -> None:
+    """One dim line narrating what the just-finished round did to the
+    streak — printed for every round (see render_pattern_armed for the
+    moment it actually fires, which this deliberately doesn't duplicate)."""
+    this_round = f"this round: {event.total}" if event.total is not None else "this round: unknown"
+    if event.outcome == "reset":
+        detail = f"{this_round} > {event.low_threshold}, resets" if event.total is not None else f"{this_round}, resets"
+    elif event.outcome == "skipped":
+        detail = f"{this_round}, skipped — bet target"
+    else:  # qualifying
+        detail = f"{this_round} ≤ {event.low_threshold}, qualifies"
+    console.print(f"[bold bright_red]streak: {event.streak}/{event.streak_length} ({detail})[/bold bright_red]")
 
 
 def render_bet_placed(event: BetPlaced) -> None:

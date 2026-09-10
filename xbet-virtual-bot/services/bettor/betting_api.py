@@ -19,8 +19,8 @@ placed manually while a raw-CDP network monitor (bypassing Playwright --
 see below) watched the tab. That surfaced:
 
 `POST /service-api/LiveBet/Secure/MakeBetWeb`
-    Body: `{"UserId": <int>, "Events": [{"GameId": <match_id>, "Type": 9,
-    "Coef": <current coefficient>, "Param": <line>, "PV": null,
+    Body: `{"UserId": <int>, "Events": [{"GameId": <first_half_game_id>,
+    "Type": 9, "Coef": <current coefficient>, "Param": <line>, "PV": null,
     "PlayerId": 0, "Kind": 1, "InstrumentId": 0, "Seconds": 0, "Price": 0,
     "Expired": 0, "PlayersDuel": []}], "Vid": 0, "partner": 55,
     "Group": 654, "live": true, "CheckCf": 2, "Lng": "en", "notWait": true,
@@ -82,17 +82,21 @@ from playwright.async_api import async_playwright
 
 from services.collector.xbet_client import TOTAL_OVER_T
 
-# Confirmed 2026-09-10: a pre-match snapshot for a live 3x3 match showed
-# "Total. 1st half" as Over 6.5 = 1.83 / Under 6.5 = 2.02 in the UI; the
-# same match's GetGameZip carried exactly {T:9,P:6.5,C:1.83,G:17} and
-# {T:10,P:6.5,C:2.02,G:17} -- an exact double-coefficient match, not a
-# coincidence. Earlier live samples (mid-match, already high-scoring)
-# showed T=9/G=17 at lines like 12.5-20.5 and were mistaken for a
-# different, full-match market -- these 3x3 virtual matches are simply
-# high-scoring enough that a half's own total climbs past that range
-# within the first couple of minutes. G=17 is correct; the drift is real
-# game state, not a wrong market.
-FIRST_HALF_TOTALS_GROUP = 17
+# Corrected 2026-09-10, superseding the original "G=17 on the raw match_id
+# is Total. 1st half" belief: each match actually spawns three separate
+# sub-game ids -- the "main"/whole-match id (X, the one the collector and
+# GetGameZip's bulk feed expose), the 1st-half id (X+1), and the 2nd-half
+# id (X+2) -- each independently quotable via GetGameZip and each exposing
+# its OWN period-scoped `G=17` Total Over/Under market. Betting against the
+# raw match_id (X) is ambiguous: pregame/early it can coincide with the
+# 1st-half market, but once the match is live it drifts toward the
+# whole-match ("Main game") total instead -- confirmed by two controlled,
+# real-money A/B checks (one live, one pregame) placing/inspecting bets
+# against X, X+1, and X+2 on the same match side by side. X+1 and X+2 are
+# unambiguous regardless of match phase, so betting always targets those
+# directly instead of X.
+FIRST_HALF_ID_OFFSET = 1
+TOTALS_GROUP = 17
 
 
 @dataclass(frozen=True)
@@ -161,13 +165,15 @@ class BetExecutor:
     async def place_bet(
         self, match_id: int, home: str, away: str, stake: float, line: float = 6.5
     ) -> BetResult:
+        game_id = match_id + FIRST_HALF_ID_OFFSET
+
         try:
             auth = await self._auth_reader()
         except Exception as exc:
             return BetResult(success=False, reason=f"auth read failed: {exc}")
 
         try:
-            coef = await self._current_odds(match_id, line)
+            coef = await self._current_odds(game_id, line)
         except Exception as exc:
             return BetResult(success=False, reason=f"odds lookup failed: {exc}")
         if coef is None:
@@ -186,7 +192,7 @@ class BetExecutor:
             "UserId": auth.user_id,
             "Events": [
                 {
-                    "GameId": match_id,
+                    "GameId": game_id,
                     "Type": TOTAL_OVER_T,
                     "Coef": coef,
                     "Param": line,
@@ -232,9 +238,9 @@ class BetExecutor:
 
         return BetResult(success=True, odds=coef)
 
-    async def _current_odds(self, match_id: int, line: float) -> float | None:
+    async def _current_odds(self, game_id: int, line: float) -> float | None:
         resp = await self._client.get(
-            "/LiveFeed/GetGameZip", params={"id": match_id, "lng": "en"}
+            "/LiveFeed/GetGameZip", params={"id": game_id, "lng": "en"}
         )
         resp.raise_for_status()
         detail = resp.json().get("Value")
@@ -244,7 +250,7 @@ class BetExecutor:
             if (
                 event.get("T") == TOTAL_OVER_T
                 and event.get("P") == line
-                and event.get("G") == FIRST_HALF_TOTALS_GROUP
+                and event.get("G") == TOTALS_GROUP
             ):
                 return event.get("C")
         return None

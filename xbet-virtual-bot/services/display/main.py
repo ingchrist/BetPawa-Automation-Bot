@@ -34,6 +34,7 @@ from services.display.render import (
     render_live_header,
     render_live_score,
     render_pattern_armed,
+    render_pattern_progress,
     render_started,
 )
 from shared.bus import EventBus
@@ -48,6 +49,7 @@ from shared.events import (
     MatchScoreChanged,
     MatchStarted,
     PatternArmed,
+    PatternProgress,
 )
 from shared.logging import get_logger
 
@@ -116,6 +118,8 @@ async def run() -> None:
                     render_pattern_armed(event)
                     log_bet_event(event, bets_log_console)
                     bets_log_file.flush()
+                elif isinstance(event, PatternProgress):
+                    render_pattern_progress(event)
                 elif isinstance(event, BetPlaced):
                     render_bet_placed(event)
                     log_bet_event(event, bets_log_console)

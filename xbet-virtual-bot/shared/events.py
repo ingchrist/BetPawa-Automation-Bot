@@ -144,6 +144,21 @@ class PatternArmed(BaseModel):
     qualifying_totals: list[int]
 
 
+class PatternProgress(BaseModel):
+    """Emitted after every finished round is fed into the streak tracker,
+    whether or not it moved the streak toward firing — lets a display
+    narrate the pattern's life cycle round by round instead of only at
+    the moment it fires (see PatternArmed for that moment)."""
+
+    kind: Literal["pattern_progress"] = "pattern_progress"
+    match_id: int
+    streak: int
+    streak_length: int
+    low_threshold: int
+    total: int | None
+    outcome: Literal["qualifying", "reset", "skipped"]
+
+
 class BetPlaced(BaseModel):
     kind: Literal["bet_placed"] = "bet_placed"
     match_id: int
@@ -177,13 +192,14 @@ MatchEvent = (
     | MatchScoreChanged
     | MatchFinished
     | PatternArmed
+    | PatternProgress
     | BetPlaced
     | BetFailed
     | BetSettled
 )
 
 # kind -> model, used by the bus to parse an incoming domain event without
-# the subscriber having to guess which of the nine shapes it received.
+# the subscriber having to guess which of the ten shapes it received.
 MATCH_EVENT_TYPES: dict[str, type[BaseModel]] = {
     "discovered": MatchDiscovered,
     "started": MatchStarted,
@@ -191,6 +207,7 @@ MATCH_EVENT_TYPES: dict[str, type[BaseModel]] = {
     "score_changed": MatchScoreChanged,
     "finished": MatchFinished,
     "pattern_armed": PatternArmed,
+    "pattern_progress": PatternProgress,
     "bet_placed": BetPlaced,
     "bet_failed": BetFailed,
     "bet_settled": BetSettled,

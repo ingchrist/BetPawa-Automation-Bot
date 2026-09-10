@@ -76,9 +76,20 @@ def test_is_stale_false_for_unknown_match():
     assert tracker.is_stale(999) is False
 
 
-def test_arm_skips_a_target_that_has_already_started():
+def test_arm_still_targets_a_match_that_has_already_started():
     tracker = TargetTracker()
     tracker.on_discovered(_discovered(7))
-    tracker.on_started(7)  # no longer "upcoming" by the time arm() is called
+    tracker.on_started(7)  # already live, but not yet at half-time
+    target = tracker.arm()
+    assert target is not None  # started-but-not-stale is still fair game
+    assert target.match_id == 7
+    assert 7 in tracker.bet_targets
+
+
+def test_arm_defers_a_target_that_is_already_at_half_time():
+    tracker = TargetTracker()
+    tracker.on_discovered(_discovered(8))
+    tracker.on_started(8)
+    tracker.on_half_time(8)  # 1st half already over — genuinely stale
     target = tracker.arm()
     assert target is None  # falls back to waiting for the next discovery
