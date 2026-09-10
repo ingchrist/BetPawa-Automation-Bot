@@ -4,7 +4,7 @@
 
 **Goal:** Add the bot's first automated betting pattern — detect 3 consecutive finished rounds with a 1st-half combined goal total ≤ 6, then place a real bet on the next round's `Total. 1st half` market, `Over 6.5`, via the operator's already-logged-in Chrome over CDP.
 
-**Architecture:** New `services/bettor/` process, wired exactly like `aggregator`/`display` — an independent asyncio service subscribing to `xbet.match_events` over Redis. `pattern.py` and `targeting.py` are pure, unit-tested state machines with no I/O; `browser.py` is the only piece that touches Playwright/CDP. The service publishes four new event kinds back onto the same channel so `display` can render them and log them to `data/bets.log`, the same way it already owns `data/result.log`.
+**Architecture:** New `services/bettor/` process, wired exactly like `aggregator`/`display` — an independent asyncio service subscribing to `xbet.match_events` over Redis. `pattern.py` and `targeting.py` are pure, unit-tested state machines with no I/O; `betting_api.py` places bets via a direct authenticated HTTP call to the site's own API (reworked mid-implementation from an original Playwright-UI-click design — see Task 5), touching Playwright only for a lightweight, read-only CDP touch to source auth tokens fresh from the browser's cookies/localStorage before each bet. The service publishes four new event kinds back onto the same channel so `display` can render them and log them to `data/bets.log`, the same way it already owns `data/result.log`.
 
 **Tech Stack:** Python 3.10, asyncio, pydantic, Redis pub/sub (existing `shared/bus.py`), `rich` (existing `services/display`), Playwright (`playwright.async_api`, connecting to an already-running Chrome via `connect_over_cdp` — no new browser is launched, no new login).
 
@@ -628,7 +628,140 @@ EOF
 
 ---
 
-## Task 5: `BetExecutor` — live selector reconnaissance + Playwright/CDP bet placement
+## Task 5: `BetExecutor` — API-based bet placement (reworked from the original UI-click plan)
+
+**This task's approach changed mid-execution — the section below is the
+rewritten version; see "Superseded plan" at the end for the original.**
+
+While attempting the original UI-click design live (see below), it proved
+too flaky to trust with real money: Vue-SPA re-render races on the "1st
+half" tab click, plus `connect_over_cdp` hanging once ~10 orphaned tabs
+from earlier exploration accumulated (fixed operationally by closing them
+via `curl http://127.0.0.1:9222/json/close/<id>`, but not a good foundation
+for unattended real-money placement). The user explicitly decided, live,
+to switch to the same philosophy `services/collector/xbet_client.py`
+already uses for reads: call the site's own JSON API directly instead of
+driving the rendered page.
+
+**Files:**
+- Create: `services/bettor/betting_api.py` (replaces the planned `services/bettor/browser.py` — renamed since it no longer touches a browser page directly, only a lightweight CDP read for auth)
+- Create: `tests/test_betting_api.py`
+- Modify: `requirements.txt` (added `brotli` — the site's API responses are `Content-Encoding: br`)
+
+**Interfaces:** (unchanged from the original plan, so Task 6 doesn't care which mechanism is behind it)
+- `BetResult(success: bool, reason: str | None = None, odds: float | None = None)`
+- `BetExecutor(api_base: str, cdp_url: str, timeout_seconds: float, auth_reader=None, transport=None)` — the last two are test-injection seams, not part of the production call shape.
+- `async BetExecutor.place_bet(match_id: int, home: str, away: str, stake: float, line: float = 6.5) -> BetResult`
+
+- [x] **Step 1: Capture the real request**
+
+Done via a raw-CDP (not Playwright) passive network monitor watching an
+already-open browser tab, while the user placed one real, authorized
+capture bet (90 FCFA, "Total. 1st half", Over 6.5) manually in that same
+tab. Two things had to be worked out first, both recorded in
+`betting_api.py`'s module docstring and the design spec:
+
+1. The first monitor design used a second, independently-connected
+   Playwright `connect_over_cdp` session as the passive observer. Verified
+   live (reproduced twice) that this silently receives **zero** Network
+   events triggered by another session's activity on an already-open tab
+   — even with a completely fresh attach and no intervening navigation.
+   This is a real gap in "watch this tab from a second Playwright
+   process," not a flake.
+2. Fixed by dropping to raw CDP: a direct websocket connection to the
+   tab's own `webSocketDebuggerUrl` (`Network.enable` + listening for
+   `Network.requestWillBeSent`/`responseReceived`/`loadingFinished`, then
+   `Network.getResponseBody`) does not have that gap — verified capturing
+   both the page's own background polling and synthetic cross-session test
+   POSTs (including their bodies) before trusting it for the real capture.
+
+Captured the real placement call: `POST /service-api/LiveBet/Secure/MakeBetWeb`,
+full request body, both auth headers, and the `Success: true` response
+(bet id, new balance) — see `betting_api.py`'s docstring for the exact
+shapes.
+
+- [x] **Step 2: Identify the auth source**
+
+Compared the captured `x-auth`/`x-hd` header values against the browser's
+own cookies and `localStorage` (via a single, short-lived
+`connect_over_cdp` read — cookies + one `page.evaluate`, no navigation):
+`x-auth`'s JWT is byte-identical to the `access_token` cookie; `x-hd` is
+byte-identical to the `.token` field inside `localStorage["fp_d"]`. Both
+carry their own expiry landing within ~1 minute of each other (~4h window)
+and are auto-refreshed by the page's own JS while the browser stays open —
+so no fingerprint-generation logic needed, and no caching past that window
+in `BetExecutor` either; it re-reads both fresh before every bet.
+
+- [x] **Step 3: Implement `BetExecutor` against the API**
+
+`services/bettor/betting_api.py` — `read_auth_from_browser()` does the
+read-only CDP touch; `BetExecutor.place_bet()` fetches the current
+coefficient from `GetGameZip` (filtered to `T=9` / `P=<line>` / `G=17`,
+matching `xbet_client.py`'s documented codes — `G=17` confirmed 2026-09-10
+to mean 1st-half totals, by matching a pre-match UI snapshot's Over/Under
+6.5 prices coefficient-for-coefficient against the same match's raw feed;
+see the code comment and ledger for the full cross-check), then POSTs to
+`MakeBetWeb` with the fetched coefficient, `CheckCf: 2` (coefficient-
+staleness tolerance — matches the verified working real request), and the
+configured stake. No matching odds entry (market already closed) is
+treated as the stale-fire guard. Every failure path returns
+`BetResult(success=False, reason=...)` rather than raising, same contract
+as originally planned.
+
+- [x] **Step 4: Unit tests**
+
+`tests/test_betting_api.py` — 7 tests, offline: `httpx.MockTransport`
+stands in for the network, a fake `auth_reader` stands in for the browser
+touch. Covers the success path (asserts the exact request body/headers
+sent), auth-read failure (asserts zero network calls happen), stale-fire
+guard (no matching market / wrong line), odds-lookup HTTP error,
+server-rejected bet (`Success: false`), and a network error on the
+placement call itself. Unlike the original UI-driven design (which the
+spec called "not meaningfully unit-testable"), this mechanism is fully
+testable without a real browser or network — run with
+`.venv/bin/python -m pytest tests/test_betting_api.py -v`.
+
+- [ ] **Step 5: Verify the replacement client end-to-end**
+
+Not yet done. The Step-1 capture bet's authorization covered exactly that
+one placement, used to observe the real request — it does **not** extend
+to a second real bet placed *through this new client* to verify it works.
+Ask the user again before placing one. If a real verification bet isn't
+wanted yet, an acceptable weaker signal (per the design spec / CLAUDE.md's
+handoff notes) is confirming the API distinguishes "bad request" from "bet
+accepted" by deliberately sending a slightly-wrong payload (e.g. a stale
+match id) and checking the error shape is legible — this was not done as
+part of this task and remains open.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add services/bettor/betting_api.py tests/test_betting_api.py requirements.txt \
+        docs/superpowers/specs/2026-09-09-first-half-over-pattern-bettor-design.md \
+        docs/superpowers/plans/2026-09-09-first-half-over-pattern-bettor.md
+git commit -m "$(cat <<'EOF'
+Add BetExecutor: API-based bet placement (reworked from UI-click design)
+
+Places bets via a direct authenticated POST to the site's own
+LiveBet/Secure/MakeBetWeb endpoint instead of driving the betting UI with
+Playwright clicks -- the UI-click approach proved too flaky live to trust
+with real money. The real request was reverse-engineered by capturing one
+authorized real bet with a raw-CDP network monitor (a second Playwright
+session watching the same tab was tried first and found to silently miss
+cross-session network events). Auth (a bearer JWT plus a device-token
+header) is read fresh from the browser's own cookies/localStorage before
+every bet rather than cached, since both expire on a ~4h window.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UcVB1h5PrwriZKvy6ALZjD
+EOF
+)"
+```
+
+---
+
+<details>
+<summary>Superseded plan: live selector reconnaissance + Playwright/CDP UI-click bet placement (not implemented — kept for history)</summary>
 
 This site is a Vue SPA that re-renders unpredictably — verified live during design: the three period tabs ("Main game"/"1st half"/"2nd half") and the `Total. 1st half` market section with `Over 6.5`/`Under 6.5` rows were confirmed to exist with exactly that literal text, but the bet-slip's stake input and confirm button were never successfully reached in a live session during design (repeated navigation/render-timing flakiness). This task pins those two selectors down first, against the live site, then wires them straight into `BetExecutor` — nothing here is guessed.
 
@@ -905,6 +1038,8 @@ EOF
 )"
 ```
 
+</details>
+
 ---
 
 ## Task 6: `services/bettor/main.py` — wiring
@@ -938,7 +1073,7 @@ from __future__ import annotations
 import asyncio
 import signal
 
-from services.bettor.browser import BetExecutor
+from services.bettor.betting_api import BetExecutor
 from services.bettor.pattern import PatternTracker
 from services.bettor.targeting import TargetTracker
 from shared.bus import EventBus
@@ -971,8 +1106,7 @@ async def run() -> None:
 
     tracker = PatternTracker(low_threshold=config.pattern_low_threshold, streak_length=config.pattern_streak_length)
     targets = TargetTracker()
-    executor = BetExecutor(config.cdp_url)
-    await executor.start()
+    executor = BetExecutor(config.api_base, config.cdp_url, config.http_timeout_seconds)
 
     log.info(
         f"starting — streak_length={config.pattern_streak_length} "
@@ -1072,7 +1206,7 @@ async def run() -> None:
 
     log.info("shutting down...")
     consumer_task.cancel()
-    await executor.stop()
+    await executor.aclose()
     await bus.close()
 
 

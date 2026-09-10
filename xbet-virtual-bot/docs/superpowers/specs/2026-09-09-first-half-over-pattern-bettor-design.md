@@ -90,7 +90,76 @@ observed, purely from the events it already receives.
   a closed/irrelevant market.
 - Guards against double-betting the same `match_id` twice.
 
-### `services/bettor/browser.py` — `BetExecutor`
+### `services/bettor/betting_api.py` — `BetExecutor`
+
+**Superseded design.** The original plan below (UI-click automation)
+proved too flaky live to trust with real money — Vue-SPA re-render races
+on the "1st half" tab click, plus `connect_over_cdp` hanging once orphaned
+tabs from exploration accumulated. The user decided live to switch to the
+same philosophy `services/collector/xbet_client.py` already uses for
+reads: call the site's own JSON API directly, reverse-engineered by
+capturing one real, authorized bet (90 FCFA, "Total. 1st half", Over 6.5)
+via a network monitor while the user placed it manually. Full derivation,
+the captured request/response shapes, and the auth-token sourcing are
+documented in `betting_api.py`'s module docstring — summary:
+
+- `POST /service-api/LiveBet/Secure/MakeBetWeb` places the bet. Body
+  carries `Events: [{GameId, Type: 9, Coef, Param: <line>, ...}]` (`Type:
+  9` matches `xbet_client.py`'s documented `TOTAL_OVER_T`), `Summ: <stake>`,
+  and `CheckCf: 2` (coefficient-staleness tolerance — matches the verified
+  working request; needed because this client always fetches odds then
+  places a beat behind the live line). Response carries `Success: bool`,
+  `Error`, `ErrorCode`, and on success a `Coupon` with the placed bet's id
+  and the account's new balance.
+- Auth rides on two headers, both readable straight from the browser with
+  no fingerprint-regeneration logic needed: `x-auth: Bearer <JWT>` is
+  byte-identical to the `access_token` cookie; `x-hd: <token>` is
+  byte-identical to the `.token` field inside `localStorage["fp_d"]`. Both
+  expire together (~4h window, auto-refreshed by the page's own JS while
+  it stays open) — so `BetExecutor` re-reads them fresh via a read-only CDP
+  touch (`context.cookies()` + one `page.evaluate` reading `localStorage`,
+  no navigation, no new tab) immediately before every bet rather than
+  caching past that window.
+- The current coefficient for `(match_id, line)` is fetched fresh from
+  `GetGameZip` (already used for reads) immediately before placing, filtered
+  to `T=9, P=<line>, G=17`. `G=17` is confirmed (2026-09-10) to mean "Total.
+  1st half": a pre-match UI snapshot showing Over 6.5 = 1.83 / Under 6.5 =
+  2.02 matched, coefficient-for-coefficient, `{T:9,P:6.5,C:1.83,G:17}` /
+  `{T:10,P:6.5,C:2.02,G:17}` in the same match's `GetGameZip`. Earlier
+  mid-match samples had shown `G=17` at much higher lines (12.5-20.5+) and
+  were briefly mistaken for a different, full-match market — these 3x3
+  virtual matches are simply high-scoring enough that a single half's own
+  total climbs past that range within the first couple of minutes; the
+  drift is real game state, not a wrong filter. No matching entry (market
+  closed) is treated as the stale-fire guard and reported as
+  `BetResult(success=False, reason="market not open (stale-fire guard)")`.
+- A second, independently-connected Playwright session watching an
+  already-open tab was tried first as the network-capture mechanism and
+  found to silently miss cross-session Network events (reproduced twice);
+  the actual capture used raw CDP over a direct websocket instead. This
+  doesn't affect `BetExecutor` itself (it only ever holds one Playwright
+  connection at a time, for the auth touch), but is recorded here since
+  it's a real gap in a pattern ("watch this tab from a second process")
+  that might otherwise seem reusable elsewhere in this codebase.
+
+`place_bet(match_id, home, away, stake, line=6.5) -> BetResult` — same
+signature as originally planned, so `main.py` (Task 6) doesn't depend on
+which mechanism is behind it. Every failure path (auth read, odds lookup,
+the placement request itself, or a `Success: false` response) returns
+`BetResult(success=False, reason=...)` rather than raising, same contract
+as originally planned.
+
+Unit-tested (unlike the original UI-driven design, which the spec called
+"not meaningfully unit-testable") — `tests/test_betting_api.py` mocks the
+HTTP layer with `httpx.MockTransport` and injects a fake auth reader, so
+the full success/failure matrix runs offline with no real browser or
+network. Verified once against the real API via the capture-bet described
+above; a second real bet to verify this replacement client end-to-end
+needs separate explicit user authorization before it happens (the
+capture-bet's authorization does not extend to it).
+
+<details>
+<summary>Original UI-click design (superseded, kept for history)</summary>
 
 Connects once at startup via `playwright.chromium.connect_over_cdp(CDP_URL)`
 to the already-running, already-logged-in Chrome (no new login flow —
@@ -122,6 +191,8 @@ service's lifetime, separate from the user's own tabs.
 Every step is wrapped so a selector miss, timeout, or site-side rejection
 returns `BetResult(success=False, reason=...)` — it never raises into the
 service's event loop.
+
+</details>
 
 ### New events (`shared/events.py`)
 
