@@ -69,6 +69,15 @@ async def run() -> None:
 
     tracker = PatternTracker(threshold=config.pattern_low_threshold, streak_length=config.pattern_streak_length)
     targets = TargetTracker()
+    # Separate from targets.bet_targets: bet_targets means "already targeted,
+    # don't retarget" (needed by dedup/mutual-exclusion the moment a target is
+    # resolved). placed_matches means "a bet was actually placed" (populated
+    # only once place() gets a successful BetPlaced) -- the two are not the
+    # same thing whenever place() bails out on mutual exclusion or a stale-fire
+    # guard after the match_id is already in bet_targets. The BetSettled gates
+    # below need the latter, not the former, or they fabricate a settlement
+    # for a bet that was never placed.
+    placed_matches: set[int] = set()
 
     tracker2 = PatternTracker(
         threshold=config.pattern2_high_threshold,
@@ -76,6 +85,7 @@ async def run() -> None:
         direction="at_or_over",
     )
     targets2 = TargetTracker(stale_statuses={"finished"})
+    placed_matches2: set[int] = set()
 
     executor = BetExecutor(config.api_base, config.cdp_url, config.http_timeout_seconds)
 
@@ -96,6 +106,7 @@ async def run() -> None:
         targets: TargetTracker,
         other_targets: TargetTracker,
         other_pattern_name: str,
+        placed_matches: set[int],
         period: int,
         over: bool,
         line: float,
@@ -140,6 +151,7 @@ async def run() -> None:
         )
         if result.success:
             log.info(f"bet placed on match {target.match_id} at odds {result.odds}")
+            placed_matches.add(target.match_id)
             await bus.publish(
                 config.channel_match_events,
                 BetPlaced(
@@ -171,6 +183,7 @@ async def run() -> None:
                             targets=targets,
                             other_targets=targets2,
                             other_pattern_name=PATTERN2_NAME,
+                            placed_matches=placed_matches,
                             period=1,
                             over=True,
                             line=config.pattern_bet_line,
@@ -183,6 +196,7 @@ async def run() -> None:
                             targets=targets2,
                             other_targets=targets,
                             other_pattern_name=PATTERN1_NAME,
+                            placed_matches=placed_matches2,
                             period=2,
                             over=False,
                             line=config.pattern2_bet_line,
@@ -197,7 +211,7 @@ async def run() -> None:
 
                     first_half_total = event.first_half.home_goals + event.first_half.away_goals
 
-                    if event.match_id in targets.bet_targets:
+                    if event.match_id in placed_matches:
                         await bus.publish(
                             config.channel_match_events,
                             BetSettled(
@@ -231,6 +245,7 @@ async def run() -> None:
                                 targets=targets,
                                 other_targets=targets2,
                                 other_pattern_name=PATTERN2_NAME,
+                                placed_matches=placed_matches,
                                 period=1,
                                 over=True,
                                 line=config.pattern_bet_line,
@@ -259,7 +274,7 @@ async def run() -> None:
                         else event.second_half.home_goals + event.second_half.away_goals
                     )
 
-                    if event.match_id in targets2.bet_targets and second_half_total is not None:
+                    if event.match_id in placed_matches2 and second_half_total is not None:
                         await bus.publish(
                             config.channel_match_events,
                             BetSettled(
@@ -293,6 +308,7 @@ async def run() -> None:
                                 targets=targets2,
                                 other_targets=targets,
                                 other_pattern_name=PATTERN1_NAME,
+                                placed_matches=placed_matches2,
                                 period=2,
                                 over=False,
                                 line=config.pattern2_bet_line,
