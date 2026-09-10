@@ -28,7 +28,7 @@ import signal
 
 from services.bettor.betting_api import BetExecutor
 from services.bettor.pattern import PatternTracker
-from services.bettor.targeting import TargetTracker
+from services.bettor.targeting import TargetTracker, mutual_exclusion_reason
 from shared.bus import EventBus
 from shared.config import load_config
 from shared.events import (
@@ -45,6 +45,7 @@ from shared.events import (
 from shared.logging import get_logger
 
 PATTERN1_NAME = "1st_half_over_6.5_streak"
+PATTERN2_NAME = "2nd_half_under_7.5_streak"
 
 
 def _market_label(period: int, over: bool, line: float) -> str:
@@ -68,21 +69,54 @@ async def run() -> None:
 
     tracker = PatternTracker(threshold=config.pattern_low_threshold, streak_length=config.pattern_streak_length)
     targets = TargetTracker()
+
+    tracker2 = PatternTracker(
+        threshold=config.pattern2_high_threshold,
+        streak_length=config.pattern2_streak_length,
+        direction="at_or_over",
+    )
+    targets2 = TargetTracker(stale_statuses={"finished"})
+
     executor = BetExecutor(config.api_base, config.cdp_url, config.http_timeout_seconds)
 
     log.info(
-        f"starting — streak_length={config.pattern_streak_length} "
+        f"starting Pattern 1 — streak_length={config.pattern_streak_length} "
         f"low_threshold={config.pattern_low_threshold} bet_line={config.pattern_bet_line} "
         f"stake={config.bet_stake_amount} cdp_url={config.cdp_url}"
     )
+    log.info(
+        f"starting Pattern 2 — streak_length={config.pattern2_streak_length} "
+        f"high_threshold={config.pattern2_high_threshold} bet_line={config.pattern2_bet_line} "
+        f"stake={config.pattern2_bet_stake_amount}"
+    )
 
-    async def place(target: MatchDiscovered) -> None:
-        market_label = _market_label(1, True, config.pattern_bet_line)
+    async def place(
+        target: MatchDiscovered,
+        *,
+        targets: TargetTracker,
+        other_targets: TargetTracker,
+        other_pattern_name: str,
+        period: int,
+        over: bool,
+        line: float,
+        stake: float,
+    ) -> None:
+        market_label = _market_label(period, over, line)
+
+        conflict = mutual_exclusion_reason(target.match_id, other_pattern_name, other_targets.bet_targets)
+        if conflict is not None:
+            log.warning(conflict)
+            await bus.publish(
+                config.channel_match_events,
+                BetFailed(match_id=target.match_id, reason=conflict, market_label=market_label),
+            )
+            return
 
         if targets.is_stale(target.match_id):
+            half = "1st half" if period == 1 else "2nd half"
             reason = (
                 f"stale: match {target.match_id} ({target.home} vs {target.away}) "
-                "already past 1st half by the time the bet was attempted"
+                f"already past its {half} by the time the bet was attempted"
             )
             log.warning(reason)
             await bus.publish(
@@ -92,15 +126,17 @@ async def run() -> None:
             return
 
         log.info(
-            f"placing bet: {config.bet_stake_amount:g} on {target.home} vs {target.away} "
+            f"placing bet: {stake:g} on {target.home} vs {target.away} "
             f"(match {target.match_id}) {market_label}"
         )
         result = await executor.place_bet(
             match_id=target.match_id,
             home=target.home,
             away=target.away,
-            stake=config.bet_stake_amount,
-            line=config.pattern_bet_line,
+            stake=stake,
+            line=line,
+            period=period,
+            over=over,
         )
         if result.success:
             log.info(f"bet placed on match {target.match_id} at odds {result.odds}")
@@ -111,8 +147,8 @@ async def run() -> None:
                     league_name=target.league_name,
                     home=target.home,
                     away=target.away,
-                    stake=config.bet_stake_amount,
-                    line=config.pattern_bet_line,
+                    stake=stake,
+                    line=line,
                     market_label=market_label,
                     odds=result.odds,
                 ),
@@ -130,11 +166,34 @@ async def run() -> None:
                 if isinstance(event, MatchDiscovered):
                     target = targets.on_discovered(event)
                     if target is not None:
-                        await place(target)
+                        await place(
+                            target,
+                            targets=targets,
+                            other_targets=targets2,
+                            other_pattern_name=PATTERN2_NAME,
+                            period=1,
+                            over=True,
+                            line=config.pattern_bet_line,
+                            stake=config.bet_stake_amount,
+                        )
+                    target2 = targets2.on_discovered(event)
+                    if target2 is not None:
+                        await place(
+                            target2,
+                            targets=targets2,
+                            other_targets=targets,
+                            other_pattern_name=PATTERN1_NAME,
+                            period=2,
+                            over=False,
+                            line=config.pattern2_bet_line,
+                            stake=config.pattern2_bet_stake_amount,
+                        )
                 elif isinstance(event, MatchStarted):
                     targets.on_started(event.match_id)
+                    targets2.on_started(event.match_id)
                 elif isinstance(event, MatchHalfTime):
                     targets.on_half_time(event.match_id)
+                    targets2.on_half_time(event.match_id)
 
                     first_half_total = event.first_half.home_goals + event.first_half.away_goals
 
@@ -153,7 +212,7 @@ async def run() -> None:
 
                     fired = tracker.process(first_half_total)
                     if fired:
-                        log.info(f"PATTERN ARMED — streak {tracker.last_streak_totals}")
+                        log.info(f"PATTERN 1 ARMED — streak {tracker.last_streak_totals}")
                         await bus.publish(
                             config.channel_match_events,
                             PatternArmed(
@@ -167,7 +226,16 @@ async def run() -> None:
                         )
                         target = targets.arm()
                         if target is not None:
-                            await place(target)
+                            await place(
+                                target,
+                                targets=targets,
+                                other_targets=targets2,
+                                other_pattern_name=PATTERN2_NAME,
+                                period=1,
+                                over=True,
+                                line=config.pattern_bet_line,
+                                stake=config.bet_stake_amount,
+                            )
                     else:
                         await bus.publish(
                             config.channel_match_events,
@@ -184,6 +252,66 @@ async def run() -> None:
                         )
                 elif isinstance(event, MatchFinished):
                     targets.on_finished(event.match_id)
+                    targets2.on_finished(event.match_id)
+
+                    second_half_total = (
+                        None if event.second_half is None
+                        else event.second_half.home_goals + event.second_half.away_goals
+                    )
+
+                    if event.match_id in targets2.bet_targets and second_half_total is not None:
+                        await bus.publish(
+                            config.channel_match_events,
+                            BetSettled(
+                                match_id=event.match_id,
+                                home=event.home,
+                                away=event.away,
+                                won=second_half_total < config.pattern2_bet_line,
+                                period_total=second_half_total,
+                                market_label=_market_label(2, False, config.pattern2_bet_line),
+                            ),
+                        )
+
+                    fired2 = tracker2.process(second_half_total)
+                    if fired2:
+                        log.info(f"PATTERN 2 ARMED — streak {tracker2.last_streak_totals}")
+                        await bus.publish(
+                            config.channel_match_events,
+                            PatternArmed(
+                                pattern_name=PATTERN2_NAME,
+                                qualifying_totals=list(tracker2.last_streak_totals),
+                                market_label=_market_label(2, False, config.pattern2_bet_line),
+                                condition_label=_condition_label(
+                                    "at_or_over", 2, config.pattern2_high_threshold, config.pattern2_streak_length
+                                ),
+                            ),
+                        )
+                        target2 = targets2.arm()
+                        if target2 is not None:
+                            await place(
+                                target2,
+                                targets=targets2,
+                                other_targets=targets,
+                                other_pattern_name=PATTERN1_NAME,
+                                period=2,
+                                over=False,
+                                line=config.pattern2_bet_line,
+                                stake=config.pattern2_bet_stake_amount,
+                            )
+                    else:
+                        await bus.publish(
+                            config.channel_match_events,
+                            PatternProgress(
+                                match_id=event.match_id,
+                                pattern_name=PATTERN2_NAME,
+                                direction="at_or_over",
+                                streak=tracker2.streak,
+                                streak_length=config.pattern2_streak_length,
+                                threshold=config.pattern2_high_threshold,
+                                total=tracker2.last_total,
+                                outcome=tracker2.last_outcome,
+                            ),
+                        )
             except Exception as err:  # noqa: BLE001 — one bad event must not kill the subscription
                 log.error(f"failed to process {event.kind}: {err}")
 
