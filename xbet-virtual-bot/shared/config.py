@@ -31,6 +31,10 @@ class Config:
     pattern_streak_length: int
     pattern_low_threshold: int
     pattern_bet_line: float
+    pattern2_high_threshold: int
+    pattern2_streak_length: int
+    pattern2_bet_line: float
+    pattern2_bet_stake_amount: float
     cdp_url: str
 
     # Redis pub/sub channels — the event-bus "contract" shared by every
@@ -63,5 +67,9 @@ def load_config() -> Config:
         pattern_streak_length=int(os.environ.get("PATTERN_STREAK_LENGTH", "3")),
         pattern_low_threshold=int(os.environ.get("PATTERN_LOW_THRESHOLD", "6")),
         pattern_bet_line=float(os.environ.get("PATTERN_BET_LINE", "6.5")),
+        pattern2_high_threshold=int(os.environ.get("PATTERN2_HIGH_THRESHOLD", "8")),
+        pattern2_streak_length=int(os.environ.get("PATTERN2_STREAK_LENGTH", "3")),
+        pattern2_bet_line=float(os.environ.get("PATTERN2_BET_LINE", "7.5")),
+        pattern2_bet_stake_amount=float(os.environ.get("PATTERN2_BET_STAKE_AMOUNT", "90")),
         cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),
     )
