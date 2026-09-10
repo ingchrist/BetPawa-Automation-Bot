@@ -81,9 +81,27 @@ patterns; only the qualifying comparison direction differs.
 
 ### `services/bettor/targeting.py` — `TargetTracker` reused unmodified, cross-pattern coordination lives in `main.py`
 
-Pattern 2 gets its own `TargetTracker()` instance — same class, no code
-changes — so its "next match to bet on" queue (`_latest_discovered`,
-`_status`, `_pending`, `bet_targets`) is entirely independent of Pattern 1's.
+Pattern 2 gets its own `TargetTracker()` instance so its "next match to bet
+on" queue (`_latest_discovered`, `_status`, `_pending`, `bet_targets`) is
+entirely independent of Pattern 1's.
+
+**Staleness definition, parameterized (correction found while writing the
+implementation plan):** `TargetTracker`'s staleness set is currently
+hardcoded to `{"half_time", "finished"}` — correct for Pattern 1, whose 1st
+half market genuinely closes at half-time, but wrong for Pattern 2: a match
+reaching half-time is exactly when the 2nd-half market *opens*, not when it
+closes. Reusing the hardcoded set unmodified would make Pattern 2 wrongly
+treat a freshly-half-time match as stale and defer to the next discovery
+instead of targeting it. Fix: add one optional constructor parameter,
+`stale_statuses: set[str] | None = None` (default `{"half_time",
+"finished"}`, so `TargetTracker()` — Pattern 1's existing call — is
+byte-identical to today). Both `arm()`'s eligibility check and `is_stale()`
+read from `self._stale_statuses` instead of the old hardcoded set. Pattern 1
+keeps `TargetTracker()`; Pattern 2 uses
+`TargetTracker(stale_statuses={"finished"})`. This is a small, backward-
+compatible parameterization of the existing class, not a fork — the same
+"extend, don't fork" treatment already applied to `PatternTracker`
+(`direction`) and `BetExecutor` (`period`/`over`) above.
 
 **Mutual exclusion (new, this spec):** since both `TargetTracker` instances
 observe the exact same `MatchDiscovered` stream, they will frequently
@@ -244,12 +262,17 @@ than a Pattern-1-only inline function.
   `GameId=match_id+2`, `Type=10` in both the odds-lookup filter and the
   `MakeBetWeb` request body; confirm `period=1, over=True` (defaults)
   still produces byte-identical requests to today.
-- `test_targeting.py`: no changes needed — `TargetTracker` itself is
-  unmodified.
-- New: a `test_main.py`-level (or equivalent) test for the mutual-exclusion
-  path — two trackers, same resolved match_id, confirm the second `place()`
-  call short-circuits to `BetFailed` with the mutual-exclusion reason and
-  never calls the executor.
+- `test_targeting.py`: extend for the new `stale_statuses` parameter —
+  confirm `TargetTracker()` (default) keeps today's exact behavior, and
+  `TargetTracker(stale_statuses={"finished"})` treats a `"half_time"`
+  match as a valid, non-stale target while `"finished"` still excludes it.
+- New: a pure `mutual_exclusion_reason(match_id, other_pattern_name,
+  other_bet_targets) -> str | None` helper (lives alongside `TargetTracker`
+  in `targeting.py`, not inside the class — keeps the class itself
+  pattern-agnostic) implementing the mutual-exclusion check from the
+  `TargetTracker` section above, unit-tested directly in
+  `test_targeting.py` rather than requiring a Redis-backed `main.py`
+  integration test.
 - Update render/event round-trip smoke tests for the renamed
   (`first_half_total`→`period_total`) and added
   (`market_label`/`condition_label`/`pattern_name`/`direction`) fields.
