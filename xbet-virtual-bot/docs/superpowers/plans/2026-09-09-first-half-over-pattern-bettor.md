@@ -1555,7 +1555,7 @@ EOF
 
 ## Task 9: End-to-end live trial
 
-Not a code change — the final verification step before leaving the bot running unattended, since Task 5's Step 6 only verified `BetExecutor` in isolation, not the full pattern-detection-to-bet pipeline.
+Not a code change — the final verification step before leaving the bot running unattended. Task 5's Step 5 verified `BetExecutor` placing a real bet in isolation (a directly-supplied match id, not one the pattern itself detected); this task verifies the full pattern-detection-to-bet pipeline end to end.
 
 **Files:** none
 
