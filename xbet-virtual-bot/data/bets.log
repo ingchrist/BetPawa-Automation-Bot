@@ -4,3 +4,23 @@ PATTERN ARMED — streak [6, 6, 4]
 2026-09-10 16:52:51
 BET FAILED — match 751666213: auth read failed: no 1xbet.cm tab open -- can't read localStorage
 
+2026-09-10 18:59:45
+PATTERN ARMED — streak [5, 5, 6]
+
+2026-09-10 19:00:11
+BET PLACED — 90 on Roma vs Chelsea (match 751703117) Total. 1st half Over 6.5 @ 1.55
+
+2026-09-10 19:09:57
+SETTLED — Roma vs Chelsea: LOST (1st half total 5)
+
+2026-09-10 20:49:14
+PATTERN ARMED — streak [5, 0, 3]
+
+2026-09-10 20:52:17
+BET FAILED — match 751705934: auth read failed: BrowserType.connect_over_cdp: Timeout 180000ms exceeded.
+Call log:
+  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222
+  - <ws connecting> ws://127.0.0.1:9222/devtools/browser/f6ae2b97-1a7f-404f-9ae2-f483da08a029
+  - <ws connected> ws://127.0.0.1:9222/devtools/browser/f6ae2b97-1a7f-404f-9ae2-f483da08a029
+
+
