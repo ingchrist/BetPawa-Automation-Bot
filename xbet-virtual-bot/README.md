@@ -205,11 +205,12 @@ discriminator field used to route a message off the wire (see
 | `xbet.match_events` | `MatchHalfTime` (`half_time`) | First-half data becomes available and the match has moved past the first half. Fires exactly once per match — see the note on `_half_time_emitted` in `services/aggregator/state.py` for why it's edge-triggered rather than a literal frame-to-frame comparison. | `first_half` |
 | `xbet.match_events` | `MatchFinished` (`finished`) | Status flips to finished. Appended to `data/results.jsonl` (by the aggregator) and `data/result.log` (by the display) in the same step. | `first_half`, `second_half`, `total_home_goals`/`total_away_goals`, settled `moneyline` (rendered), `totals` (settled but not rendered — see [Example output](#example-output)) |
 | `xbet.match_events` | `PatternArmed` (`pattern_armed`) | A betting pattern's trigger condition is met. | `pattern_name`, `qualifying_totals` |
+| `xbet.match_events` | `PatternProgress` (`pattern_progress`) | Narrates every finished round's effect on a pattern's streak, whether or not it fired. | `pattern_name`, `direction`, `streak`, `streak_length`, `threshold`, `total`, `outcome` |
 | `xbet.match_events` | `BetPlaced` (`bet_placed`) | A bet was successfully placed. | `match_id`, `stake`, `line`, `odds` |
 | `xbet.match_events` | `BetFailed` (`bet_failed`) | A bet was skipped or failed. | `match_id?`, `reason` |
-| `xbet.match_events` | `BetSettled` (`bet_settled`) | The bet's target match finished. | `match_id`, `won`, `first_half_total` |
+| `xbet.match_events` | `BetSettled` (`bet_settled`) | The bet's target period finished. | `match_id`, `won`, `period_total`, `market_label` |
 
-All four are published by `services/bettor/` — see [Betting patterns](#betting-patterns).
+All five are published by `services/bettor/` — see [Betting patterns](#betting-patterns).
 
 `MatchStateMachine.process()` (in `services/aggregator/state.py`) always
 returns events in the order above for a single poll, even if a match jumps
@@ -294,6 +295,10 @@ kick off," they can resolve to targeting the same match in the same
 round. Only one bet per match is ever placed — whichever pattern's
 target resolves first wins it; the other logs a `BET FAILED` with a
 `mutual exclusion: ...` reason instead of also staking money on it.
+This caps risk *per match*, not in aggregate: the two patterns can each
+have an independent stake open on a *different* match at the same time,
+so running both roughly doubles the aggregate stake-rate exposure
+compared to Pattern 1 running alone.
 
 Config knobs: `PATTERN2_HIGH_THRESHOLD`, `PATTERN2_STREAK_LENGTH`,
 `PATTERN2_BET_LINE`, `PATTERN2_BET_STAKE_AMOUNT` — see `.env.example`.

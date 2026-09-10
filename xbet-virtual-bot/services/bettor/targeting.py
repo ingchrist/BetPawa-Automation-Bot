@@ -1,6 +1,7 @@
 """TargetTracker — resolves which upcoming match a fired pattern should
-bet on, and guards against betting into a match whose 1st half is already
-over by the time the bet is actually attempted.
+bet on, and guards against betting into a match that's already past this
+instance's configured stale statuses by the time the bet is actually
+attempted.
 
 Pure, no I/O — fed only the MatchDiscovered/MatchStarted/MatchHalfTime/
 MatchFinished events services/bettor/main.py already subscribes to. The
@@ -25,7 +26,7 @@ class TargetTracker:
         self._latest_discovered: MatchDiscovered | None = None
         self._status: dict[int, str] = {}
         self._pending = False
-        self._stale_statuses = stale_statuses if stale_statuses is not None else _DEFAULT_STALE_STATUSES
+        self._stale_statuses = set(stale_statuses) if stale_statuses is not None else set(_DEFAULT_STALE_STATUSES)
         self.bet_targets: set[int] = set()
 
     def on_discovered(self, event: MatchDiscovered) -> MatchDiscovered | None:
@@ -51,13 +52,13 @@ class TargetTracker:
 
     def arm(self) -> MatchDiscovered | None:
         """Called when the pattern fires. Returns the match to bet on now
-        if it's already known, not yet targeted, and not yet stale (i.e.
-        still upcoming, or already started but not yet at half-time) —
-        pregame and early-live are both fair game, since BetExecutor
-        prices the bet fresh either way and the stale-fire guard in
-        place()/is_stale() still catches anything past half-time.
-        Otherwise marks that a bet is owed to whichever match is
-        discovered next."""
+        if it's already known, not yet targeted, and not yet stale per
+        this instance's stale_statuses (i.e. still upcoming, or already
+        started but not yet in one of those statuses) — pregame and
+        early-live are both fair game, since BetExecutor prices the bet
+        fresh either way and the stale-fire guard in place()/is_stale()
+        still catches anything that reaches a stale status. Otherwise
+        marks that a bet is owed to whichever match is discovered next."""
         latest = self._latest_discovered
         if (
             latest is not None
@@ -70,10 +71,11 @@ class TargetTracker:
         return None
 
     def is_stale(self, match_id: int) -> bool:
-        """True if this match's 1st half is already known to be over —
-        checked immediately before actually clicking a bet, since real
-        wall-clock time passes during browser navigation while this
-        tracker keeps receiving events in the background."""
+        """True if this match's status is already one of this instance's
+        configured stale_statuses — checked immediately before actually
+        clicking a bet, since real wall-clock time passes during browser
+        navigation while this tracker keeps receiving events in the
+        background."""
         return self._status.get(match_id) in self._stale_statuses
 
 

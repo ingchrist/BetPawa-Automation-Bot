@@ -6,7 +6,9 @@ three modules glued together: collector, aggregator and display share no
 Python state, only this bus. Any one of them can be killed, restarted, or
 replaced with a different implementation (a different language, even)
 without the others noticing, as long as it speaks the same channel/JSON
-contract from shared/events.py.
+contract from shared/events.py — and a subscriber that receives a message
+it can't parse against that contract (an old-schema publisher still
+running, or any future schema drift) skips it rather than dying.
 """
 from __future__ import annotations
 
@@ -14,7 +16,7 @@ import json
 from collections.abc import AsyncIterator
 
 import redis.asyncio as redis
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from shared.events import MATCH_EVENT_TYPES, MatchEvent, MatchSnapshot
 
@@ -38,7 +40,10 @@ class EventBus:
 
     async def subscribe_snapshots(self, channel: str) -> AsyncIterator[MatchSnapshot]:
         async for raw in self._subscribe_raw(channel):
-            yield MatchSnapshot.model_validate_json(raw)
+            try:
+                yield MatchSnapshot.model_validate_json(raw)
+            except ValidationError:
+                continue
 
     async def subscribe_match_events(self, channel: str) -> AsyncIterator[MatchEvent]:
         async for raw in self._subscribe_raw(channel):
@@ -49,7 +54,10 @@ class EventBus:
             model = MATCH_EVENT_TYPES.get(kind)
             if model is None:
                 continue
-            yield model.model_validate_json(raw)
+            try:
+                yield model.model_validate_json(raw)
+            except ValidationError:
+                continue
 
     async def _subscribe_raw(self, channel: str) -> AsyncIterator[str]:
         assert self._client, "EventBus.connect() not called"
