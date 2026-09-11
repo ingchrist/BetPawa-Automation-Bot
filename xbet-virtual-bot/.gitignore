@@ -17,3 +17,8 @@ run/
 # Throwaway exploration/recon scripts (live-API probing, DOM discovery) --
 # never meant to be committed, per the plan's own convention for this dir.
 scratch/
+
+# Local knowledge-graph cache from the graphify tool (a third-party global
+# skill, not part of this project) -- regenerable from source via
+# `graphify . --update`, not a shipped artifact.
+graphify-out/
