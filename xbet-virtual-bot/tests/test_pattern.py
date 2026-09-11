@@ -153,7 +153,11 @@ def test_at_or_over_direction_progress_reporting():
     assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 2, "skipped")
 
 
-def test_at_or_under_direction_default_is_pattern_1s_exact_existing_behavior():
+def test_at_or_under_direction_is_the_class_default():
+    # PatternTracker()'s own generic defaults (streak_length=3, threshold=6,
+    # direction="at_or_under") -- not necessarily Pattern 1's production
+    # config, which is set independently via PATTERN_STREAK_LENGTH etc. in
+    # shared/config.py.
     tracker = PatternTracker()  # direction defaults to "at_or_under"
     assert tracker.process(4) is False
     assert tracker.process(5) is False

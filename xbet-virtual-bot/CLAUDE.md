@@ -89,10 +89,12 @@ stops/restarts the bot or a new round finishes.
 
 ## Both patterns' mechanics, in brief (see the spec for the full rationale)
 
-- **Pattern 1** — "1st Half Over 6.5" streak. 3 consecutive rounds with
-  1st-half total ≤ `PATTERN_LOW_THRESHOLD` (default 6) fire a bet on the
-  next round's `Total. 1st half`, `Over PATTERN_BET_LINE` (default 6.5).
-  Evaluates at `MatchHalfTime`.
+- **Pattern 1** — "1st Half Over 6.5" streak. `PATTERN_STREAK_LENGTH`
+  (default **2**, changed from 3 on 2026-09-11 — everything else about the
+  pattern is unchanged) consecutive rounds with 1st-half total ≤
+  `PATTERN_LOW_THRESHOLD` (default 6) fire a bet on the next round's
+  `Total. 1st half`, `Over PATTERN_BET_LINE` (default 6.5). Evaluates at
+  `MatchHalfTime`.
 - **Pattern 2** — "2nd Half Under 7.5" streak, the mirror image. 3
   consecutive rounds with 2nd-half total ≥ `PATTERN2_HIGH_THRESHOLD`
   (default 8) fire a bet on the next round's `Total. 2nd half`, `Under

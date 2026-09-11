@@ -223,7 +223,7 @@ belongs after.
 ### Pattern 1 — "1st Half Over 6.5" streak
 
 `services/bettor/` (see `services/bettor/pattern.py` for the exact state
-machine) watches every finished round's 1st-half combined goal total. 3
+machine) watches every finished round's 1st-half combined goal total. 2
 consecutive rounds at or under `PATTERN_LOW_THRESHOLD` (default 6) fire a
 real bet — `BET_STAKE_AMOUNT` (default 90, FCFA) on the *next* round's
 `Total. 1st half` market, `Over PATTERN_BET_LINE` (default 6.5). After a

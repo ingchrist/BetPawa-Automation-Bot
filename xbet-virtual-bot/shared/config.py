@@ -64,7 +64,7 @@ def load_config() -> Config:
         log_dir=_path("LOG_DIR", "logs"),
         bets_log_path=_path("BETS_LOG_PATH", "data/bets.log"),
         bet_stake_amount=float(os.environ.get("BET_STAKE_AMOUNT", "90")),
-        pattern_streak_length=int(os.environ.get("PATTERN_STREAK_LENGTH", "3")),
+        pattern_streak_length=int(os.environ.get("PATTERN_STREAK_LENGTH", "2")),
         pattern_low_threshold=int(os.environ.get("PATTERN_LOW_THRESHOLD", "6")),
         pattern_bet_line=float(os.environ.get("PATTERN_BET_LINE", "6.5")),
         pattern2_high_threshold=int(os.environ.get("PATTERN2_HIGH_THRESHOLD", "8")),

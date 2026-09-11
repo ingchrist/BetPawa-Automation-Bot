@@ -24,3 +24,133 @@ Call log:
   - <ws connected> ws://127.0.0.1:9222/devtools/browser/f6ae2b97-1a7f-404f-9ae2-f483da08a029
 
 
+2026-09-10 22:59:31
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [3, 6, 4]
+
+2026-09-10 22:59:45
+BET PLACED — 90 on Fenerbahce vs Roma (match 751747737) Total. 1st half Over 6.5 @ 1.52
+
+2026-09-10 23:10:26
+SETTLED — Fenerbahce vs Roma: WON (Total. 1st half Over 6.5 total 7)
+
+2026-09-11 01:26:00
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [9, 8, 11]
+
+2026-09-11 01:26:14
+BET PLACED — 90 on Heart of Midlothian vs West Ham United (match 751771205) Total. 2nd half Under 7.5 @ 1.81
+
+2026-09-11 07:39:59
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 6, 6]
+
+2026-09-11 07:40:04
+BET FAILED [Total. 1st half Over 6.5] — match 751804134: market not open (stale-fire guard)
+
+2026-09-11 07:45:30
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [8, 10, 9]
+
+2026-09-11 07:45:30
+BET FAILED [Total. 2nd half Under 7.5] — match 751804134: mutual exclusion: match 751804134 already targeted 
+by 1st_half_over_6.5_streak
+
+2026-09-11 08:30:02
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 6]
+
+2026-09-11 08:30:13
+BET PLACED — 90 on Fenerbahce vs Basel (match 751837589) Total. 1st half Over 6.5 @ 1.53
+
+2026-09-11 08:40:26
+SETTLED — Fenerbahce vs Basel: WON (Total. 1st half Over 6.5 total 9)
+
+2026-09-11 09:09:44
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 4]
+
+2026-09-11 09:09:51
+BET FAILED [Total. 1st half Over 6.5] — match 751847750: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-11 09:39:15
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 3]
+
+2026-09-11 09:39:24
+BET PLACED — 90 on Red Bull vs Fenerbahce (match 751852971) Total. 1st half Over 6.5 @ 1.62
+
+2026-09-11 09:50:30
+SETTLED — Red Bull vs Fenerbahce: WON (Total. 1st half Over 6.5 total 7)
+
+2026-09-11 12:25:43
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [8, 10, 10]
+
+2026-09-11 12:26:00
+BET PLACED — 90 on West Ham United vs Anderlecht (match 751890873) Total. 2nd half Under 7.5 @ 1.75
+
+2026-09-11 12:39:37
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 4]
+
+2026-09-11 12:39:55
+BET PLACED — 90 on Borussia Monchengladbach vs Fiorentina (match 751895267) Total. 1st half Over 6.5 @ 1.49
+
+2026-09-11 12:44:24
+SETTLED — West Ham United vs Anderlecht: WON (Total. 2nd half Under 7.5 total 6)
+
+2026-09-11 12:50:03
+SETTLED — Borussia Monchengladbach vs Fiorentina: LOST (Total. 1st half Over 6.5 total 6)
+
+2026-09-11 14:19:09
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 3]
+
+2026-09-11 14:19:16
+BET PLACED — 90 on Villarreal vs Roma (match 751918006) Total. 1st half Over 6.5 @ 1.41
+
+2026-09-11 14:24:48
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [9, 9, 10]
+
+2026-09-11 14:24:48
+BET FAILED [Total. 2nd half Under 7.5] — match 751918006: mutual exclusion: match 751918006 already targeted 
+by 1st_half_over_6.5_streak
+
+2026-09-11 14:30:56
+SETTLED — Villarreal vs Roma: WON (Total. 1st half Over 6.5 total 10)
+
+2026-09-11 16:39:03
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [3, 2]
+
+2026-09-11 16:39:06
+BET PLACED — 90 on Fenerbahce vs AZ Alkmaar (match 751952332) Total. 1st half Over 6.5 @ 1.66
+
+2026-09-11 16:49:44
+SETTLED — Fenerbahce vs AZ Alkmaar: LOST (Total. 1st half Over 6.5 total 5)
+
+2026-09-11 17:05:36
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [8, 9, 10]
+
+2026-09-11 17:05:41
+BET PLACED — 90 on Villarreal vs Nice (match 751958230) Total. 2nd half Under 7.5 @ 1.77
+
+2026-09-11 17:09:25
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 3]
+
+2026-09-11 17:09:25
+BET FAILED [Total. 1st half Over 6.5] — match 751958230: mutual exclusion: match 751958230 already targeted by
+2nd_half_under_7.5_streak
+
+2026-09-11 17:25:10
+SETTLED — Villarreal vs Nice: LOST (Total. 2nd half Under 7.5 total 9)
+
+2026-09-11 17:40:05
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 6]
+
+2026-09-11 17:40:08
+BET PLACED — 90 on Braga vs Chelsea (match 751967258) Total. 1st half Over 6.5 @ 1.47
+
+2026-09-11 17:50:50
+SETTLED — Braga vs Chelsea: WON (Total. 1st half Over 6.5 total 8)
+
+2026-09-11 18:10:01
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 6]
+
+2026-09-11 18:10:04
+BET PLACED — 90 on AZ Alkmaar vs West Ham United (match 751973022) Total. 1st half Over 6.5 @ 1.89
+
+2026-09-11 18:20:31
+SETTLED — AZ Alkmaar vs West Ham United: WON (Total. 1st half Over 6.5 total 8)
+
