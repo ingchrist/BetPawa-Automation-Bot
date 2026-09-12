@@ -97,7 +97,8 @@ async def run() -> None:
     log.info(
         f"starting Pattern 2 — streak_length={config.pattern2_streak_length} "
         f"high_threshold={config.pattern2_high_threshold} bet_line={config.pattern2_bet_line} "
-        f"stake={config.pattern2_bet_stake_amount}"
+        f"stake={config.pattern2_bet_stake_amount} "
+        f"{'ENABLED' if config.pattern2_enabled else 'DISABLED (PATTERN2_ENABLED=false) — tracking only, will not bet'}"
     )
 
     async def place(
@@ -190,7 +191,7 @@ async def run() -> None:
                             stake=config.bet_stake_amount,
                         )
                     target2 = targets2.on_discovered(event)
-                    if target2 is not None:
+                    if target2 is not None and config.pattern2_enabled:
                         await place(
                             target2,
                             targets=targets2,
@@ -289,31 +290,37 @@ async def run() -> None:
 
                     fired2 = tracker2.process(second_half_total)
                     if fired2:
-                        log.info(f"PATTERN 2 ARMED — streak {tracker2.last_streak_totals}")
-                        await bus.publish(
-                            config.channel_match_events,
-                            PatternArmed(
-                                pattern_name=PATTERN2_NAME,
-                                qualifying_totals=list(tracker2.last_streak_totals),
-                                market_label=_market_label(2, False, config.pattern2_bet_line),
-                                condition_label=_condition_label(
-                                    "at_or_over", 2, config.pattern2_high_threshold, config.pattern2_streak_length
-                                ),
-                            ),
-                        )
-                        target2 = targets2.arm()
-                        if target2 is not None:
-                            await place(
-                                target2,
-                                targets=targets2,
-                                other_targets=targets,
-                                other_pattern_name=PATTERN1_NAME,
-                                placed_matches=placed_matches2,
-                                period=2,
-                                over=False,
-                                line=config.pattern2_bet_line,
-                                stake=config.pattern2_bet_stake_amount,
+                        if not config.pattern2_enabled:
+                            log.warning(
+                                f"PATTERN 2 ARMED — streak {tracker2.last_streak_totals} "
+                                "— but PATTERN2_ENABLED=false, suppressing bet placement"
                             )
+                        else:
+                            log.info(f"PATTERN 2 ARMED — streak {tracker2.last_streak_totals}")
+                            await bus.publish(
+                                config.channel_match_events,
+                                PatternArmed(
+                                    pattern_name=PATTERN2_NAME,
+                                    qualifying_totals=list(tracker2.last_streak_totals),
+                                    market_label=_market_label(2, False, config.pattern2_bet_line),
+                                    condition_label=_condition_label(
+                                        "at_or_over", 2, config.pattern2_high_threshold, config.pattern2_streak_length
+                                    ),
+                                ),
+                            )
+                            target2 = targets2.arm()
+                            if target2 is not None:
+                                await place(
+                                    target2,
+                                    targets=targets2,
+                                    other_targets=targets,
+                                    other_pattern_name=PATTERN1_NAME,
+                                    placed_matches=placed_matches2,
+                                    period=2,
+                                    over=False,
+                                    line=config.pattern2_bet_line,
+                                    stake=config.pattern2_bet_stake_amount,
+                                )
                     else:
                         await bus.publish(
                             config.channel_match_events,

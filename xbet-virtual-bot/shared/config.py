@@ -35,6 +35,7 @@ class Config:
     pattern2_streak_length: int
     pattern2_bet_line: float
     pattern2_bet_stake_amount: float
+    pattern2_enabled: bool
     cdp_url: str
 
     # Redis pub/sub channels — the event-bus "contract" shared by every
@@ -50,6 +51,12 @@ def load_config() -> Config:
     def _path(env_key: str, default: str) -> Path:
         p = Path(os.environ.get(env_key, default))
         return p if p.is_absolute() else PROJECT_ROOT / p
+
+    def _bool(env_key: str, default: bool) -> bool:
+        raw = os.environ.get(env_key)
+        if raw is None:
+            return default
+        return raw.strip().lower() not in {"0", "false", "no", "off"}
 
     return Config(
         api_base=os.environ.get("ONEXBET_API_BASE", "https://1xbet.cm/service-api"),
@@ -71,5 +78,6 @@ def load_config() -> Config:
         pattern2_streak_length=int(os.environ.get("PATTERN2_STREAK_LENGTH", "3")),
         pattern2_bet_line=float(os.environ.get("PATTERN2_BET_LINE", "7.5")),
         pattern2_bet_stake_amount=float(os.environ.get("PATTERN2_BET_STAKE_AMOUNT", "90")),
+        pattern2_enabled=_bool("PATTERN2_ENABLED", True),
         cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),
     )
