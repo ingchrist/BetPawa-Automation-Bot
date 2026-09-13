@@ -35,6 +35,7 @@ from services.bettor.betting_api import (
     DOUBLE_CHANCE_GROUP,
 )
 from services.bettor.pattern import PatternTracker
+from services.bettor.session_watchdog import watchdog_loop
 from services.bettor.targeting import TargetTracker, mutual_exclusion_reason
 from shared.bus import EventBus
 from shared.config import load_config
@@ -130,6 +131,11 @@ async def run() -> None:
         f"starting Pattern 3 — streak_length={config.pattern3_streak_length} "
         f"trigger=2X selection=1X stake={config.pattern3_bet_stake_amount} "
         f"{'ENABLED' if config.pattern3_enabled else 'DISABLED (PATTERN3_ENABLED=false) — tracking only, will not bet'}"
+    )
+    log.info(
+        f"starting session watchdog — check_interval={config.auth_watchdog_check_interval_seconds:g}s "
+        f"cooldown={config.auth_watchdog_login_cooldown_seconds:g}s "
+        f"{'ENABLED' if config.auth_watchdog_enabled else 'DISABLED (AUTH_WATCHDOG_ENABLED=false)'}"
     )
 
     async def place(
@@ -491,10 +497,27 @@ async def run() -> None:
         loop.add_signal_handler(sig, stop.set)
 
     consumer_task = asyncio.create_task(consume())
+    watchdog_task = (
+        asyncio.create_task(
+            watchdog_loop(
+                config.cdp_url,
+                config.onexbet_phone_number,
+                config.onexbet_password,
+                config.auth_watchdog_check_interval_seconds,
+                config.auth_watchdog_login_cooldown_seconds,
+                config.auth_watchdog_login_timeout_seconds,
+                log,
+            )
+        )
+        if config.auth_watchdog_enabled
+        else None
+    )
     await stop.wait()
 
     log.info("shutting down...")
     consumer_task.cancel()
+    if watchdog_task is not None:
+        watchdog_task.cancel()
     await executor.aclose()
     await bus.close()
 
