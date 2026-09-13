@@ -294,7 +294,7 @@ async def run() -> None:
                                 match_id=event.match_id,
                                 home=event.home,
                                 away=event.away,
-                                won=(winner_1h == "1X"),
+                                won=(winner_1h != "2X"),
                                 period_total=first_half_total,
                                 market_label=_double_chance_market_label(1),
                             ),
