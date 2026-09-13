@@ -32,3 +32,8 @@ yarn-error.log
 /logs
 /storage/virtual-pattern-state.json
 /storage/logs/virtual-pattern-bets.jsonl
+
+# Scratch workspace for superpowers:subagent-driven-development (ledgers,
+# task briefs, review packages) -- match at any depth, git history is the
+# record once a plan finishes, not this directory.
+.superpowers/
