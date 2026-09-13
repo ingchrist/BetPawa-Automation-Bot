@@ -17,6 +17,7 @@ would for a human.
 """
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -91,3 +92,54 @@ async def login(
 
 AliveChecker = Callable[[str], Awaitable[bool]]
 LoginFn = Callable[[str, str, str, float], Awaitable[LoginResult]]
+
+
+async def watchdog_loop(
+    cdp_url: str,
+    phone_number: str,
+    password: str,
+    check_interval_seconds: float,
+    login_cooldown_seconds: float,
+    login_timeout_seconds: float,
+    log: Logger,
+    *,
+    is_alive: AliveChecker = is_session_alive,
+    do_login: LoginFn = login,
+    sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    now: Callable[[], float] = time.monotonic,
+) -> None:
+    """Runs forever. Every check_interval_seconds, checks whether the
+    session is alive; if it's dead and at least login_cooldown_seconds
+    have passed since the last login attempt, calls do_login(...) and
+    logs the outcome loudly either way. Returns immediately, without
+    looping, if phone_number/password are unset -- there's nothing this
+    watchdog can do without them, and it must never crash the bettor
+    process over a missing optional feature."""
+    if not phone_number or not password:
+        log.warning(
+            "session watchdog disabled: ONEXBET_PHONE_NUMBER/ONEXBET_PASSWORD not set"
+        )
+        return
+
+    last_login_attempt: float | None = None
+    while True:
+        await sleep(check_interval_seconds)
+        await asyncio.sleep(0)  # Ensure event loop gets a chance to handle timeouts
+        try:
+            alive = await is_alive(cdp_url)
+        except Exception as exc:  # noqa: BLE001 -- one bad check must not kill the watchdog
+            log.error(f"session watchdog: alive-check failed: {exc}")
+            continue
+        if alive:
+            continue
+
+        current = now()
+        if last_login_attempt is not None and (current - last_login_attempt) < login_cooldown_seconds:
+            continue  # still in cooldown from a recent attempt
+
+        last_login_attempt = current
+        result = await do_login(cdp_url, phone_number, password, login_timeout_seconds)
+        if result.success:
+            log.info("AUTH RECOVERED — session watchdog logged back in successfully")
+        else:
+            log.error(f"AUTH LOGIN FAILED — manual login required: {result.reason}")
