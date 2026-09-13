@@ -124,7 +124,6 @@ async def watchdog_loop(
     last_login_attempt: float | None = None
     while True:
         await sleep(check_interval_seconds)
-        await asyncio.sleep(0)  # Ensure event loop gets a chance to handle timeouts
         try:
             alive = await is_alive(cdp_url)
         except Exception as exc:  # noqa: BLE001 -- one bad check must not kill the watchdog

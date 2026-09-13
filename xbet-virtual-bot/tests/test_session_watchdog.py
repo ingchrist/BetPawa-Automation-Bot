@@ -25,7 +25,7 @@ async def _run_briefly(coro, wall_clock_seconds: float = 0.05) -> None:
 
 def _instant_sleep():
     async def sleep(_seconds: float) -> None:
-        return None
+        await asyncio.sleep(0)  # genuine yield point so asyncio.wait_for's timeout can actually fire
     return sleep
 
 
