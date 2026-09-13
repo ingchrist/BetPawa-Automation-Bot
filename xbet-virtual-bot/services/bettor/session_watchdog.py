@@ -31,10 +31,15 @@ ACCESS_TOKEN_COOKIE = "access_token"
 # "Investigation" section. The identifier field (#username) accepts a
 # phone number despite its "E-mail or ID" placeholder; the frontend
 # itself splits whatever's typed into the phone_number/country_code
-# fields the real login POST expects.
+# fields the real login POST expects. Note: this site has duplicate DOM
+# ids -- both #username and #username-password each match a non-input
+# wrapper div in addition to the real <input>; the input# tag qualifier
+# is required to disambiguate (discovered via a live supervised test on
+# 2026-09-13, not visible from static DOM inspection alone since that
+# only ever queried document.querySelectorAll('input')).
 LOGIN_TRIGGER_SELECTOR = "button.auth-dropdown-trigger"
-IDENTIFIER_FIELD_SELECTOR = "#username"
-PASSWORD_FIELD_SELECTOR = "#username-password"
+IDENTIFIER_FIELD_SELECTOR = "input#username"
+PASSWORD_FIELD_SELECTOR = "input#username-password"
 SUBMIT_BUTTON_SELECTOR = ".auth-form-fields__submit"
 
 
