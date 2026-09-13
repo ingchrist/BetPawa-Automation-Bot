@@ -141,7 +141,7 @@ class MatchFinished(BaseModel):
 class PatternArmed(BaseModel):
     kind: Literal["pattern_armed"] = "pattern_armed"
     pattern_name: str
-    qualifying_totals: list[int]
+    qualifying_totals: list[int | str]
     market_label: str  # e.g. "Total. 2nd half Under 7.5" — what's about to be bet on
     condition_label: str  # e.g. "3 consecutive rounds with 2nd half total >= 8"
 
@@ -155,11 +155,11 @@ class PatternProgress(BaseModel):
     kind: Literal["pattern_progress"] = "pattern_progress"
     match_id: int
     pattern_name: str
-    direction: Literal["at_or_under", "at_or_over"]
+    direction: Literal["at_or_under", "at_or_over", "equals"]
     streak: int
     streak_length: int
-    threshold: int
-    total: int | None
+    threshold: int | str
+    total: int | str | None
     outcome: Literal["qualifying", "reset", "skipped"]
 
 
@@ -170,7 +170,7 @@ class BetPlaced(BaseModel):
     home: str
     away: str
     stake: float
-    line: float
+    line: float | None = None
     market_label: str
     odds: float | None = None
 

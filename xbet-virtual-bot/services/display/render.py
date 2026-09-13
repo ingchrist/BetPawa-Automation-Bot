@@ -317,9 +317,14 @@ def render_pattern_progress(event: PatternProgress) -> None:
     streak — printed for every round (see render_pattern_armed for the
     moment it actually fires, which this deliberately doesn't duplicate).
     `direction` picks the qualify/reset comparison wording so this reads
-    correctly for both Pattern 1 (at_or_under) and Pattern 2 (at_or_over)."""
-    qualify_cmp = "≤" if event.direction == "at_or_under" else "≥"
-    reset_cmp = ">" if event.direction == "at_or_under" else "<"
+    correctly for Pattern 1 (at_or_under), Pattern 2 (at_or_over), and
+    Pattern 3 (equals, a categorical match rather than a numeric one)."""
+    if event.direction == "equals":
+        qualify_cmp, reset_cmp = "==", "!="
+    elif event.direction == "at_or_under":
+        qualify_cmp, reset_cmp = "≤", ">"
+    else:
+        qualify_cmp, reset_cmp = "≥", "<"
     this_round = f"this round: {event.total}" if event.total is not None else "this round: unknown"
     if event.outcome == "reset":
         detail = (
