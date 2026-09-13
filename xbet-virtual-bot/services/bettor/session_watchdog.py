@@ -36,7 +36,12 @@ ACCESS_TOKEN_COOKIE = "access_token"
 # wrapper div in addition to the real <input>; the input# tag qualifier
 # is required to disambiguate (discovered via a live supervised test on
 # 2026-09-13, not visible from static DOM inspection alone since that
-# only ever queried document.querySelectorAll('input')).
+# only ever queried document.querySelectorAll('input')). Also: the login
+# trigger button is itself a toggle (a second click closes what a first
+# click opened) -- login() guards its click behind a presence-check of
+# the identifier field so a dropdown left open by a prior failed attempt
+# is never accidentally closed instead of used (discovered via a second
+# live supervised test on 2026-09-13).
 LOGIN_TRIGGER_SELECTOR = "button.auth-dropdown-trigger"
 IDENTIFIER_FIELD_SELECTOR = "input#username"
 PASSWORD_FIELD_SELECTOR = "input#username-password"
@@ -76,7 +81,8 @@ async def login(
             if page is None:
                 return LoginResult(success=False, reason="no 1xbet.cm tab open")
 
-            await page.click(LOGIN_TRIGGER_SELECTOR, timeout=5000)
+            if await page.query_selector(IDENTIFIER_FIELD_SELECTOR) is None:
+                await page.click(LOGIN_TRIGGER_SELECTOR, timeout=5000)
             await page.fill(IDENTIFIER_FIELD_SELECTOR, phone_number, timeout=5000)
             await page.fill(PASSWORD_FIELD_SELECTOR, password, timeout=5000)
             await page.click(SUBMIT_BUTTON_SELECTOR, timeout=5000)
