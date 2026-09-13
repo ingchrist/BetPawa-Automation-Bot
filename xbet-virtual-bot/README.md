@@ -351,6 +351,40 @@ Config knobs: `PATTERN3_STREAK_LENGTH`, `PATTERN3_BET_STAKE_AMOUNT`,
 `PATTERN3_ENABLED` — see `.env.example`. Shares `CDP_URL` and
 `BETS_LOG_PATH` with Pattern 1/2.
 
+## Automatic session recovery
+
+The bettor process runs a background watchdog
+(`services/bettor/session_watchdog.py`) alongside its three betting
+patterns. Every `AUTH_WATCHDOG_CHECK_INTERVAL_SECONDS` (default 60), it
+checks whether the browser's 1xbet.cm session is still alive (the same
+`access_token` cookie check `BetExecutor` already relies on). If it's
+gone, the watchdog logs back in automatically by driving the real login
+form on the already-open browser tab — typing the phone number and
+password configured in `ONEXBET_PHONE_NUMBER`/`ONEXBET_PASSWORD`,
+submitting, and confirming the session cookie reappears.
+
+This exists because 1xbet logs sessions out on its own from time to
+time, and until now the only fix was a human noticing and logging back
+in by hand — which has already cost at least one missed bet live. Login
+has to go through the real browser rather than a direct API call (unlike
+how bets themselves are placed): the real login request carries a large,
+client-side-generated device fingerprint that only the site's own page
+JS can produce.
+
+**You should still log in manually** when the watchdog logs
+`AUTH LOGIN FAILED` — that means automated recovery itself couldn't
+succeed (wrong stored credentials, an unexpected captcha/2FA step, or no
+browser tab open), and it will keep failing at the same rate
+(`AUTH_WATCHDOG_LOGIN_COOLDOWN_SECONDS`, default every 5 minutes) until
+you do.
+
+Config knobs: `ONEXBET_PHONE_NUMBER`, `ONEXBET_PASSWORD`,
+`AUTH_WATCHDOG_ENABLED`, `AUTH_WATCHDOG_CHECK_INTERVAL_SECONDS`,
+`AUTH_WATCHDOG_LOGIN_COOLDOWN_SECONDS`,
+`AUTH_WATCHDOG_LOGIN_TIMEOUT_SECONDS` — see `.env.example`. Set
+`AUTH_WATCHDOG_ENABLED=false` to disable this entirely and go back to
+fully manual login, the same as before this feature existed.
+
 ## How data is sourced
 
 The original plan was to drive the shared Chrome-over-CDP setup this box
@@ -420,8 +454,13 @@ you change.
 | `PATTERN3_STREAK_LENGTH` | `2` | Consecutive rounds required, each with a 1st-half Double Chance result of exactly "2X", to fire Pattern 3. |
 | `PATTERN3_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired Pattern 3 bet. |
 | `PATTERN3_ENABLED` | `true` | Kill switch for Pattern 3 only — set `false` to keep tracking the streak (normal `PatternProgress` still publishes on non-firing rounds) without ever placing a bet; a firing round while disabled only logs a warning instead of publishing `PatternArmed`. |
-| `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser the bettor reads fresh auth from (read-only touch, not UI automation). |
+| `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser. Bet placement itself only ever reads fresh auth from it (cookies/localStorage, no UI automation); the session watchdog is the one thing that drives real form input on it, for login recovery only — see [Automatic session recovery](#automatic-session-recovery). |
 | `BETS_LOG_PATH` | `data/bets.log` | Human-readable audit trail of every pattern fire / bet placed / failed / settled — tracked in git like `RESULT_LOG_PATH`. |
+| `ONEXBET_PHONE_NUMBER` / `ONEXBET_PASSWORD` | *(empty)* | Login credentials for automatic session recovery. Both required for the watchdog to do anything; see [Automatic session recovery](#automatic-session-recovery). |
+| `AUTH_WATCHDOG_ENABLED` | `true` | Kill switch for the session watchdog only — set `false` to disable auto-recovery entirely and go back to fully manual login. |
+| `AUTH_WATCHDOG_CHECK_INTERVAL_SECONDS` | `60` | How often the watchdog checks whether the session is still alive. |
+| `AUTH_WATCHDOG_LOGIN_COOLDOWN_SECONDS` | `300` | Minimum gap between consecutive login attempts. |
+| `AUTH_WATCHDOG_LOGIN_TIMEOUT_SECONDS` | `15` | How long a single login attempt polls for the session cookie to appear before giving up. |
 
 Redis pub/sub channel names (`xbet.snapshots`, `xbet.match_events`) are
 **not** env-configurable — they're the fixed contract between services and
