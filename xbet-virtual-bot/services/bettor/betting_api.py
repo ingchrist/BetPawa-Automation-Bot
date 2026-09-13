@@ -99,6 +99,24 @@ FIRST_HALF_ID_OFFSET = 1
 SECOND_HALF_ID_OFFSET = 2
 TOTALS_GROUP = 17
 
+# Double Chance -- confirmed live, read-only, against GetGameZip on
+# matches in the FC 25. 3x3. Conference League (2860561): Group=8, with
+# Type=4/5/6 keyed to 1X/12/2X respectively, Param always null (there's
+# no line, unlike Totals). Verified against a live, undecided match
+# (0-2 down at the time): 1X priced at 4.37 (unlikely but live), 2X
+# priced at 1.001 (near-certain) -- consistent with the actual scoreline.
+# Uses the identical match_id/+1/+2 sub-game-id scheme as Totals above.
+# See docs/superpowers/specs/2026-09-13-first-half-winner-2x-streak-
+# pattern-bettor-design.md's "Market mechanics" section for the full
+# investigation, including the one residual risk this doesn't close:
+# unlike TOTAL_OVER_T (confirmed via one real captured bet), this
+# request shape is inferred by symmetry with Totals, not confirmed via
+# an actual placed Double Chance bet.
+DOUBLE_CHANCE_GROUP = 8
+DOUBLE_CHANCE_1X_T = 4
+DOUBLE_CHANCE_12_T = 5
+DOUBLE_CHANCE_2X_T = 6
+
 
 @dataclass(frozen=True)
 class BetResult:
@@ -169,13 +187,20 @@ class BetExecutor:
         home: str,
         away: str,
         stake: float,
-        line: float = 6.5,
+        line: float | None = 6.5,
         period: Literal[1, 2] = 1,
         over: bool = True,
+        bet_type: int | None = None,
+        group: int = TOTALS_GROUP,
     ) -> BetResult:
+        """`bet_type`/`group` default to Pattern 1/2's Total-market shape,
+        derived from `over` exactly as before. Pass both explicitly (as
+        Pattern 3 does, for the Double Chance market) to bet a market with
+        no over/under concept at all -- in that case `over` is ignored."""
         offset = FIRST_HALF_ID_OFFSET if period == 1 else SECOND_HALF_ID_OFFSET
         game_id = match_id + offset
-        bet_type = TOTAL_OVER_T if over else TOTAL_UNDER_T
+        if bet_type is None:
+            bet_type = TOTAL_OVER_T if over else TOTAL_UNDER_T
 
         try:
             auth = await self._auth_reader()
@@ -183,7 +208,7 @@ class BetExecutor:
             return BetResult(success=False, reason=f"auth read failed: {exc}")
 
         try:
-            coef = await self._current_odds(game_id, line, bet_type)
+            coef = await self._current_odds(game_id, line, bet_type, group)
         except Exception as exc:
             return BetResult(success=False, reason=f"odds lookup failed: {exc}")
         if coef is None:
@@ -248,7 +273,7 @@ class BetExecutor:
 
         return BetResult(success=True, odds=coef)
 
-    async def _current_odds(self, game_id: int, line: float, bet_type: int) -> float | None:
+    async def _current_odds(self, game_id: int, line: float | None, bet_type: int, group: int = TOTALS_GROUP) -> float | None:
         resp = await self._client.get(
             "/LiveFeed/GetGameZip", params={"id": game_id, "lng": "en"}
         )
@@ -260,7 +285,7 @@ class BetExecutor:
             if (
                 event.get("T") == bet_type
                 and event.get("P") == line
-                and event.get("G") == TOTALS_GROUP
+                and event.get("G") == group
             ):
                 return event.get("C")
         return None

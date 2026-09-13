@@ -218,3 +218,94 @@ def test_period_and_over_defaults_leave_pattern_1s_request_shape_unchanged():
     asyncio.run(executor.aclose())
 
     assert result.success is True
+
+
+def _double_chance_event(coef: float = 4.37, t: int = 4) -> dict:
+    return {"T": t, "P": None, "G": 8, "C": coef}
+
+
+def test_double_chance_bet_type_and_group_target_the_right_market():
+    seen_ids = []
+    seen_bodies = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            seen_ids.append(int(request.url.params["id"]))
+            return httpx.Response(200, json=_game_zip_response([_double_chance_event()]))
+        body = json.loads(request.content)
+        seen_ids.append(body["Events"][0]["GameId"])
+        seen_bodies.append(body["Events"][0])
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    from services.bettor.betting_api import DOUBLE_CHANCE_1X_T, DOUBLE_CHANCE_GROUP
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=751444117,
+            home="A",
+            away="B",
+            stake=90,
+            line=None,
+            period=1,
+            bet_type=DOUBLE_CHANCE_1X_T,
+            group=DOUBLE_CHANCE_GROUP,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert seen_ids == [751444118, 751444118]  # match_id + FIRST_HALF_ID_OFFSET
+    assert seen_bodies[0]["Type"] == 4
+    assert seen_bodies[0]["Param"] is None
+    assert result.success is True
+    assert result.odds == 4.37
+
+
+def test_double_chance_wrong_group_is_not_matched():
+    def handler(request: httpx.Request) -> httpx.Response:
+        # a Totals-shaped event with the same Type=4 but the Totals group --
+        # must not be mistaken for the Double Chance selection.
+        return httpx.Response(200, json=_game_zip_response([{"T": 4, "P": None, "G": 17, "C": 4.37}]))
+
+    from services.bettor.betting_api import DOUBLE_CHANCE_1X_T, DOUBLE_CHANCE_GROUP
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=None,
+            bet_type=DOUBLE_CHANCE_1X_T, group=DOUBLE_CHANCE_GROUP,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert result.success is False
+    assert result.reason == "market not open (stale-fire guard)"
+
+
+def test_bet_type_override_ignores_the_over_flag():
+    # bet_type, when explicitly given, wins over whatever `over` would
+    # otherwise have derived (over's default is True/TOTAL_OVER_T, but
+    # Double Chance has no over/under concept at all).
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_double_chance_event(t=6)]))
+        body = json.loads(request.content)
+        assert body["Events"][0]["Type"] == 6
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    from services.bettor.betting_api import DOUBLE_CHANCE_2X_T, DOUBLE_CHANCE_GROUP
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=None, over=True,
+            bet_type=DOUBLE_CHANCE_2X_T, group=DOUBLE_CHANCE_GROUP,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert result.success is True
