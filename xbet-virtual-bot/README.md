@@ -297,19 +297,51 @@ Pattern 2 evaluates at each round's `MatchFinished` event rather than
 `MatchHalfTime` — one event later in the round's lifecycle than
 Pattern 1.
 
-**Mutual exclusion:** since both patterns watch the same "next match to
-kick off," they can resolve to targeting the same match in the same
+**Mutual exclusion:** since all three patterns watch the same "next match
+to kick off," they can resolve to targeting the same match in the same
 round. Only one bet per match is ever placed — whichever pattern's
-target resolves first wins it; the other logs a `BET FAILED` with a
-`mutual exclusion: ...` reason instead of also staking money on it.
-This caps risk *per match*, not in aggregate: the two patterns can each
-have an independent stake open on a *different* match at the same time,
-so running both roughly doubles the aggregate stake-rate exposure
-compared to Pattern 1 running alone.
+target resolves first wins it; the others log a `BET FAILED` with a
+`mutual exclusion: ...` reason instead of also staking money on it. See
+Pattern 3's subsection below for the full three-way picture.
 
 Config knobs: `PATTERN2_HIGH_THRESHOLD`, `PATTERN2_STREAK_LENGTH`,
 `PATTERN2_BET_LINE`, `PATTERN2_BET_STAKE_AMOUNT` — see `.env.example`.
 Shares `CDP_URL` and `BETS_LOG_PATH` with Pattern 1.
+
+### Pattern 3 — "1st Half Winner 2X" streak
+
+A categorical mean-reversion pattern, run as a third, independent pattern
+in the same `services/bettor/` process as Pattern 1/2 — no separate
+service, no separate CDP session. It watches every finished round's
+**1st-half Double Chance result** — "1X" (home win or draw), "2X" (away
+win or draw), or "X" (outright draw) — instead of a numeric goal total.
+`PATTERN3_STREAK_LENGTH` (default 2) consecutive rounds each settling
+exactly "2X" fire a real bet — `PATTERN3_BET_STAKE_AMOUNT` (default 90,
+FCFA, independently configurable from Pattern 1/2's stakes) on the *next*
+round's `Double Chance. 1st half` market, selection `1X`. Same fire → skip
+one round → restart life cycle as Pattern 1/2, just qualifying on category
+equality (`services/bettor/pattern.py`'s `PatternTracker(direction="equals")`)
+rather than a numeric comparison.
+
+Like Pattern 1, Pattern 3 evaluates at each round's `MatchHalfTime` event
+— the 1st-half result is fully known there, no need to wait for
+`MatchFinished`.
+
+The Double Chance market (`Group=8` on the 1xbet JSON API, `Type=4/5/6`
+for 1X/12/2X) was reverse-engineered read-only against live odds, the
+same way the original Total market was — see
+`services/bettor/betting_api.py`'s module docstring. Unlike the Total
+market, this was **not** confirmed via an actual placed bet before
+shipping; watch the first live Pattern 3 fire closely.
+
+**Mutual exclusion** now spans all three patterns: no two of them ever
+place a bet on the same match in the same round. This caps risk *per
+match*, not in aggregate — running all three roughly triples the
+aggregate stake-rate exposure compared to Pattern 1 running alone.
+
+Config knobs: `PATTERN3_STREAK_LENGTH`, `PATTERN3_BET_STAKE_AMOUNT`,
+`PATTERN3_ENABLED` — see `.env.example`. Shares `CDP_URL` and
+`BETS_LOG_PATH` with Pattern 1/2.
 
 ## How data is sourced
 
@@ -377,6 +409,9 @@ you change.
 | `PATTERN_STREAK_LENGTH` | `3` | Consecutive qualifying rounds required to fire. |
 | `PATTERN_LOW_THRESHOLD` | `6` | A round qualifies when its 1st-half combined goal total is at or under this. |
 | `PATTERN_BET_LINE` | `6.5` | The Over line bet on in `Total. 1st half`. |
+| `PATTERN3_STREAK_LENGTH` | `2` | Consecutive rounds required, each with a 1st-half Double Chance result of exactly "2X", to fire Pattern 3. |
+| `PATTERN3_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired Pattern 3 bet. |
+| `PATTERN3_ENABLED` | `true` | Kill switch for Pattern 3 only — set `false` to track without betting. |
 | `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser the bettor reads fresh auth from (read-only touch, not UI automation). |
 | `BETS_LOG_PATH` | `data/bets.log` | Human-readable audit trail of every pattern fire / bet placed / failed / settled — tracked in git like `RESULT_LOG_PATH`. |
 
@@ -489,10 +524,10 @@ Honest gaps, not hidden ones — worth knowing before relying on this:
 
 ## Roadmap
 
-Extraction + real-time terminal display, plus two live betting patterns
-(see [Betting patterns](#betting-patterns)), are all implemented. Both
-patterns run in the same `services/bettor/` process, coordinated so they
-never both bet on the same match in the same round. Any future pattern
-follows the same shape: extend `PatternTracker`/`TargetTracker`/
+Extraction + real-time terminal display, plus three live betting patterns
+(see [Betting patterns](#betting-patterns)), are all implemented. All
+three patterns run in the same `services/bettor/` process, coordinated so
+no two of them ever bet on the same match in the same round. Any future
+pattern follows the same shape: extend `PatternTracker`/`TargetTracker`/
 `BetExecutor` rather than forking them, and publish its own
 `PatternArmed`/`Bet*` events onto the same `xbet.match_events` bus.
