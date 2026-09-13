@@ -211,6 +211,17 @@ BET PLACED — 90 on Braga vs Heart of Midlothian (match 752211385) Total. 1st h
 2026-09-12 14:04:16
 SETTLED — Braga vs Heart of Midlothian: WON (Total. 1st half Over 6.5 total 9)
 
+--- DIVERGENT LOG RECONCILIATION (git stash-pop conflict, resolved 2026-09-13) ---
+The two blocks below cover 2026-09-12 16:30 through 2026-09-13 04:49 and
+were produced by two different bettor process runs observing the same
+live rounds (same match ids, same streak progressions) with contradictory
+outcomes — one run's browser auth was broken (every fire below auth-failed),
+the other's worked (bets were actually placed and settled). Neither side
+was discarded or asserted as the authoritative real-money record; reconcile
+against the actual 1xbet account bet history before treating either block
+as ground truth.
+
+[[ RUN A — all bets auth-failed this period ]]
 2026-09-12 16:30:17
 2026-09-12 16:30:17
 PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 6]
@@ -294,4 +305,63 @@ PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 4]
 2026-09-13 04:49:32
 BET FAILED [Total. 1st half Over 6.5] — match 752432747: auth read failed: no access_token cookie -- is the 
 browser logged in?
+
+[[ RUN B — bets actually placed/settled this period ]]
+2026-09-12 17:30:03
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 6]
+
+2026-09-12 17:30:14
+BET PLACED — 90 on Villarreal vs Eintracht Frankfurt (match 752279347) Total. 1st half Over 6.5 @ 1.51
+
+2026-09-12 17:39:46
+SETTLED — Villarreal vs Eintracht Frankfurt: LOST (Total. 1st half Over 6.5 total 5)
+
+2026-09-13 00:19:37
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 4]
+
+2026-09-13 00:19:43
+BET FAILED [Total. 1st half Over 6.5] — match 752378083: auth read failed: no access_token cookie -- is the 
+browser logged in?
+
+2026-09-13 00:49:35
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-13 00:49:42
+BET FAILED [Total. 1st half Over 6.5] — match 752384426: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-13 01:39:28
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 3]
+
+2026-09-13 01:39:36
+BET PLACED — 90 on Chelsea vs AZ Alkmaar (match 752392458) Total. 1st half Over 6.5 @ 1.90
+
+2026-09-13 01:49:40
+SETTLED — Chelsea vs AZ Alkmaar: LOST (Total. 1st half Over 6.5 total 4)
+
+2026-09-13 02:19:58
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 6]
+
+2026-09-13 02:20:05
+BET PLACED — 90 on Red Bull vs Lille OSC (match 752399686) Total. 1st half Over 6.5 @ 1.54
+
+2026-09-13 02:30:30
+SETTLED — Red Bull vs Lille OSC: WON (Total. 1st half Over 6.5 total 7)
+
+2026-09-13 03:19:49
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-13 03:19:57
+BET FAILED [Total. 1st half Over 6.5] — match 752409449: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-13 04:29:48
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 6]
+
+2026-09-13 04:29:56
+BET PLACED — 90 on Roma vs Chelsea (match 752421175) Total. 1st half Over 6.5 @ 1.55
+
+2026-09-13 04:40:44
+SETTLED — Roma vs Chelsea: WON (Total. 1st half Over 6.5 total 9)
+--- END DIVERGENT LOG RECONCILIATION ---
 
