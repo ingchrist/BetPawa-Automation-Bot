@@ -61,6 +61,7 @@ from shared.events import (
     PatternArmed,
     PatternProgress,
 )
+from shared.markets import double_chance_winner
 
 console = Console(highlight=False)
 
@@ -117,22 +118,6 @@ def _moneyline_row(odds: MoneylineOdds | None) -> Text | None:
 _half_time_cache: dict[int, HalfScore] = {}
 
 
-def _double_chance_winner(home_goals: int, away_goals: int) -> str:
-    """Which Double Chance selection actually settles as the winner for a
-    half, given that half's final score — "1X" (home win or draw), "2X"
-    (away win or draw), or "X" for an outright draw (not itself a Double
-    Chance selection, but the plain-language answer when both 1X and 2X
-    would settle as winners). Derived straight from the goal counts the
-    collector already reports — this is exactly how the market grades, so
-    there's nothing to fetch: no odds price, no CDP read, just arithmetic
-    on data already on hand."""
-    if home_goals > away_goals:
-        return "1X"
-    if away_goals > home_goals:
-        return "2X"
-    return "X"
-
-
 def _result_table(
     home: str,
     away: str,
@@ -150,8 +135,9 @@ def _result_table(
     stays "–" until that half's score is actually known, rather than
     guessed at from a still-in-progress running total. "winner for 1st/2nd
     half" is the settled Double Chance selection for that half (see
-    _double_chance_winner) — blank until that half's score is fully known,
-    same gating as the "total for" columns next to it."""
+    shared/markets.py's double_chance_winner) — blank until that half's
+    score is fully known, same gating as the "total for" columns next to
+    it."""
     table = Table(header_style="bold")
     table.add_column("Result")
     table.add_column("1st half", justify="right")
@@ -167,8 +153,8 @@ def _result_table(
 
     h1_total = None if h1_home is None or h1_away is None else h1_home + h1_away
     h2_total = None if h2_home is None or h2_away is None else h2_home + h2_away
-    h1_winner = None if h1_home is None or h1_away is None else _double_chance_winner(h1_home, h1_away)
-    h2_winner = None if h2_home is None or h2_away is None else _double_chance_winner(h2_home, h2_away)
+    h1_winner = None if h1_home is None or h1_away is None else double_chance_winner(h1_home, h1_away)
+    h2_winner = None if h2_home is None or h2_away is None else double_chance_winner(h2_home, h2_away)
 
     table.add_row(
         home,
