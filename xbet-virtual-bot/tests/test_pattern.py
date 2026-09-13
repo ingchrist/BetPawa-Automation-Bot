@@ -163,3 +163,73 @@ def test_at_or_under_direction_is_the_class_default():
     assert tracker.process(5) is False
     assert tracker.process(6) is True
     assert tracker.last_streak_totals == [4, 5, 6]
+
+
+def test_equals_direction_fires_on_two_consecutive_matching_rounds():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+    assert tracker.process("2X") is False
+    assert tracker.process("2X") is True
+    assert tracker.last_streak_totals == ["2X", "2X"]
+
+
+def test_equals_direction_non_matching_round_breaks_the_streak():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+    assert tracker.process("2X") is False
+    assert tracker.process("1X") is False  # breaks it -- not a match
+    assert tracker.process("2X") is False  # restarts at 1
+    assert tracker.process("2X") is True
+
+
+def test_equals_direction_draw_does_not_qualify():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+    assert tracker.process("2X") is False
+    assert tracker.process("X") is False  # a draw is not "2X" -- breaks it
+    assert tracker.process("2X") is False
+    assert tracker.process("2X") is True
+
+
+def test_equals_direction_none_total_breaks_the_streak():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+    assert tracker.process("2X") is False
+    assert tracker.process(None) is False
+    assert tracker.process("2X") is False
+    assert tracker.process("2X") is True
+
+
+def test_equals_direction_fire_then_skip_one_round_then_restart():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+    assert tracker.process("2X") is False
+    assert tracker.process("2X") is True  # fires
+
+    assert tracker.process("2X") is False  # the skipped bet-target round, regardless of its own result
+
+    assert tracker.process("2X") is False
+    assert tracker.process("2X") is True
+    assert tracker.last_streak_totals == ["2X", "2X"]
+
+
+def test_equals_direction_progress_reporting():
+    tracker = PatternTracker(threshold="2X", streak_length=2, direction="equals")
+
+    tracker.process("2X")
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (1, "2X", "qualifying")
+
+    tracker.process("1X")
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, "1X", "reset")
+
+    tracker.process("2X")
+    tracker.process("2X")
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, "2X", "armed")
+
+    tracker.process("1X")  # the skipped bet-target round
+    assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, "1X", "skipped")
+
+
+def test_numeric_directions_unaffected_by_the_equals_addition():
+    # PatternTracker() and direction="at_or_over" keep working with plain
+    # ints exactly as before -- this is a type-widening, not a behavior
+    # change, for the two existing directions.
+    tracker = PatternTracker()
+    assert tracker.process(4) is False
+    assert tracker.process(5) is False
+    assert tracker.process(6) is True
