@@ -40,6 +40,12 @@ class Config:
     pattern3_bet_stake_amount: float
     pattern3_enabled: bool
     cdp_url: str
+    onexbet_phone_number: str
+    onexbet_password: str
+    auth_watchdog_enabled: bool
+    auth_watchdog_check_interval_seconds: float
+    auth_watchdog_login_cooldown_seconds: float
+    auth_watchdog_login_timeout_seconds: float
 
     # Redis pub/sub channels — the event-bus "contract" shared by every
     # service. Defined here rather than scattered as string literals so a
@@ -86,4 +92,16 @@ def load_config() -> Config:
         pattern3_bet_stake_amount=float(os.environ.get("PATTERN3_BET_STAKE_AMOUNT", "90")),
         pattern3_enabled=_bool("PATTERN3_ENABLED", True),
         cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),
+        onexbet_phone_number=os.environ.get("ONEXBET_PHONE_NUMBER", ""),
+        onexbet_password=os.environ.get("ONEXBET_PASSWORD", ""),
+        auth_watchdog_enabled=_bool("AUTH_WATCHDOG_ENABLED", True),
+        auth_watchdog_check_interval_seconds=float(
+            os.environ.get("AUTH_WATCHDOG_CHECK_INTERVAL_SECONDS", "60")
+        ),
+        auth_watchdog_login_cooldown_seconds=float(
+            os.environ.get("AUTH_WATCHDOG_LOGIN_COOLDOWN_SECONDS", "300")
+        ),
+        auth_watchdog_login_timeout_seconds=float(
+            os.environ.get("AUTH_WATCHDOG_LOGIN_TIMEOUT_SECONDS", "15")
+        ),
     )
