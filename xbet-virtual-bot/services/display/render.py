@@ -117,6 +117,22 @@ def _moneyline_row(odds: MoneylineOdds | None) -> Text | None:
 _half_time_cache: dict[int, HalfScore] = {}
 
 
+def _double_chance_winner(home_goals: int, away_goals: int) -> str:
+    """Which Double Chance selection actually settles as the winner for a
+    half, given that half's final score — "1X" (home win or draw), "2X"
+    (away win or draw), or "X" for an outright draw (not itself a Double
+    Chance selection, but the plain-language answer when both 1X and 2X
+    would settle as winners). Derived straight from the goal counts the
+    collector already reports — this is exactly how the market grades, so
+    there's nothing to fetch: no odds price, no CDP read, just arithmetic
+    on data already on hand."""
+    if home_goals > away_goals:
+        return "1X"
+    if away_goals > home_goals:
+        return "2X"
+    return "X"
+
+
 def _result_table(
     home: str,
     away: str,
@@ -132,13 +148,18 @@ def _result_table(
     the match overall — that combined number is what actually answers an
     Over/Under question, in place of the price ladder this replaced. A half
     stays "–" until that half's score is actually known, rather than
-    guessed at from a still-in-progress running total."""
+    guessed at from a still-in-progress running total. "winner for 1st/2nd
+    half" is the settled Double Chance selection for that half (see
+    _double_chance_winner) — blank until that half's score is fully known,
+    same gating as the "total for" columns next to it."""
     table = Table(header_style="bold")
     table.add_column("Result")
     table.add_column("1st half", justify="right")
     table.add_column("total for\n1st half", justify="center")
+    table.add_column("winner for\n1st half", justify="center")
     table.add_column("2nd half", justify="right")
     table.add_column("total for\n2nd half", justify="center")
+    table.add_column("winner for\n2nd half", justify="center")
     table.add_column("final total", justify="center")
 
     def cell(value: int | None) -> str:
@@ -146,12 +167,16 @@ def _result_table(
 
     h1_total = None if h1_home is None or h1_away is None else h1_home + h1_away
     h2_total = None if h2_home is None or h2_away is None else h2_home + h2_away
+    h1_winner = None if h1_home is None or h1_away is None else _double_chance_winner(h1_home, h1_away)
+    h2_winner = None if h2_home is None or h2_away is None else _double_chance_winner(h2_home, h2_away)
 
     table.add_row(
         home,
         cell(h1_home),
         Text(cell(h1_total), style="bold") if h1_total is not None else "",
+        Text(h1_winner, style="bold") if h1_winner is not None else "",
         cell(h2_home),
+        "",
         "",
         "",
     )
@@ -159,8 +184,10 @@ def _result_table(
         away,
         cell(h1_away),
         "",
+        "",
         cell(h2_away),
         Text(cell(h2_total), style="bold") if h2_total is not None else "",
+        Text(h2_winner, style="bold") if h2_winner is not None else "",
         Text(str(total_home + total_away), style="bold"),
     )
     return table

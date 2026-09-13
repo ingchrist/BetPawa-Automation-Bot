@@ -68,29 +68,29 @@ earlier results.
 │ Kickoff: Starting in 13 minutes                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ● KICK-OFF  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht
-╭─ ● LIVE  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ────────────────────────────────╮
-│ Chelsea  4 : 4  Anderlecht                                                                       │
-│                                                                                                  │
-│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓                       │
-│ ┃            ┃          ┃ total for ┃          ┃ total for ┃             ┃                       │
-│ ┃ Result     ┃ 1st half ┃ 1st half  ┃ 2nd half ┃ 2nd half  ┃ final total ┃                       │
-│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━┩                       │
-│ │ Chelsea    │        4 │     8     │        – │           │             │                       │
-│ │ Anderlecht │        4 │           │        – │           │      8      │                       │
-│ └────────────┴──────────┴───────────┴──────────┴───────────┴─────────────┘                       │
-│                                  time elapse   1st half · 02:30                                  │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ ● LIVE  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ──────────────────────────────────────────────────╮
+│ Chelsea  4 : 4  Anderlecht                                                                                         │
+│                                                                                                                    │
+│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┓               │
+│ ┃            ┃          ┃ total for ┃ winner for ┃          ┃ total for ┃ winner for ┃             ┃               │
+│ ┃ Result     ┃ 1st half ┃ 1st half  ┃  1st half  ┃ 2nd half ┃ 2nd half  ┃  2nd half  ┃ final total ┃               │
+│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━┩               │
+│ │ Chelsea    │        4 │     8     │     X      │        – │           │            │             │               │
+│ │ Anderlecht │        4 │           │            │        – │           │            │      8      │               │
+│ └────────────┴──────────┴───────────┴────────────┴──────────┴───────────┴────────────┴─────────────┘               │
+│                                           time elapse   1st half · 02:30                                           │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ● HALF-TIME  FC 25. 3x3. Conference League  ·  Chelsea 6 - 4 Anderlecht
-╭─ RESULT  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ────────────────────────────────╮
-│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓                       │
-│ ┃            ┃          ┃ total for ┃          ┃ total for ┃             ┃                       │
-│ ┃ Result     ┃ 1st half ┃ 1st half  ┃ 2nd half ┃ 2nd half  ┃ final total ┃                       │
-│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━┩                       │
-│ │ Chelsea    │        6 │    10     │        2 │           │             │                       │
-│ │ Anderlecht │        4 │           │        1 │     3     │     13      │                       │
-│ └────────────┴──────────┴───────────┴──────────┴───────────┴─────────────┘                       │
-│ W1 1.97 ✓  X 7.60  W2 2.30                                                                       │
-╰─────────────────────────────────────────────────────────────────────────────────────── 13 goals ─╯
+╭─ RESULT  FC 25. 3x3. Conference League  ·  Chelsea vs Anderlecht ──────────────────────────────────────────────────╮
+│ ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┓               │
+│ ┃            ┃          ┃ total for ┃ winner for ┃          ┃ total for ┃ winner for ┃             ┃               │
+│ ┃ Result     ┃ 1st half ┃ 1st half  ┃  1st half  ┃ 2nd half ┃ 2nd half  ┃  2nd half  ┃ final total ┃               │
+│ ┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━┩               │
+│ │ Chelsea    │        6 │    10     │     1X     │        2 │           │            │             │               │
+│ │ Anderlecht │        4 │           │            │        1 │     3     │     1X     │     13      │               │
+│ └────────────┴──────────┴───────────┴────────────┴──────────┴───────────┴────────────┴─────────────┘               │
+│ W1 1.97 ✓  X 7.60  W2 2.30                                                                                         │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────── 13 goals ─╯
 ```
 
 In the real terminal, `UPCOMING` panels border yellow, `●` live lines and the
@@ -105,7 +105,14 @@ Two rules behind this layout, both deliberate:
   "final total" columns are the actual, settled goal counts — the number
   that answers an Over/Under question directly, without a price table next
   to it that only ever changed on a handful of the many goal events it used
-  to be reprinted on.
+  to be reprinted on. Same reasoning for "winner for 1st/2nd half": rather
+  than a live Double Chance price ladder, it's the settled selection itself
+  (`1X` home win-or-draw, `2X` away win-or-draw, `X` an outright draw) —
+  computed directly from that half's goal counts (`_double_chance_winner`
+  in `services/display/render.py`), since that's exactly how the market
+  grades. No new data source needed: it's derived from `HalfScore`, already
+  on `MatchHalfTime`/`MatchFinished`, so this is display-only — no change to
+  `collector`, `aggregator`, or the event schemas.
 - **Only one upcoming match is ever shown** — the very next one to kick
   off, not the whole queue. This league runs several matches back to back,
   each with its own countdown, and the site exposes all of them at once;
