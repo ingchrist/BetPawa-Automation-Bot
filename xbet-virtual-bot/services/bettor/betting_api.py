@@ -106,7 +106,13 @@ TOTALS_GROUP = 17
 # (0-2 down at the time): 1X priced at 4.37 (unlikely but live), 2X
 # priced at 1.001 (near-certain) -- consistent with the actual scoreline.
 # Uses the identical match_id/+1/+2 sub-game-id scheme as Totals above.
-# See docs/superpowers/specs/2026-09-13-first-half-winner-2x-streak-
+# `group`/TOTALS_GROUP is a read-side-only disambiguator for
+# _current_odds()'s GetGameZip filter -- MakeBetWeb's POST body never
+# carries a Group field for either market (see place_bet() below: GameId,
+# Type, Coef, Param only), so placement is uniquely addressed by
+# (GameId, Type, Param) alone, Type being a flat global namespace across
+# market groups for a given sub-game id. See
+# docs/superpowers/specs/2026-09-13-first-half-winner-2x-streak-
 # pattern-bettor-design.md's "Market mechanics" section for the full
 # investigation, including the one residual risk this doesn't close:
 # unlike TOTAL_OVER_T (confirmed via one real captured bet), this

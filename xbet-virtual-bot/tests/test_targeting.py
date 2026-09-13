@@ -137,3 +137,38 @@ def test_mutual_exclusion_reason_none_when_match_not_claimed_by_other():
 def test_mutual_exclusion_reason_set_when_match_already_claimed_by_other():
     reason = mutual_exclusion_reason(1, "pattern2", {1, 2})
     assert reason == "mutual exclusion: match 1 already targeted by pattern2"
+
+
+def test_mutual_exclusion_reason_composes_across_two_other_target_sets():
+    # Simulates place()'s fan-out: checking against pattern 2's targets, then
+    # pattern 3's, in sequence, short-circuiting on the first conflict.
+    match_id = 123
+    other_targets_2 = {match_id}  # pattern 2 has claimed this match
+    other_targets_3 = set()  # pattern 3 has not
+    other_patterns = [(other_targets_2, "pattern_2"), (other_targets_3, "pattern_3")]
+
+    conflict = None
+    for targets, name in other_patterns:
+        conflict = mutual_exclusion_reason(match_id, name, targets)
+        if conflict is not None:
+            break
+
+    assert conflict is not None
+    assert "pattern_2" in conflict
+
+
+def test_mutual_exclusion_reason_three_way_both_others_block():
+    # Pattern A claims a match; both pattern B and pattern C separately
+    # detect the conflict against A's target set when they each try to
+    # target the same match (mirroring the three-pattern scenario the
+    # design spec's Testing section calls for).
+    match_id = 456
+    targets_a = {match_id}
+
+    reason_for_b = mutual_exclusion_reason(match_id, "pattern_a", targets_a)
+    reason_for_c = mutual_exclusion_reason(match_id, "pattern_a", targets_a)
+
+    assert reason_for_b is not None
+    assert reason_for_c is not None
+    assert "pattern_a" in reason_for_b
+    assert "pattern_a" in reason_for_c

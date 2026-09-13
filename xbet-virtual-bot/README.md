@@ -299,10 +299,18 @@ Pattern 1.
 
 **Mutual exclusion:** since all three patterns watch the same "next match
 to kick off," they can resolve to targeting the same match in the same
-round. Only one bet per match is ever placed — whichever pattern's
-target resolves first wins it; the others log a `BET FAILED` with a
-`mutual exclusion: ...` reason instead of also staking money on it. See
-Pattern 3's subsection below for the full three-way picture.
+round. Only one bet per match is ever placed. Pattern 1 and Pattern 2
+evaluate at different trigger events (`MatchHalfTime` vs `MatchFinished`),
+so there's no fixed-order collision possible between just those two — for
+this pair, whichever target actually resolves first genuinely determines
+who bets. Pattern 1 and Pattern 3, however, both evaluate at
+`MatchHalfTime`, and `consume()`'s source order always runs Pattern 1's
+arm/place block before Pattern 3's — so on a same-round collision between
+those two specifically, Pattern 1 has **fixed, deterministic priority**
+over Pattern 3, not a race with an unpredictable winner. The losing
+pattern(s) log a `BET FAILED` with a `mutual exclusion: ...` reason
+instead of also staking money on it. See Pattern 3's subsection below for
+the full three-way picture.
 
 Config knobs: `PATTERN2_HIGH_THRESHOLD`, `PATTERN2_STREAK_LENGTH`,
 `PATTERN2_BET_LINE`, `PATTERN2_BET_STAKE_AMOUNT` — see `.env.example`.
@@ -411,7 +419,7 @@ you change.
 | `PATTERN_BET_LINE` | `6.5` | The Over line bet on in `Total. 1st half`. |
 | `PATTERN3_STREAK_LENGTH` | `2` | Consecutive rounds required, each with a 1st-half Double Chance result of exactly "2X", to fire Pattern 3. |
 | `PATTERN3_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired Pattern 3 bet. |
-| `PATTERN3_ENABLED` | `true` | Kill switch for Pattern 3 only — set `false` to track without betting. |
+| `PATTERN3_ENABLED` | `true` | Kill switch for Pattern 3 only — set `false` to keep tracking the streak (normal `PatternProgress` still publishes on non-firing rounds) without ever placing a bet; a firing round while disabled only logs a warning instead of publishing `PatternArmed`. |
 | `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser the bettor reads fresh auth from (read-only touch, not UI automation). |
 | `BETS_LOG_PATH` | `data/bets.log` | Human-readable audit trail of every pattern fire / bet placed / failed / settled — tracked in git like `RESULT_LOG_PATH`. |
 

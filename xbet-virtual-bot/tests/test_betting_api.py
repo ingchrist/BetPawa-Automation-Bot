@@ -288,11 +288,18 @@ def test_bet_type_override_ignores_the_over_flag():
     # bet_type, when explicitly given, wins over whatever `over` would
     # otherwise have derived (over's default is True/TOTAL_OVER_T, but
     # Double Chance has no over/under concept at all).
+    #
+    # The MakeBetWeb body is captured here rather than asserted on inside
+    # the handler: place_bet() wraps the whole request in a broad
+    # `except Exception`, so an in-handler AssertionError would get
+    # swallowed and reported as a misleading "request failed: ..."
+    # BetResult instead of the real failure.
+    captured: dict = {}
+
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/GetGameZip"):
             return httpx.Response(200, json=_game_zip_response([_double_chance_event(t=6)]))
-        body = json.loads(request.content)
-        assert body["Events"][0]["Type"] == 6
+        captured["body"] = json.loads(request.content)
         return httpx.Response(
             200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
         )
@@ -309,3 +316,4 @@ def test_bet_type_override_ignores_the_over_flag():
     asyncio.run(executor.aclose())
 
     assert result.success is True
+    assert captured["body"]["Events"][0]["Type"] == 6

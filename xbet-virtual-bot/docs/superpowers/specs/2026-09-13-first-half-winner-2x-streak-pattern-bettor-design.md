@@ -72,12 +72,17 @@ uses:
 bet:** Pattern 1's original `MakeBetWeb` POST shape for Totals was
 confirmed by watching one real, manually-placed bet over CDP (see
 `betting_api.py`'s docstring). Pattern 3's Double Chance POST shape is
-**inferred by symmetry** — the same `Type`/`Group`/`Param` triple that
-correctly reads Double Chance odds is assumed to be what `MakeBetWeb`
-expects to place one, exactly as already holds for Totals (Pattern 1/2's
-own `bet_type`/`TOTALS_GROUP`/`line` triple round-trips between read and
-write unchanged). This was explicitly discussed and accepted rather than
-spending real money on a manual Double Chance confirmation bet first.
+**inferred by symmetry** — `MakeBetWeb`'s POST body never carries a
+`Group` field for either market (only `GameId`, `Type`, `Coef`, `Param` —
+see `betting_api.py`'s `place_bet()`), so placement is uniquely addressed
+by `(GameId, Type, Param)` alone: `Type` is a flat global namespace across
+all market groups for a given sub-game id. `Group`/`TOTALS_GROUP`/
+`DOUBLE_CHANCE_GROUP` only disambiguate the *read* path (`_current_odds()`'s
+`GetGameZip` filter), never something written to the placement request.
+The same `(GameId, Type, Param)` triple that correctly reads Double Chance
+odds is assumed to be what `MakeBetWeb` also expects to place one — this
+was explicitly discussed and accepted rather than spending real money on a
+manual Double Chance confirmation bet first.
 
 ## Architecture
 
@@ -266,7 +271,7 @@ since Pattern 3 has none).
 |---|---|---|
 | `PATTERN3_STREAK_LENGTH` | `2` | Consecutive `"2X"` 1st-half rounds required to fire. |
 | `PATTERN3_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired bet — independently configurable, not shared with Pattern 1/2's stake. |
-| `PATTERN3_ENABLED` | `true` | Kill switch, mirroring `PATTERN2_ENABLED`'s exact semantics: when `false`, Pattern 3 keeps tracking the streak and publishing `PatternProgress`/`PatternArmed`, but never arms a target or calls `BetExecutor`. Defaults to `true` per explicit decision — Pattern 3 goes live immediately once this ships, same stance as Pattern 1 and Pattern 2. |
+| `PATTERN3_ENABLED` | `true` | Kill switch, mirroring `PATTERN2_ENABLED`'s exact semantics: when `false`, Pattern 3 keeps tracking the streak and publishes normal `PatternProgress` on non-firing rounds, but on a firing round it only logs a warning (`PATTERN 3 ARMED ... suppressing bet placement`) instead of publishing `PatternArmed`, arming a target, or calling `BetExecutor`. Defaults to `true` per explicit decision — Pattern 3 goes live immediately once this ships, same stance as Pattern 1 and Pattern 2. |
 
 The trigger winner (`"2X"`) and bet selection (`1X`) are not made
 independently configurable — they're the pattern's own definition (mirror-
