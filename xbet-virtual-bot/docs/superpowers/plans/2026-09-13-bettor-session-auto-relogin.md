@@ -66,7 +66,7 @@ which this repo already accepts as verified live rather than via pytest
 (see that module's docstring). This task's own verification is a live
 smoke check instead of TDD, matching that precedent.
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 ```python
 """services/bettor/session_watchdog.py -- detects when the browser's
@@ -167,12 +167,12 @@ LoginFn = Callable[[str, str, str, float], Awaitable[LoginResult]]
 (`AliveChecker`/`LoginFn` type aliases are defined here for Task 2 to
 import and use in `watchdog_loop`'s signature.)
 
-- [ ] **Step 2: Smoke-test the module imports cleanly**
+- [x] **Step 2: Smoke-test the module imports cleanly**
 
 Run: `.venv/bin/python -c "import services.bettor.session_watchdog"`
 Expected: no exception.
 
-- [ ] **Step 3: Live-verify `is_session_alive()` against the real browser (read-only, safe)**
+- [x] **Step 3: Live-verify `is_session_alive()` against the real browser (read-only, safe)**
 
 With the CDP browser already running and logged in (check
 `./run.sh status` first — see the top-level `CLAUDE.md`), run:
@@ -188,7 +188,7 @@ print(asyncio.run(is_session_alive('http://127.0.0.1:9222')))
 Expected: prints `True` while logged in. This does not touch `login()`
 at all — it is a pure read, safe to run without any special supervision.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add services/bettor/session_watchdog.py
@@ -229,7 +229,7 @@ fully unit-testable via the injected `is_alive`/`do_login`/`sleep`/`now`
 callables — same dependency-injection shape `BetExecutor.__init__`
 already uses for `auth_reader`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """tests/test_session_watchdog.py"""
@@ -416,12 +416,12 @@ async def test_missing_credentials_returns_immediately_without_looping():
     assert login_calls == []
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/pytest tests/test_session_watchdog.py -v`
 Expected: FAIL — `watchdog_loop` doesn't exist yet (`ImportError`).
 
-- [ ] **Step 3: Implement `watchdog_loop`**
+- [x] **Step 3: Implement `watchdog_loop`**
 
 Append to `services/bettor/session_watchdog.py`:
 
@@ -479,17 +479,17 @@ async def watchdog_loop(
             log.error(f"AUTH LOGIN FAILED — manual login required: {result.reason}")
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/pytest tests/test_session_watchdog.py -v`
 Expected: 5/5 passing.
 
-- [ ] **Step 5: Run the full existing suite to confirm no regression**
+- [x] **Step 5: Run the full existing suite to confirm no regression**
 
 Run: `.venv/bin/pytest tests/ -v`
 Expected: all previously-passing tests still pass, plus the 5 new ones.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add services/bettor/session_watchdog.py tests/test_session_watchdog.py
@@ -527,7 +527,7 @@ EOF
   `config.auth_watchdog_login_timeout_seconds: float`.
   Task 4 consumes all six.
 
-- [ ] **Step 1: Add the new fields to the `Config` dataclass**
+- [x] **Step 1: Add the new fields to the `Config` dataclass**
 
 In `shared/config.py`, in the `Config` dataclass, add these fields right
 after the existing `cdp_url: str` field:
@@ -541,7 +541,7 @@ after the existing `cdp_url: str` field:
     auth_watchdog_login_timeout_seconds: float
 ```
 
-- [ ] **Step 2: Populate them in `load_config()`**
+- [x] **Step 2: Populate them in `load_config()`**
 
 In `shared/config.py`'s `load_config()`, add these lines right after the
 existing `cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),`
@@ -567,20 +567,20 @@ matches every other `str` field in `Config`, which is not `Optional`
 anywhere. `watchdog_loop` already treats an empty/falsy string as
 "unset".)
 
-- [ ] **Step 3: Verify the module imports and constructs cleanly**
+- [x] **Step 3: Verify the module imports and constructs cleanly**
 
 Run: `.venv/bin/python -c "from shared.config import load_config; c = load_config(); print(c.auth_watchdog_enabled, c.auth_watchdog_check_interval_seconds)"`
 Expected: prints `True 60.0` (or whatever `.env` currently overrides, if
 anything) with no exception.
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `.venv/bin/pytest tests/ -v`
 Expected: all tests still pass (no test constructs `Config(...)` directly
 by hand, so these additive fields cannot have broken anything — but per
 this feature's own global constraint, run the full suite anyway).
 
-- [ ] **Step 5: Document the new knobs in `.env.example`**
+- [x] **Step 5: Document the new knobs in `.env.example`**
 
 In `.env.example`, immediately before the final `PATTERN3_ENABLED=true`
 line's section ends (i.e., append this as a new section at the end of
@@ -609,7 +609,7 @@ AUTH_WATCHDOG_LOGIN_COOLDOWN_SECONDS=300
 AUTH_WATCHDOG_LOGIN_TIMEOUT_SECONDS=15
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add shared/config.py .env.example
@@ -649,7 +649,7 @@ plan touched — read the whole file first (`services/bettor/main.py`) so
 your edit lands correctly around the existing Pattern 1/2/3 code, which
 you must not otherwise change.
 
-- [ ] **Step 1: Add the import**
+- [x] **Step 1: Add the import**
 
 In `services/bettor/main.py`, add this import alongside the existing
 `from services.bettor.betting_api import (...)` import block (same
@@ -659,7 +659,7 @@ general import section near the top of the file):
 from services.bettor.session_watchdog import watchdog_loop
 ```
 
-- [ ] **Step 2: Start the watchdog task and log its startup line**
+- [x] **Step 2: Start the watchdog task and log its startup line**
 
 In `services/bettor/main.py`'s `run()`, find this existing block (it logs
 Pattern 3's startup line — the last of the three `log.info("starting
@@ -683,7 +683,7 @@ Immediately after it, add:
     )
 ```
 
-- [ ] **Step 3: Create and cancel the watchdog task alongside `consumer_task`**
+- [x] **Step 3: Create and cancel the watchdog task alongside `consumer_task`**
 
 Find this existing block near the end of `run()`:
 
@@ -726,19 +726,19 @@ Replace it with:
     await bus.close()
 ```
 
-- [ ] **Step 4: Smoke-test the module imports and constructs cleanly**
+- [x] **Step 4: Smoke-test the module imports and constructs cleanly**
 
 Run: `.venv/bin/python -c "import services.bettor.main"`
 Expected: no exception.
 
-- [ ] **Step 5: Run the full existing suite**
+- [x] **Step 5: Run the full existing suite**
 
 Run: `.venv/bin/pytest tests/ -v`
 Expected: all tests pass, same count as Task 2 (this task adds no new
 test file — `main.py`'s `run()` has never had direct unit test coverage
 in this repo, matching every prior pattern's own wiring task).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add services/bettor/main.py
@@ -766,7 +766,7 @@ EOF
 **Interfaces:**
 - Consumes: nothing new (documentation only).
 
-- [ ] **Step 1: Add an "Automatic session recovery" section**
+- [x] **Step 1: Add an "Automatic session recovery" section**
 
 In `README.md`, the "Betting patterns" section ends with Pattern 3's own
 subsection, immediately followed by the "How data is sourced" heading.
@@ -829,7 +829,7 @@ fully manual login, the same as before this feature existed.
 before, since it was included in the "Replace" block above to anchor the
 insertion point precisely.)
 
-- [ ] **Step 2: Update the `CDP_URL` config-table row and add the new knobs**
+- [x] **Step 2: Update the `CDP_URL` config-table row and add the new knobs**
 
 `CDP_URL`'s existing description says the CDP touch is "read-only... not
 UI automation" — no longer fully accurate once the watchdog exists, since
@@ -854,12 +854,12 @@ with:
 | `AUTH_WATCHDOG_LOGIN_TIMEOUT_SECONDS` | `15` | How long a single login attempt polls for the session cookie to appear before giving up. |
 ```
 
-- [ ] **Step 3: Proofread**
+- [x] **Step 3: Proofread**
 
 Run: `grep -n "session watchdog\|Automatic session recovery\|AUTH_WATCHDOG" README.md`
 and confirm every reference reads correctly in context.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md
@@ -882,19 +882,19 @@ EOF
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the full test suite one more time from a clean state**
+- [x] **Step 1: Run the full test suite one more time from a clean state**
 
 Run: `.venv/bin/pytest tests/ -v`
 Expected: every test passes, including the 5 new ones from Task 2. Note
 the final total.
 
-- [ ] **Step 2: Confirm `git log` shows a clean, complete task sequence**
+- [x] **Step 2: Confirm `git log` shows a clean, complete task sequence**
 
 Run: `git log --oneline -6`
 Expected: one commit per task above (Tasks 1-5 — this task makes no file
 changes).
 
-- [ ] **Step 3: A supervised, real login test — controller-run, not a fresh subagent**
+- [x] **Step 3: A supervised, real login test — controller-run, not a fresh subagent**
 
 **This step is not for an autonomous implementer to run unattended.** It
 requires real credentials and a human watching the actual browser. If
@@ -931,7 +931,7 @@ failure here as this task's own bug to silently patch — surface it to
 the human and use systematic-debugging if the cause isn't obvious from
 `reason` alone.
 
-- [ ] **Step 4: Restart the bettor process and confirm the watchdog starts cleanly**
+- [x] **Step 4: Restart the bettor process and confirm the watchdog starts cleanly**
 
 Follow this repo's own runbook (`./run.sh status`, or restart just the
 `bettor` process the way this feature's own prior session did — see the
