@@ -158,6 +158,20 @@ def test_make_bet_rejected_by_server_is_reported_as_failure():
     assert result.odds == 1.408
 
 
+def test_make_bet_http_error_reports_response_body():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event()]))
+        return httpx.Response(400, json={"Error": "invalid market", "ErrorCode": 7})
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90))
+    asyncio.run(executor.aclose())
+
+    assert result.success is False
+    assert "invalid market" in result.reason
+
+
 def test_make_bet_network_error_is_reported():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/GetGameZip"):
@@ -258,7 +272,11 @@ def test_double_chance_bet_type_and_group_target_the_right_market():
 
     assert seen_ids == [751444118, 751444118]  # match_id + FIRST_HALF_ID_OFFSET
     assert seen_bodies[0]["Type"] == 4
-    assert seen_bodies[0]["Param"] is None
+    # Confirmed via a real live Double Chance bet capture on 2026-09-14:
+    # MakeBetWeb rejects Param=null for a lineless market with a 400 --
+    # it wants 0. line=None only governs the read-side GetGameZip match
+    # (P=null there is correct and unrelated).
+    assert seen_bodies[0]["Param"] == 0
     assert result.success is True
     assert result.odds == 4.37
 

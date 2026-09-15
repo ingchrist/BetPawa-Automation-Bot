@@ -101,23 +101,31 @@ TOTALS_GROUP = 17
 
 # Double Chance -- confirmed live, read-only, against GetGameZip on
 # matches in the FC 25. 3x3. Conference League (2860561): Group=8, with
-# Type=4/5/6 keyed to 1X/12/2X respectively, Param always null (there's
-# no line, unlike Totals). Verified against a live, undecided match
-# (0-2 down at the time): 1X priced at 4.37 (unlikely but live), 2X
-# priced at 1.001 (near-certain) -- consistent with the actual scoreline.
-# Uses the identical match_id/+1/+2 sub-game-id scheme as Totals above.
-# `group`/TOTALS_GROUP is a read-side-only disambiguator for
-# _current_odds()'s GetGameZip filter -- MakeBetWeb's POST body never
-# carries a Group field for either market (see place_bet() below: GameId,
-# Type, Coef, Param only), so placement is uniquely addressed by
-# (GameId, Type, Param) alone, Type being a flat global namespace across
-# market groups for a given sub-game id. See
-# docs/superpowers/specs/2026-09-13-first-half-winner-2x-streak-
-# pattern-bettor-design.md's "Market mechanics" section for the full
-# investigation, including the one residual risk this doesn't close:
-# unlike TOTAL_OVER_T (confirmed via one real captured bet), this
-# request shape is inferred by symmetry with Totals, not confirmed via
-# an actual placed Double Chance bet.
+# Type=4/5/6 keyed to 1X/12/2X respectively, GetGameZip's own Param (P)
+# always null on the read side (there's no line, unlike Totals). Verified
+# against a live, undecided match (0-2 down at the time): 1X priced at
+# 4.37 (unlikely but live), 2X priced at 1.001 (near-certain) --
+# consistent with the actual scoreline. Uses the identical match_id/+1/+2
+# sub-game-id scheme as Totals above. `group`/TOTALS_GROUP is a
+# read-side-only disambiguator for _current_odds()'s GetGameZip filter --
+# MakeBetWeb's POST body never carries a Group field for either market
+# (see place_bet() below: GameId, Type, Coef, Param only), so placement
+# is uniquely addressed by (GameId, Type, Param) alone, Type being a flat
+# global namespace across market groups for a given sub-game id.
+#
+# 2026-09-14 correction: the placement-side Param is NOT null the way
+# the read-side P is. Two live Pattern 3 bets were rejected with a 400
+# from MakeBetWeb (2026-09-13 22:00:53, 2026-09-14 01:29:14) -- the
+# original body was "inferred by symmetry with Totals, not confirmed via
+# an actual placed Double Chance bet" (see the design spec's "Market
+# mechanics" section), and that inference was wrong. A real manual
+# Double Chance 1X bet, captured live via scratch/raw_cdp_monitor.py,
+# placed successfully with Param=0 in the POST body (Success: true, a
+# real bet id and balance debit came back) -- confirming MakeBetWeb wants
+# a placement-side Param of 0, not null, when the market has no line.
+# place_bet() converts line=None to Param=0 only in the POST body it
+# sends; the read-side odds lookup still matches GetGameZip's P=null
+# unchanged, since that's a separate, already-correct comparison.
 DOUBLE_CHANCE_GROUP = 8
 DOUBLE_CHANCE_1X_T = 4
 DOUBLE_CHANCE_12_T = 5
@@ -143,28 +151,36 @@ async def read_auth_from_browser(cdp_url: str) -> AuthTokens:
     already-logged-in browser. No navigation, no new tab."""
     async with async_playwright() as p:
         browser = await p.chromium.connect_over_cdp(cdp_url)
-        ctx = browser.contexts[0]
-        cookies = await ctx.cookies()
-        by_name = {c["name"]: c["value"] for c in cookies}
+        try:
+            ctx = browser.contexts[0]
+            cookies = await ctx.cookies()
+            by_name = {c["name"]: c["value"] for c in cookies}
 
-        access_token = by_name.get("access_token")
-        if not access_token:
-            raise RuntimeError("no access_token cookie -- is the browser logged in?")
+            access_token = by_name.get("access_token")
+            if not access_token:
+                raise RuntimeError("no access_token cookie -- is the browser logged in?")
 
-        user_id_raw = by_name.get("authenticated")
-        if not user_id_raw:
-            raise RuntimeError("no authenticated cookie -- can't determine user id")
+            user_id_raw = by_name.get("authenticated")
+            if not user_id_raw:
+                raise RuntimeError("no authenticated cookie -- can't determine user id")
 
-        page = next((pg for pg in ctx.pages if "1xbet.cm" in pg.url), None)
-        if page is None:
-            raise RuntimeError("no 1xbet.cm tab open -- can't read localStorage")
+            page = next((pg for pg in ctx.pages if "1xbet.cm" in pg.url), None)
+            if page is None:
+                raise RuntimeError("no 1xbet.cm tab open -- can't read localStorage")
 
-        fp_d_raw = await page.evaluate("() => localStorage.getItem('fp_d')")
-        if not fp_d_raw:
-            raise RuntimeError("no fp_d entry in localStorage")
-        hd_token = json.loads(fp_d_raw)["token"]
+            fp_d_raw = await page.evaluate("() => localStorage.getItem('fp_d')")
+            if not fp_d_raw:
+                raise RuntimeError("no fp_d entry in localStorage")
+            hd_token = json.loads(fp_d_raw)["token"]
 
-        return AuthTokens(access_token=access_token, hd_token=hd_token, user_id=int(user_id_raw))
+            return AuthTokens(access_token=access_token, hd_token=hd_token, user_id=int(user_id_raw))
+        finally:
+            # connect_over_cdp() leaves an orphaned blank tab/target behind
+            # in the shared browser unless explicitly disconnected --
+            # browser.close() here only ends Playwright's own session, it
+            # does NOT close the real shared browser. This runs on every
+            # bet placement, so skipping it leaked one target per bet.
+            await browser.close()
 
 
 AuthReader = Callable[[], Awaitable[AuthTokens]]
@@ -236,7 +252,10 @@ class BetExecutor:
                     "GameId": game_id,
                     "Type": bet_type,
                     "Coef": coef,
-                    "Param": line,
+                    # MakeBetWeb wants 0, not null, for a lineless market
+                    # (Double Chance) -- see the module-level comment above
+                    # DOUBLE_CHANCE_GROUP for how this was confirmed live.
+                    "Param": line if line is not None else 0,
                     "PV": None,
                     "PlayerId": 0,
                     "Kind": 1,
@@ -270,6 +289,18 @@ class BetExecutor:
             )
             resp.raise_for_status()
             data = resp.json()
+        except httpx.HTTPStatusError as exc:
+            # The site's own error body (e.g. an invalid-market or invalid-
+            # coefficient message) is the one piece of evidence that
+            # distinguishes a bad request shape from a session/auth problem
+            # -- exc's default str() only carries the status code and URL,
+            # discarding exactly that. Surfaced here instead of only on
+            # success so a future non-2xx is self-diagnosing without needing
+            # a fresh manual capture.
+            return BetResult(
+                success=False,
+                reason=f"request failed: {exc} — response body: {exc.response.text!r}",
+            )
         except Exception as exc:
             return BetResult(success=False, reason=f"request failed: {exc}")
 

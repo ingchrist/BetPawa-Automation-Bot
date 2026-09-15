@@ -87,9 +87,19 @@ async def is_session_alive(cdp_url: str) -> bool:
     alive, and this runs far more often than an actual bet."""
     async with async_playwright() as p:
         browser = await p.chromium.connect_over_cdp(cdp_url)
-        ctx = browser.contexts[0]
-        cookies = await ctx.cookies()
-        return any(c["name"] == ACCESS_TOKEN_COOKIE for c in cookies)
+        try:
+            ctx = browser.contexts[0]
+            cookies = await ctx.cookies()
+            return any(c["name"] == ACCESS_TOKEN_COOKIE for c in cookies)
+        finally:
+            # connect_over_cdp() leaves an orphaned blank tab/target behind
+            # in the shared browser if the connection is never explicitly
+            # closed -- browser.close() here only disconnects Playwright's
+            # own session, it does NOT close the real shared browser (see
+            # the CLAUDE.md "CDP operational notes" -- never launch/close
+            # that browser from here). Without this, is_session_alive()
+            # being polled once a minute forever leaked ~1 target/minute.
+            await browser.close()
 
 
 async def login(
@@ -102,47 +112,52 @@ async def login(
     try:
         async with async_playwright() as p:
             browser = await p.chromium.connect_over_cdp(cdp_url)
-            ctx = browser.contexts[0]
-            page = next((pg for pg in ctx.pages if "1xbet.cm" in pg.url), None)
-            if page is None:
-                return LoginResult(success=False, reason="no 1xbet.cm tab open")
-
-            if await page.query_selector(IDENTIFIER_FIELD_SELECTOR) is None:
-                await page.click(LOGIN_TRIGGER_SELECTOR, timeout=5000)
-            # An instant is_visible() check here would race the dropdown's
-            # own post-click render/animation: if phone mode is ever the
-            # form's default on open, a check taken before that render
-            # settles could misread it as not-yet-visible and click the
-            # (non-idempotent) toggle, flipping it back to ID/email mode.
-            # wait_for_selector actively polls up to its own timeout instead
-            # of sampling once, so a slow render is waited out rather than
-            # misread; only a genuine ID/email-mode start (no such render
-            # coming) times out to fall through to the toggle click. Uses
-            # the same 5000ms timeout as every other selector interaction
-            # in this function -- latency doesn't matter here (login()
-            # runs in a background watchdog, never on the bet-placement
-            # path), so there's no reason for this one to be shorter and
-            # more failure-prone than the rest.
             try:
-                await page.wait_for_selector(
-                    PHONE_FIELD_SELECTOR, state="visible", timeout=5000
-                )
-            except PlaywrightTimeoutError:
-                await page.click(PHONE_TOGGLE_SELECTOR, timeout=5000)
-            await page.fill(PHONE_FIELD_SELECTOR, phone_number, timeout=5000)
-            await page.fill(PHONE_PASSWORD_FIELD_SELECTOR, password, timeout=5000)
-            await page.click(SUBMIT_BUTTON_SELECTOR, timeout=5000)
+                ctx = browser.contexts[0]
+                page = next((pg for pg in ctx.pages if "1xbet.cm" in pg.url), None)
+                if page is None:
+                    return LoginResult(success=False, reason="no 1xbet.cm tab open")
 
-            deadline = time.monotonic() + timeout_seconds
-            while time.monotonic() < deadline:
-                cookies = await ctx.cookies()
-                if any(c["name"] == ACCESS_TOKEN_COOKIE for c in cookies):
-                    return LoginResult(success=True)
-                await page.wait_for_timeout(500)
-            return LoginResult(
-                success=False,
-                reason=f"access_token cookie did not appear within {timeout_seconds}s of submitting",
-            )
+                if await page.query_selector(IDENTIFIER_FIELD_SELECTOR) is None:
+                    await page.click(LOGIN_TRIGGER_SELECTOR, timeout=5000)
+                # An instant is_visible() check here would race the dropdown's
+                # own post-click render/animation: if phone mode is ever the
+                # form's default on open, a check taken before that render
+                # settles could misread it as not-yet-visible and click the
+                # (non-idempotent) toggle, flipping it back to ID/email mode.
+                # wait_for_selector actively polls up to its own timeout instead
+                # of sampling once, so a slow render is waited out rather than
+                # misread; only a genuine ID/email-mode start (no such render
+                # coming) times out to fall through to the toggle click. Uses
+                # the same 5000ms timeout as every other selector interaction
+                # in this function -- latency doesn't matter here (login()
+                # runs in a background watchdog, never on the bet-placement
+                # path), so there's no reason for this one to be shorter and
+                # more failure-prone than the rest.
+                try:
+                    await page.wait_for_selector(
+                        PHONE_FIELD_SELECTOR, state="visible", timeout=5000
+                    )
+                except PlaywrightTimeoutError:
+                    await page.click(PHONE_TOGGLE_SELECTOR, timeout=5000)
+                await page.fill(PHONE_FIELD_SELECTOR, phone_number, timeout=5000)
+                await page.fill(PHONE_PASSWORD_FIELD_SELECTOR, password, timeout=5000)
+                await page.click(SUBMIT_BUTTON_SELECTOR, timeout=5000)
+
+                deadline = time.monotonic() + timeout_seconds
+                while time.monotonic() < deadline:
+                    cookies = await ctx.cookies()
+                    if any(c["name"] == ACCESS_TOKEN_COOKIE for c in cookies):
+                        return LoginResult(success=True)
+                    await page.wait_for_timeout(500)
+                return LoginResult(
+                    success=False,
+                    reason=f"access_token cookie did not appear within {timeout_seconds}s of submitting",
+                )
+            finally:
+                # See is_session_alive() above -- same orphaned-target leak
+                # from connect_over_cdp() without an explicit disconnect.
+                await browser.close()
     except Exception as exc:  # noqa: BLE001 -- a login attempt must never crash the watchdog
         return LoginResult(success=False, reason=f"login automation failed: {exc}")
 
