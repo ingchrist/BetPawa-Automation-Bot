@@ -223,6 +223,11 @@ async def place_bet(
     is_stale: Callable[[], bool] | None = None,
 ) -> BetResult:
     ...
+    try:
+        auth = await self._auth_reader()
+    except Exception as exc:
+        return BetResult(success=False, reason=f"auth read failed: {exc}")
+
     while True:
         try:
             coef = await self._current_odds(game_id, line, bet_type, group)
@@ -238,12 +243,7 @@ async def place_bet(
                 reason=f"market closed before odds reached {min_odds} (last seen: {coef})",
             )
         await asyncio.sleep(poll_interval_seconds)
-
-    try:
-        auth = await self._auth_reader()
-    except Exception as exc:
-        return BetResult(success=False, reason=f"auth read failed: {exc}")
-    # ... existing POST body construction using `coef`, unchanged from here
+    # ... existing POST body construction using `coef`/`auth`, unchanged from here
 ```
 
 - `min_odds=None` (the default, and Patterns 1–3's implicit usage) hits the
@@ -258,13 +258,19 @@ async def place_bet(
   no re-fetch between "odds look acceptable" and "send the bet," so there's
   no window where a last-second odds drop goes unnoticed between check and
   submit.
-- **Auth is read after the wait resolves, not before it starts** — moved
-  down from its current position at the top of the function. This is a
-  deliberate one-line reordering: the module's own docstring explains that
-  tokens are always re-read fresh immediately before a bet specifically
-  because they can expire/refresh independently of this client, and a
-  Pattern-4 wait can span several minutes of real time (an entire match),
-  unlike Patterns 1–3's effectively-instant placement.
+- **Auth is read at its current position, before the odds check/loop —
+  deliberately not moved.** An earlier draft of this spec considered
+  reading auth *after* the wait resolves (reasoning that a Pattern-4 wait
+  can span several minutes, so freshest-possible tokens seemed safer).
+  That would have been wrong: it would run the `GetGameZip` odds lookup
+  before ever checking auth, breaking the existing guarantee (relied on by
+  `tests/test_betting_api.py::test_auth_failure_does_not_hit_the_network`)
+  that an auth failure short-circuits before any HTTP call — for Patterns
+  1–3 too, not just Pattern 4. Since the auth/device tokens are valid for
+  roughly 4 hours (per this module's own docstring) and a match round is a
+  few minutes at most, reading auth once at the top and using it after an
+  in-loop wait carries no real staleness risk — so the simplest option
+  (leave it exactly where it is today) is also the correct one.
 
 ### `services/bettor/targeting.py` — reused unmodified
 
