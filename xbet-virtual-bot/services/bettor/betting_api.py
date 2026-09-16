@@ -73,6 +73,7 @@ once.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from typing import Awaitable, Callable, Literal
@@ -95,6 +96,7 @@ from services.collector.xbet_client import TOTAL_OVER_T, TOTAL_UNDER_T
 # against X, X+1, and X+2 on the same match side by side. X+1 and X+2 are
 # unambiguous regardless of match phase, so betting always targets those
 # directly instead of X.
+MAIN_GAME_ID_OFFSET = 0  # the raw match_id itself -- see the module comment above about the three sub-game ids
 FIRST_HALF_ID_OFFSET = 1
 SECOND_HALF_ID_OFFSET = 2
 TOTALS_GROUP = 17
@@ -210,16 +212,35 @@ class BetExecutor:
         away: str,
         stake: float,
         line: float | None = 6.5,
-        period: Literal[1, 2] = 1,
+        period: Literal[0, 1, 2] = 1,
         over: bool = True,
         bet_type: int | None = None,
         group: int = TOTALS_GROUP,
+        min_odds: float | None = None,
+        poll_interval_seconds: float = 5.0,
+        is_stale: Callable[[], bool] | None = None,
     ) -> BetResult:
         """`bet_type`/`group` default to Pattern 1/2's Total-market shape,
         derived from `over` exactly as before. Pass both explicitly (as
         Pattern 3 does, for the Double Chance market) to bet a market with
-        no over/under concept at all -- in that case `over` is ignored."""
-        offset = FIRST_HALF_ID_OFFSET if period == 1 else SECOND_HALF_ID_OFFSET
+        no over/under concept at all -- in that case `over` is ignored.
+
+        `period=0` targets the raw `match_id` ("Main game", used by
+        Pattern 4) instead of a half-scoped sub-game id.
+
+        `min_odds` (Pattern 4 only) makes this poll `_current_odds()` in a
+        loop -- checking `is_stale()` each iteration -- until the odds are
+        >= min_odds, then submits at that same fetched price. Leaving it
+        None (Patterns 1-3's implicit default) reproduces today's exact
+        single-shot behavior: a single odds fetch, bailing immediately if
+        it's None. This wait has no timeout of its own beyond `is_stale()`
+        eventually returning True."""
+        if period == 0:
+            offset = MAIN_GAME_ID_OFFSET
+        elif period == 1:
+            offset = FIRST_HALF_ID_OFFSET
+        else:
+            offset = SECOND_HALF_ID_OFFSET
         game_id = match_id + offset
         if bet_type is None:
             bet_type = TOTAL_OVER_T if over else TOTAL_UNDER_T
@@ -229,12 +250,21 @@ class BetExecutor:
         except Exception as exc:
             return BetResult(success=False, reason=f"auth read failed: {exc}")
 
-        try:
-            coef = await self._current_odds(game_id, line, bet_type, group)
-        except Exception as exc:
-            return BetResult(success=False, reason=f"odds lookup failed: {exc}")
-        if coef is None:
-            return BetResult(success=False, reason="market not open (stale-fire guard)")
+        while True:
+            try:
+                coef = await self._current_odds(game_id, line, bet_type, group)
+            except Exception as exc:
+                return BetResult(success=False, reason=f"odds lookup failed: {exc}")
+            if coef is not None and (min_odds is None or coef >= min_odds):
+                break
+            if min_odds is None:
+                return BetResult(success=False, reason="market not open (stale-fire guard)")
+            if is_stale is not None and is_stale():
+                return BetResult(
+                    success=False,
+                    reason=f"market closed before odds reached {min_odds} (last seen: {coef})",
+                )
+            await asyncio.sleep(poll_interval_seconds)
 
         headers = {
             "x-auth": f"Bearer {auth.access_token}",

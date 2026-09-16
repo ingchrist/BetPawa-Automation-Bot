@@ -335,3 +335,131 @@ def test_bet_type_override_ignores_the_over_flag():
 
     assert result.success is True
     assert captured["body"]["Events"][0]["Type"] == 6
+
+
+def test_period_0_targets_the_raw_match_id():
+    seen_ids = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            seen_ids.append(int(request.url.params["id"]))
+            return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=16.5)]))
+        body = json.loads(request.content)
+        seen_ids.append(body["Events"][0]["GameId"])
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=751444117, home="A", away="B", stake=90, line=16.5, period=0, over=False,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert seen_ids == [751444117, 751444117]  # raw match_id, no offset
+    assert result.success is True
+
+
+async def _instant_sleep(_seconds: float) -> None:
+    return None
+
+
+def test_min_odds_waits_for_odds_to_clear_the_threshold(monkeypatch):
+    # Body asserted after asyncio.run(), not inside the handler -- place_bet()
+    # wraps the whole request in a broad `except Exception`, so an in-handler
+    # AssertionError would get swallowed and reported as a misleading
+    # "request failed: ..." BetResult instead of the real failure (see
+    # test_bet_type_override_ignores_the_over_flag's comment above).
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    odds_sequence = [1.2, 1.3, 1.6]
+    calls = {"odds": 0}
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            coef = odds_sequence[min(calls["odds"], len(odds_sequence) - 1)]
+            calls["odds"] += 1
+            return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=16.5, coef=coef)]))
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=16.5, period=0, over=False, min_odds=1.5,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert calls["odds"] == 3
+    assert result.success is True
+    assert result.odds == 1.6
+    assert captured["body"]["Events"][0]["Coef"] == 1.6
+
+
+def test_min_odds_already_met_places_immediately_without_is_stale():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=16.5, coef=1.8)]))
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=16.5, period=0, over=False, min_odds=1.5,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert result.success is True
+    assert result.odds == 1.8
+
+
+def test_min_odds_never_reached_gives_up_once_stale(monkeypatch):
+    # Odds never clear 1.5 in this test, so MakeBetWeb should never be
+    # called -- the handler only ever needs to serve GetGameZip.
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    calls = {"odds": 0}
+    stale_after = 3
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["odds"] += 1
+        return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=16.5, coef=1.2)]))
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=16.5, period=0, over=False,
+            min_odds=1.5,
+            is_stale=lambda: calls["odds"] >= stale_after,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert calls["odds"] == stale_after
+    assert result.success is False
+    assert "market closed before odds reached 1.5" in result.reason
+
+
+def test_min_odds_none_never_sleeps(monkeypatch):
+    async def _sleep_that_fails(_seconds: float) -> None:
+        raise AssertionError("place_bet() must not sleep when min_odds is None")
+
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _sleep_that_fails)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/GetGameZip")
+        return httpx.Response(200, json=_game_zip_response([]))  # no matching market
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90, line=6.5))
+    asyncio.run(executor.aclose())
+
+    assert result.success is False
+    assert result.reason == "market not open (stale-fire guard)"
