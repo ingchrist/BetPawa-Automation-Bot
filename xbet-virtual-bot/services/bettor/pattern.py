@@ -1,14 +1,24 @@
-"""PatternTracker — streak-detector state machine shared by all three
-betting patterns: Pattern 1 ("1st Half Over 6.5", direction="at_or_under"),
-Pattern 2 ("2nd Half Under 7.5", direction="at_or_over"), and Pattern 3
-("1st Half Winner 2X", direction="equals"). Pure state machine, no I/O:
-fed one finished round's value (a combined goal total for Pattern 1/2, a
-"1X"/"2X"/"X" Double Chance result for Pattern 3) at a time, in the order
-rounds actually finish. See docs/superpowers/specs/2026-09-09-first-half-
-over-pattern-bettor-design.md, docs/superpowers/specs/2026-09-10-second-
-half-under-pattern-bettor-design.md, and docs/superpowers/specs/2026-09-13-
-first-half-winner-2x-streak-pattern-bettor-design.md for each pattern's
-full rationale; this module only encodes the shared mechanics.
+"""PatternTracker — streak-detector state machine shared by three of this
+codebase's four betting patterns: Pattern 1 ("1st Half Over 6.5",
+direction="at_or_under"), Pattern 2 ("2nd Half Under 7.5",
+direction="at_or_over"), and Pattern 3 ("1st Half Winner 2X",
+direction="equals"). Pure state machine, no I/O: fed one finished round's
+value (a combined goal total for Pattern 1/2, a "1X"/"2X"/"X" Double
+Chance result for Pattern 3) at a time, in the order rounds actually
+finish. See docs/superpowers/specs/2026-09-09-first-half-over-pattern-
+bettor-design.md, docs/superpowers/specs/2026-09-10-second-half-under-
+pattern-bettor-design.md, and docs/superpowers/specs/2026-09-13-first-
+half-winner-2x-streak-pattern-bettor-design.md for each pattern's full
+rationale; this module only encodes the shared mechanics.
+
+This same module also holds `RoundPairStreakTracker`, below, for Pattern 4
+("Main Game Under 16.5" pair streak) -- a different streak shape (it
+groups rounds into pairs and counts qualifying values across both halves
+of each pair, rather than a single scalar per round) that doesn't fit
+`PatternTracker`'s per-round model, so it's a separate class rather than
+a fourth `direction`. See docs/superpowers/plans/2026-09-16-main-game-
+under-16.5-pair-streak-pattern.md and that class's own docstring for its
+exact mechanics.
 
 Life cycle: `streak_length` consecutive qualifying rounds fire the pattern
 (bet on the *next* round). "Qualifying" depends on `direction`:

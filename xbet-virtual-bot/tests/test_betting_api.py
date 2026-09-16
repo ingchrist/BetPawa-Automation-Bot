@@ -463,3 +463,43 @@ def test_min_odds_none_never_sleeps(monkeypatch):
 
     assert result.success is False
     assert result.reason == "market not open (stale-fire guard)"
+
+
+def test_min_odds_max_wait_seconds_caps_the_loop_without_is_stale(monkeypatch):
+    # No is_stale at all (and odds that never clear 1.5) -- without an
+    # internal deadline this would poll forever. monkeypatch both
+    # asyncio.sleep (instant, as elsewhere in this file) and time.monotonic
+    # (a fake clock that jumps forward a fixed step per call) so the test
+    # doesn't depend on real elapsed wall-clock time to prove the loop
+    # actually gives up.
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    clock = {"t": 0.0}
+
+    def fake_monotonic() -> float:
+        clock["t"] += 100.0
+        return clock["t"]
+
+    monkeypatch.setattr("services.bettor.betting_api.time.monotonic", fake_monotonic)
+    calls = {"odds": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["odds"] += 1
+        return httpx.Response(200, json=_game_zip_response([_matching_event(t=10, line=16.5, coef=1.2)]))
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=16.5, period=0, over=False,
+            min_odds=1.5,
+            max_wait_seconds=250.0,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    # deadline = 100 (1st fake_monotonic call) + 250 = 350. Each loop
+    # iteration fetches odds once then spends one more fake_monotonic call
+    # on the deadline check (200, then 300, then 400) -- so the loop gives
+    # up on the 3rd iteration, never running unbounded.
+    assert calls["odds"] == 3
+    assert result.success is False
+    assert "odds never reached 1.5 within 250.0s" in result.reason

@@ -75,6 +75,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from dataclasses import dataclass
 from typing import Awaitable, Callable, Literal
 
@@ -219,6 +220,7 @@ class BetExecutor:
         min_odds: float | None = None,
         poll_interval_seconds: float = 5.0,
         is_stale: Callable[[], bool] | None = None,
+        max_wait_seconds: float = 1200.0,
     ) -> BetResult:
         """`bet_type`/`group` default to Pattern 1/2's Total-market shape,
         derived from `over` exactly as before. Pass both explicitly (as
@@ -233,8 +235,20 @@ class BetExecutor:
         >= min_odds, then submits at that same fetched price. Leaving it
         None (Patterns 1-3's implicit default) reproduces today's exact
         single-shot behavior: a single odds fetch, bailing immediately if
-        it's None. This wait has no timeout of its own beyond `is_stale()`
-        eventually returning True."""
+        it's None.
+
+        `max_wait_seconds` (default 1200s / 20 minutes -- generous relative
+        to this bot's own match rounds, which run a few minutes at most, but
+        a real, finite ceiling) is an absolute wall-clock cap on that same
+        wait loop, independent of `is_stale`. It exists because `is_stale`
+        depends on an upstream event (e.g. `MatchFinished`) that can itself
+        go silently missing -- this repo had a real ~4.7h incident of
+        exactly that shape on 2026-09-16 -- which would otherwise leave this
+        loop polling the live betting site forever. It also protects a
+        hypothetical future caller that passes `min_odds` without
+        `is_stale` at all. It has no effect when `min_odds` is None: that
+        path always returns on the first iteration, before the deadline
+        check or `asyncio.sleep()` are ever reached."""
         if period == 0:
             offset = MAIN_GAME_ID_OFFSET
         elif period == 1:
@@ -250,6 +264,7 @@ class BetExecutor:
         except Exception as exc:
             return BetResult(success=False, reason=f"auth read failed: {exc}")
 
+        deadline = time.monotonic() + max_wait_seconds
         while True:
             try:
                 coef = await self._current_odds(game_id, line, bet_type, group)
@@ -263,6 +278,11 @@ class BetExecutor:
                 return BetResult(
                     success=False,
                     reason=f"market closed before odds reached {min_odds} (last seen: {coef})",
+                )
+            if time.monotonic() >= deadline:
+                return BetResult(
+                    success=False,
+                    reason=f"odds never reached {min_odds} within {max_wait_seconds}s (last seen: {coef})",
                 )
             await asyncio.sleep(poll_interval_seconds)
 

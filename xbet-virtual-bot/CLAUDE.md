@@ -76,6 +76,18 @@ reference; don't duplicate pattern math or watchdog behavior here.
   Pattern 3 bet on 2026-09-13 at 22:00:53, while the session was alive
   (not an auth issue). Not investigated — flagged for whoever picks it
   up next.
+- Pattern 4's `period=0` ("Main game") targeting can arm pregame
+  (`TargetTracker(stale_statuses={'finished'})`), which is exactly the
+  window `services/bettor/betting_api.py`'s own module comment documents
+  as ambiguous for the raw `match_id` (it can resolve to the 1st-half
+  market instead of Main game until the match goes live) — never
+  reconciled in the Pattern 4 spec/plan. Two accidental (not deliberate)
+  mitigations exist (the `_current_odds` line/coefficient filter, and
+  `min_odds=1.5` rejecting a misidentified half-market's near-1.0 price)
+  but nothing guards the settlement side if a misidentification still
+  slips through. First-live-fire checklist item added to confirm this on
+  the real bet slip before trusting it further — see the Pattern 4
+  plan's Task 7 Step 5.
 
 ## Diagnostic scripts in `scratch/`
 

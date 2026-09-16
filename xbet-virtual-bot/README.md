@@ -297,9 +297,11 @@ Pattern 2 evaluates at each round's `MatchFinished` event rather than
 `MatchHalfTime` — one event later in the round's lifecycle than
 Pattern 1.
 
-**Mutual exclusion:** since all three patterns watch the same "next match
-to kick off," they can resolve to targeting the same match in the same
-round. Only one bet per match is ever placed. Pattern 1 and Pattern 2
+**Mutual exclusion (Patterns 1-3):** since Patterns 1-3 watch the same
+"next match to kick off," they can resolve to targeting the same match in
+the same round. Only one bet per match is ever placed among *these three*
+— Pattern 4 is deliberately outside this cap and can stack a second bet on
+the same match/round; see its own subsection below. Pattern 1 and Pattern 2
 evaluate at different trigger events (`MatchHalfTime` vs `MatchFinished`),
 so there's no fixed-order collision possible between just those two — for
 this pair, whichever target actually resolves first genuinely determines
@@ -342,10 +344,15 @@ same way the original Total market was — see
 market, this was **not** confirmed via an actual placed bet before
 shipping; watch the first live Pattern 3 fire closely.
 
-**Mutual exclusion** now spans all three patterns: no two of them ever
-place a bet on the same match in the same round. This caps risk *per
+**Mutual exclusion** now spans all three of Patterns 1-3: no two of them
+ever place a bet on the same match in the same round. This caps risk *per
 match*, not in aggregate — running all three roughly triples the
-aggregate stake-rate exposure compared to Pattern 1 running alone.
+aggregate stake-rate exposure compared to Pattern 1 running alone. Pattern
+4 is outside this cap entirely (see its own subsection below) and adds to
+this exposure rather than sharing it — it can stack its own bet on top of
+whatever Patterns 1-3 already placed on the same match/round, so the
+"triples" figure above understates total aggregate exposure once Pattern
+4 is enabled.
 
 Config knobs: `PATTERN3_STREAK_LENGTH`, `PATTERN3_BET_STAKE_AMOUNT`,
 `PATTERN3_ENABLED` — see `.env.example`. Shares `CDP_URL` and
