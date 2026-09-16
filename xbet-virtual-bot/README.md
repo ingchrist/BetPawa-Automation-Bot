@@ -403,7 +403,7 @@ streak_length. Shares `CDP_URL` and `BETS_LOG_PATH` with Pattern 1/2/3.
 ## Automatic session recovery
 
 The bettor process runs a background watchdog
-(`services/bettor/session_watchdog.py`) alongside its three betting
+(`services/bettor/session_watchdog.py`) alongside its four betting
 patterns. Every `AUTH_WATCHDOG_CHECK_INTERVAL_SECONDS` (default 60), it
 checks whether the browser's 1xbet.cm session is still alive (the same
 `access_token` cookie check `BetExecutor` already relies on). If it's
