@@ -93,3 +93,89 @@ class PatternTracker:
             return True
         self.last_outcome = "qualifying"
         return False
+
+
+@dataclass
+class RoundPairStreakTracker:
+    """Pattern 4's counter — fires when >= required_count of the 4
+    (1st-half-total, 2nd-half-total) values across 2 consecutive finished
+    rounds are >= half_threshold. See docs/superpowers/specs/2026-09-16-
+    main-game-under-16.5-pair-streak-pattern-design.md for the full
+    rationale; this class only encodes the mechanics.
+
+    Doesn't fit PatternTracker's shape as a parameterization:
+    PatternTracker.process() takes one scalar and asks "does it
+    individually qualify," accumulating a streak of *consecutive*
+    qualifying rounds. This tracker instead buffers exactly 2 rounds'
+    worth of *raw values* and evaluates a *count threshold* across all 4
+    at once -- a genuinely different shape, not a different direction.
+
+    Non-overlapping pairs: after 2 rounds are evaluated (fire or not),
+    the pair buffer clears and a fresh pair starts counting from the
+    very next round. On fire, the round immediately following is
+    skipped entirely (not added to the next pair) before counting
+    resumes -- same fire -> skip-one-round -> restart life cycle
+    PatternTracker already has. A round with either half's total unknown
+    (None) resets the pair buffer without counting, the same
+    conservative stance PatternTracker takes for a None total.
+
+    `last_qualifying_count`/`last_outcome`/`rounds_in_pair` are read-only
+    reporting of what the most recent process() call did -- they don't
+    change process()'s behavior or its bool return contract. On a
+    "skipped" outcome, last_qualifying_count is left at its previous
+    value (the just-completed pair's count) rather than recomputed --
+    there's no meaningful qualifying-count for a single skipped round in
+    this pair-based rule.
+    """
+
+    half_threshold: int = 9
+    required_count: int = 3
+
+    _pending: list[tuple[int, int]] = field(default_factory=list, init=False, repr=False)
+    _skip_next: bool = field(default=False, init=False, repr=False)
+    last_pair_values: list[int] = field(default_factory=list, init=False)
+    last_qualifying_count: int = field(default=0, init=False)
+    last_outcome: Literal["counting", "reset", "skipped", "armed"] | None = field(default=None, init=False)
+
+    @property
+    def rounds_in_pair(self) -> int:
+        """0 or 1 -- how many rounds of the current pair have been
+        counted so far. Reads as 0 right after a reset, a skip, or a
+        fire (the fire's own pair is in last_pair_values, not here)."""
+        return len(self._pending)
+
+    def process(self, first_half_total: int | None, second_half_total: int | None) -> bool:
+        """Feed one more finished round's two half-totals, in finish
+        order. Returns True the moment this round completes a pair that
+        meets required_count -- the caller should bet on the *next*
+        round when this returns True."""
+        if self._skip_next:
+            self._skip_next = False
+            self.last_outcome = "skipped"
+            return False
+
+        if first_half_total is None or second_half_total is None:
+            self._pending = []
+            self.last_qualifying_count = 0
+            self.last_outcome = "reset"
+            return False
+
+        self._pending.append((first_half_total, second_half_total))
+        if len(self._pending) < 2:
+            self.last_qualifying_count = sum(
+                1 for pair in self._pending for v in pair if v >= self.half_threshold
+            )
+            self.last_outcome = "counting"
+            return False
+
+        values = [v for pair in self._pending for v in pair]
+        qualifying = sum(1 for v in values if v >= self.half_threshold)
+        self.last_pair_values = values
+        self.last_qualifying_count = qualifying
+        self._pending = []
+        if qualifying >= self.required_count:
+            self._skip_next = True
+            self.last_outcome = "armed"
+            return True
+        self.last_outcome = "reset"
+        return False

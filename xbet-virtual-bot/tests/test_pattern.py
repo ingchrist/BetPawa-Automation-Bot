@@ -1,4 +1,4 @@
-from services.bettor.pattern import PatternTracker
+from services.bettor.pattern import PatternTracker, RoundPairStreakTracker
 
 
 def test_fires_on_three_consecutive_qualifying_rounds():
@@ -233,3 +233,77 @@ def test_numeric_directions_unaffected_by_the_equals_addition():
     assert tracker.process(4) is False
     assert tracker.process(5) is False
     assert tracker.process(6) is True
+
+
+def test_pair_fires_when_three_of_four_values_qualify():
+    # Reference example: Round 1 (1st-half=10, 2nd-half=8), Round 2
+    # (1st-half=10, 2nd-half=12) -> values [10, 8, 10, 12] -> 3 of 4 >= 9.
+    tracker = RoundPairStreakTracker()
+    assert tracker.process(10, 8) is False
+    assert tracker.process(10, 12) is True
+    assert tracker.last_pair_values == [10, 8, 10, 12]
+
+
+def test_pair_one_round_entirely_under_threshold_prevents_fire():
+    tracker = RoundPairStreakTracker()
+    assert tracker.process(5, 5) is False  # 0 of 2 qualify
+    assert tracker.process(10, 12) is False  # values [5,5,10,12] -- only 2 of 4 qualify
+
+
+def test_pair_fires_when_exactly_one_value_is_under_threshold():
+    tracker = RoundPairStreakTracker()
+    assert tracker.process(9, 9) is False
+    assert tracker.process(9, 8) is True  # values [9,9,9,8] -- 3 of 4 qualify
+    assert tracker.last_pair_values == [9, 9, 9, 8]
+
+
+def test_pair_fire_then_skip_one_round_then_restart():
+    tracker = RoundPairStreakTracker()
+    tracker.process(10, 8)
+    assert tracker.process(10, 12) is True  # fires
+
+    # the round just bet on is skipped, regardless of its own values
+    assert tracker.process(999, 999) is False
+
+    # next pair after the skip starts counting fresh from 0
+    assert tracker.process(9, 9) is False
+    assert tracker.process(9, 9) is True
+    assert tracker.last_pair_values == [9, 9, 9, 9]
+
+
+def test_pair_none_half_total_resets_the_pending_pair():
+    tracker = RoundPairStreakTracker()
+    tracker.process(9, 9)  # 1 round counted
+    assert tracker.process(None, 9) is False  # resets, does not count as round 2
+
+    # the discarded round doesn't carry over into the next pair
+    assert tracker.process(9, 9) is False
+    assert tracker.process(9, 9) is True
+
+
+def test_pair_progress_reporting_through_counting_reset_skipped_armed():
+    tracker = RoundPairStreakTracker()
+
+    tracker.process(9, 9)
+    assert (tracker.rounds_in_pair, tracker.last_qualifying_count, tracker.last_outcome) == (1, 2, "counting")
+
+    tracker.process(3, 3)
+    assert (tracker.rounds_in_pair, tracker.last_qualifying_count, tracker.last_outcome) == (0, 2, "reset")
+
+    tracker.process(9, 9)
+    tracker.process(9, 8)
+    assert (tracker.rounds_in_pair, tracker.last_qualifying_count, tracker.last_outcome) == (0, 3, "armed")
+
+    tracker.process(999, 999)  # the skipped bet-target round
+    assert (tracker.rounds_in_pair, tracker.last_qualifying_count, tracker.last_outcome) == (0, 3, "skipped")
+
+    tracker.process(9, 9)
+    assert (tracker.rounds_in_pair, tracker.last_qualifying_count, tracker.last_outcome) == (1, 2, "counting")
+
+
+def test_pair_thresholds_are_configurable():
+    tracker = RoundPairStreakTracker(half_threshold=5, required_count=4)
+    assert tracker.process(5, 5) is False  # 2 of 2 so far
+    assert tracker.process(5, 4) is False  # values [5,5,5,4] -- only 3 of 4 qualify, required_count=4
+    assert tracker.process(5, 5) is False
+    assert tracker.process(5, 5) is True  # values [5,5,5,5] -- 4 of 4 qualify
