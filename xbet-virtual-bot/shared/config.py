@@ -39,6 +39,9 @@ class Config:
     pattern3_streak_length: int
     pattern3_bet_stake_amount: float
     pattern3_enabled: bool
+    pattern4_bet_line: float
+    pattern4_bet_stake_amount: float
+    pattern4_enabled: bool
     cdp_url: str
     onexbet_phone_number: str
     onexbet_password: str
@@ -91,6 +94,9 @@ def load_config() -> Config:
         pattern3_streak_length=int(os.environ.get("PATTERN3_STREAK_LENGTH", "2")),
         pattern3_bet_stake_amount=float(os.environ.get("PATTERN3_BET_STAKE_AMOUNT", "90")),
         pattern3_enabled=_bool("PATTERN3_ENABLED", True),
+        pattern4_bet_line=float(os.environ.get("PATTERN4_BET_LINE", "16.5")),
+        pattern4_bet_stake_amount=float(os.environ.get("PATTERN4_BET_STAKE_AMOUNT", "90")),
+        pattern4_enabled=_bool("PATTERN4_ENABLED", True),
         cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"),
         onexbet_phone_number=os.environ.get("ONEXBET_PHONE_NUMBER", ""),
         onexbet_password=os.environ.get("ONEXBET_PASSWORD", ""),
