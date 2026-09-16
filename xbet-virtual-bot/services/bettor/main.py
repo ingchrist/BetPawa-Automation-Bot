@@ -163,7 +163,13 @@ async def run() -> None:
     def _log_pattern4_task_exception(task: asyncio.Task) -> None:
         """A bare fire-and-forget asyncio.Task otherwise swallows an
         unexpected exception silently -- every other pattern's failures
-        already surface via BetFailed/log lines, so this one should too."""
+        already surface via BetFailed/log lines, so this one should too.
+        Also drops the task from pattern4_tasks now that it's done --
+        otherwise that list grows for the life of the 24/7 process."""
+        try:
+            pattern4_tasks.remove(task)
+        except ValueError:
+            pass
         if task.cancelled():
             return
         exc = task.exception()
@@ -312,17 +318,17 @@ async def run() -> None:
                                 stale_period_label="match end",
                                 line=config.pattern4_bet_line,
                                 stake=config.pattern4_bet_stake_amount,
-                                place_call=lambda: executor.place_bet(
-                                    match_id=target4.match_id,
-                                    home=target4.home,
-                                    away=target4.away,
+                                place_call=lambda t=target4: executor.place_bet(
+                                    match_id=t.match_id,
+                                    home=t.home,
+                                    away=t.away,
                                     stake=config.pattern4_bet_stake_amount,
                                     line=config.pattern4_bet_line,
                                     period=0,
                                     over=False,
                                     min_odds=PATTERN4_MIN_ODDS,
                                     poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
-                                    is_stale=lambda: targets4.is_stale(target4.match_id),
+                                    is_stale=lambda t=t: targets4.is_stale(t.match_id),
                                 ),
                             )
                         )
@@ -605,17 +611,17 @@ async def run() -> None:
                                         stale_period_label="match end",
                                         line=config.pattern4_bet_line,
                                         stake=config.pattern4_bet_stake_amount,
-                                        place_call=lambda: executor.place_bet(
-                                            match_id=target4.match_id,
-                                            home=target4.home,
-                                            away=target4.away,
+                                        place_call=lambda t=target4: executor.place_bet(
+                                            match_id=t.match_id,
+                                            home=t.home,
+                                            away=t.away,
                                             stake=config.pattern4_bet_stake_amount,
                                             line=config.pattern4_bet_line,
                                             period=0,
                                             over=False,
                                             min_odds=PATTERN4_MIN_ODDS,
                                             poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
-                                            is_stale=lambda: targets4.is_stale(target4.match_id),
+                                            is_stale=lambda t=t: targets4.is_stale(t.match_id),
                                         ),
                                     )
                                 )
