@@ -150,17 +150,23 @@ class PatternProgress(BaseModel):
     """Emitted after every finished round is fed into the streak tracker,
     whether or not it moved the streak toward firing — lets a display
     narrate the pattern's life cycle round by round instead of only at
-    the moment it fires (see PatternArmed for that moment)."""
+    the moment it fires (see PatternArmed for that moment).
+
+    "pair_count" (Pattern 4) and "counting" are additive: Pattern 4's
+    RoundPairStreakTracker doesn't have a single-scalar per-round
+    qualify/reset shape the way Patterns 1-3's direction values do, so
+    forcing it into one of the existing three directions would
+    misrepresent what actually happened that round."""
 
     kind: Literal["pattern_progress"] = "pattern_progress"
     match_id: int
     pattern_name: str
-    direction: Literal["at_or_under", "at_or_over", "equals"]
+    direction: Literal["at_or_under", "at_or_over", "equals", "pair_count"]
     streak: int
     streak_length: int
     threshold: int | str
     total: int | str | None
-    outcome: Literal["qualifying", "reset", "skipped"]
+    outcome: Literal["qualifying", "reset", "skipped", "counting"]
 
 
 class BetPlaced(BaseModel):

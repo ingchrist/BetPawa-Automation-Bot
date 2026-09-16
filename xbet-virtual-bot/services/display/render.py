@@ -317,8 +317,23 @@ def render_pattern_progress(event: PatternProgress) -> None:
     streak — printed for every round (see render_pattern_armed for the
     moment it actually fires, which this deliberately doesn't duplicate).
     `direction` picks the qualify/reset comparison wording so this reads
-    correctly for Pattern 1 (at_or_under), Pattern 2 (at_or_over), and
-    Pattern 3 (equals, a categorical match rather than a numeric one)."""
+    correctly for Pattern 1 (at_or_under), Pattern 2 (at_or_over),
+    Pattern 3 (equals, a categorical match rather than a numeric one),
+    and Pattern 4 (pair_count, a 2-round value-count rule rather than a
+    per-round comparison — handled in its own early-return branch since
+    it doesn't share the qualify/reset comparison shape at all)."""
+    if event.direction == "pair_count":
+        if event.outcome == "skipped":
+            detail = "skipped — bet target"
+        elif event.outcome == "counting":
+            detail = f"{event.total} value(s) >= {event.threshold} so far this pair"
+        else:  # reset -- the pair completed without meeting required_count
+            detail = f"{event.total} of 4 values >= {event.threshold}, resets"
+        console.print(
+            f"[bold bright_red]{event.pattern_name} pair: {event.streak}/{event.streak_length} rounds ({detail})[/bold bright_red]"
+        )
+        return
+
     if event.direction == "equals":
         qualify_cmp, reset_cmp = "==", "!="
     elif event.direction == "at_or_under":
