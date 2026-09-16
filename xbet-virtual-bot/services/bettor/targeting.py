@@ -70,6 +70,20 @@ class TargetTracker:
         self._pending = True
         return None
 
+    def debug_state(self) -> str:
+        """Diagnostic snapshot for logging when arm() can't find an
+        immediate target -- read-only, not used by any decision logic.
+        Temporary instrumentation for tracking down why fired patterns
+        sometimes sit pending for a long time (2026-09-16)."""
+        if self._latest_discovered is None:
+            return "no match ever discovered yet"
+        mid = self._latest_discovered.match_id
+        return (
+            f"latest_discovered=match {mid} status={self._status.get(mid)!r} "
+            f"already_targeted={mid in self.bet_targets} pending={self._pending} "
+            f"bet_targets_count={len(self.bet_targets)}"
+        )
+
     def is_stale(self, match_id: int) -> bool:
         """True if this match's status is already one of this instance's
         configured stale_statuses — checked immediately before actually
