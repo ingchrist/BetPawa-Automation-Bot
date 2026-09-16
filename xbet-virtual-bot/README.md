@@ -351,6 +351,55 @@ Config knobs: `PATTERN3_STREAK_LENGTH`, `PATTERN3_BET_STAKE_AMOUNT`,
 `PATTERN3_ENABLED` — see `.env.example`. Shares `CDP_URL` and
 `BETS_LOG_PATH` with Pattern 1/2.
 
+### Pattern 4 — "Main Game Under 16.5" pair streak
+
+A different streak shape from Patterns 1-3, run as a fourth, independent
+pattern in the same `services/bettor/` process — no separate service, no
+separate CDP session. It watches every finished round's **1st-half total**
+and **2nd-half total** (2 values per round) and groups rounds into
+non-overlapping pairs of 2 (4 values per pair). When **>= 3 of those 4
+values are >= 9**, it fires a real bet — `PATTERN4_BET_STAKE_AMOUNT`
+(default 90, FCFA, independently configurable from Patterns 1-3's stakes)
+on the *next* round's `Total. Main game` market, `Under PATTERN4_BET_LINE`
+(default 16.5). Same fire → skip-one-round → restart life cycle as
+Patterns 1-3, applied to a pair-based counter
+(`services/bettor/pattern.py`'s `RoundPairStreakTracker`) instead of a
+single-scalar streak — see that class's docstring for the exact mechanics,
+and the design spec for the worked example this rule is based on.
+
+Because this rule needs both halves of a round, Pattern 4 evaluates at
+each round's `MatchFinished` event (like Pattern 2), not `MatchHalfTime`.
+
+**Odds-gated placement — unique to Pattern 4.** Every other pattern places
+its bet at whatever price `BetExecutor` finds the instant it looks.
+Pattern 4 instead waits: once armed and targeting a match, it polls the
+live odds every 5 seconds and only submits once they reach **1.5**,
+placing at that price the moment it's seen. This wait has no timeout of
+its own — it only stops when the odds clear 1.5 or the match itself
+finishes (in which case no bet is placed for that fire, logged, not
+alerted). Betting the whole match instead of a half also required a new
+main-game sub-game id (`period=0` in `BetExecutor.place_bet()`, offset 0 —
+the raw `match_id` itself, unlike the `+1`/`+2` half-scoped ids Patterns
+1-3 use).
+
+Because this wait can span an entire match, Pattern 4's bet placement runs
+as a background task rather than blocking the shared event loop the way
+Patterns 1-3's (effectively instant) placements do — so a slow Pattern 4
+odds-wait on one match never delays another pattern's bet on a different
+match.
+
+**No mutual exclusion with Patterns 1-3, in either direction** — Pattern 4
+bets `Total. Main game`, a market none of the other three touch, so
+there's no shared-risk reason to block it, and it doesn't block them
+either. It can stack a bet on the same round Pattern 1/2/3 also bets on.
+
+Config knobs: `PATTERN4_BET_LINE`, `PATTERN4_BET_STAKE_AMOUNT`,
+`PATTERN4_ENABLED` — see `.env.example`. The pair rule's own thresholds
+(9, and "3 of 4") and the odds-wait's minimum (1.5) are hardcoded, not
+env-configurable — an explicit decision, this being one precisely-defined
+rule rather than a tunable family like Pattern 1/2's threshold +
+streak_length. Shares `CDP_URL` and `BETS_LOG_PATH` with Pattern 1/2/3.
+
 ## Automatic session recovery
 
 The bettor process runs a background watchdog
@@ -454,6 +503,9 @@ you change.
 | `PATTERN3_STREAK_LENGTH` | `2` | Consecutive rounds required, each with a 1st-half Double Chance result of exactly "2X", to fire Pattern 3. |
 | `PATTERN3_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired Pattern 3 bet. |
 | `PATTERN3_ENABLED` | `true` | Kill switch for Pattern 3 only — set `false` to keep tracking the streak (normal `PatternProgress` still publishes on non-firing rounds) without ever placing a bet; a firing round while disabled only logs a warning instead of publishing `PatternArmed`. |
+| `PATTERN4_BET_LINE` | `16.5` | The Under line bet on in `Total. Main game`. |
+| `PATTERN4_BET_STAKE_AMOUNT` | `90` | FCFA staked per fired Pattern 4 bet. |
+| `PATTERN4_ENABLED` | `true` | Kill switch for Pattern 4 only — same contract as `PATTERN3_ENABLED` above. |
 | `CDP_URL` | `http://127.0.0.1:9222` | Chrome DevTools Protocol endpoint for the already-logged-in browser. Bet placement itself only ever reads fresh auth from it (cookies/localStorage, no UI automation); the session watchdog is the one thing that drives real form input on it, for login recovery only — see [Automatic session recovery](#automatic-session-recovery). |
 | `BETS_LOG_PATH` | `data/bets.log` | Human-readable audit trail of every pattern fire / bet placed / failed / settled — tracked in git like `RESULT_LOG_PATH`. |
 | `ONEXBET_PHONE_NUMBER` / `ONEXBET_PASSWORD` | *(empty)* | Login credentials for automatic session recovery. Both required for the watchdog to do anything; see [Automatic session recovery](#automatic-session-recovery). |
@@ -571,10 +623,14 @@ Honest gaps, not hidden ones — worth knowing before relying on this:
 
 ## Roadmap
 
-Extraction + real-time terminal display, plus three live betting patterns
-(see [Betting patterns](#betting-patterns)), are all implemented. All
-three patterns run in the same `services/bettor/` process, coordinated so
-no two of them ever bet on the same match in the same round. Any future
-pattern follows the same shape: extend `PatternTracker`/`TargetTracker`/
-`BetExecutor` rather than forking them, and publish its own
-`PatternArmed`/`Bet*` events onto the same `xbet.match_events` bus.
+Extraction + real-time terminal display, plus four live betting patterns
+(see [Betting patterns](#betting-patterns)), are all implemented. All four
+patterns run in the same `services/bettor/` process; Patterns 1-3
+coordinate so no two of them ever bet on the same match in the same round,
+while Pattern 4 (a different market, no shared risk) runs independently of
+that coordination. Any future pattern follows the same shape: extend
+`PatternTracker`/`TargetTracker`/`BetExecutor` rather than forking them
+(or add a new small tracker class, as Pattern 4's pair-count rule needed,
+when the shape genuinely doesn't fit `PatternTracker`'s parameters), and
+publish its own `PatternArmed`/`Bet*` events onto the same
+`xbet.match_events` bus.
