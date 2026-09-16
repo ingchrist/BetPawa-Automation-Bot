@@ -183,6 +183,17 @@ class MatchStateMachine:
         self._announced_next_id = soonest.match_id
         return self._build_discovered_event(soonest)
 
+    def known_upcoming_ids(self) -> set[int]:
+        """Read-only snapshot of match ids currently tracked as 'upcoming'
+        -- diagnostic only, not used by any decision logic. Temporary
+        instrumentation for tracking down a 2026-09-16 incident where
+        MatchDiscovered stopped firing for ~4.7 hours despite matches
+        continuing to start normally."""
+        return set(self._known_upcoming)
+
+    def announced_next_id(self) -> int | None:
+        return self._announced_next_id
+
     def _build_discovered_event(self, snap: MatchSnapshot) -> MatchDiscovered:
         return MatchDiscovered(
             match_id=snap.match_id,

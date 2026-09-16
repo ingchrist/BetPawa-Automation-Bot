@@ -38,7 +38,10 @@ async def run() -> None:
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop.set)
 
+    last_known_upcoming: set[int] = set()
+
     async def consume() -> None:
+        nonlocal last_known_upcoming
         async for snapshot in bus.subscribe_snapshots(config.channel_snapshots):
             try:
                 for event in machine.process(snapshot):
@@ -51,6 +54,18 @@ async def run() -> None:
                         )
                     else:
                         log.info(f"{event.kind} — match {event.match_id} ({event.home} vs {event.away})")
+
+                # Temporary instrumentation (2026-09-16): the upcoming-match
+                # queue that MatchDiscovered depends on stopped repopulating
+                # for ~4.7 hours despite matches continuing to start
+                # normally. Only logs on an actual change, not every poll.
+                current = machine.known_upcoming_ids()
+                if current != last_known_upcoming:
+                    log.info(
+                        f"upcoming queue changed: {sorted(last_known_upcoming)} -> {sorted(current)} "
+                        f"(announced_next_id={machine.announced_next_id()})"
+                    )
+                    last_known_upcoming = current
             except Exception as err:  # noqa: BLE001 — one bad snapshot must not kill the subscription
                 log.error(f"failed to process snapshot for match {snapshot.match_id}: {err}")
 

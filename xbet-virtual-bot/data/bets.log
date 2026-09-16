@@ -792,3 +792,230 @@ PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
 2026-09-15 23:09:39
 BET PLACED — 90 on Basel vs Nice (match 753203903) Double Chance. 1st half 1X @ 1.81
 
+2026-09-15 23:26:52
+SETTLED — Basel vs Nice: WON (Double Chance. 1st half 1X total 10)
+
+2026-09-16 00:19:49
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 00:19:59
+BET FAILED [Double Chance. 1st half 1X] — match 753215362: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-16 00:29:42
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 4]
+
+2026-09-16 00:29:47
+BET PLACED — 90 on Red Bull vs Fenerbahce (match 753216993) Total. 1st half Over 6.5 @ 1.62
+
+2026-09-16 00:40:19
+SETTLED — Red Bull vs Fenerbahce: WON (Total. 1st half Over 6.5 total 7)
+
+2026-09-16 00:59:59
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 01:00:08
+BET FAILED [Double Chance. 1st half 1X] — match 753222038: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-16 03:55:23
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 3]
+
+2026-09-16 03:55:32
+BET FAILED [Total. 1st half Over 6.5] — match 753226551: auth read failed: no access_token cookie -- is the 
+browser logged in?
+
+2026-09-16 04:49:57
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 6]
+
+2026-09-16 04:50:15
+BET FAILED [Total. 1st half Over 6.5] — match 753255239: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-16 05:40:28
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 05:41:09
+BET PLACED — 90 on Braga vs Heart of Midlothian (match 753262013) Double Chance. 1st half 1X @ 1.43
+
+2026-09-16 05:49:30
+SETTLED — Braga vs Heart of Midlothian: WON (Double Chance. 1st half 1X total 4)
+
+2026-09-16 06:49:33
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 4]
+
+2026-09-16 06:50:11
+BET PLACED — 90 on Eintracht Frankfurt vs Fenerbahce (match 753271423) Total. 1st half Over 6.5 @ 1.70
+
+2026-09-16 06:50:11
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 06:50:11
+BET FAILED [Double Chance. 1st half 1X] — match 753271423: mutual exclusion: match 753271423 already targeted 
+by 1st_half_over_6.5_streak
+
+2026-09-16 06:59:56
+SETTLED — Eintracht Frankfurt vs Fenerbahce: WON (Total. 1st half Over 6.5 total 8)
+
+2026-09-16 08:40:12
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 6]
+
+2026-09-16 08:40:19
+BET PLACED — 90 on Chelsea vs Nice (match 753291726) Total. 1st half Over 6.5 @ 1.84
+
+2026-09-16 08:51:20
+SETTLED — Chelsea vs Nice: WON (Total. 1st half Over 6.5 total 10)
+
+2026-09-16 09:19:31
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 09:19:35
+BET PLACED — 90 on Heart of Midlothian vs Red Bull (match 753299122) Double Chance. 1st half 1X @ 1.91
+
+2026-09-16 09:29:34
+SETTLED — Heart of Midlothian vs Red Bull: LOST (Double Chance. 1st half 1X total 5)
+
+2026-09-16 09:29:34
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 5]
+
+2026-09-16 09:29:46
+BET PLACED — 90 on Nice vs Fiorentina (match 753300980) Total. 1st half Over 6.5 @ 1.59
+
+2026-09-16 10:09:56
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 10:10:00
+BET FAILED [Double Chance. 1st half 1X] — match 753303554: auth read failed: no access_token cookie -- is the 
+browser logged in?
+
+2026-09-16 10:19:38
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 5]
+
+2026-09-16 10:19:38
+BET FAILED [Total. 1st half Over 6.5] — match 753303554: mutual exclusion: match 753303554 already targeted by
+1st_half_winner_2x_streak
+
+2026-09-16 10:50:27
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 11:20:35
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 11:59:25
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 4]
+
+2026-09-16 12:50:33
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 13:20:03
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 13:39:49
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 5]
+
+2026-09-16 13:51:11
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 14:30:50
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 14:30:57
+BET PLACED — 90 on Fiorentina vs Villarreal (match 753372616) Double Chance. 1st half 1X @ 1.45
+
+2026-09-16 14:41:00
+SETTLED — Fiorentina vs Villarreal: WON (Double Chance. 1st half 1X total 10)
+
+2026-09-16 15:49:52
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-16 15:50:00
+BET PLACED — 90 on Lille OSC vs Fiorentina (match 753392657) Total. 1st half Over 6.5 @ 1.53
+
+2026-09-16 16:01:13
+SETTLED — Lille OSC vs Fiorentina: WON (Total. 1st half Over 6.5 total 10)
+
+2026-09-16 17:00:43
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 17:00:48
+BET PLACED — 90 on Braga vs Olympiacos (match 753407704) Double Chance. 1st half 1X @ 1.61
+
+2026-09-16 17:09:12
+SETTLED — Braga vs Olympiacos: WON (Double Chance. 1st half 1X total 3)
+
+2026-09-16 17:19:39
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [3, 5]
+
+2026-09-16 17:19:43
+BET PLACED — 90 on Fiorentina vs Borussia Monchengladbach (match 753413582) Total. 1st half Over 6.5 @ 1.38
+
+2026-09-16 17:30:22
+SETTLED — Fiorentina vs Borussia Monchengladbach: WON (Total. 1st half Over 6.5 total 8)
+
+2026-09-16 17:30:22
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 17:31:41
+BET PLACED — 90 on Red Bull vs Lille OSC (match 753416440) Double Chance. 1st half 1X @ 1.50
+
+2026-09-16 17:41:45
+SETTLED — Red Bull vs Lille OSC: LOST (Double Chance. 1st half 1X total 13)
+
+2026-09-16 18:00:24
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 18:00:30
+BET PLACED — 90 on Nice vs Eintracht Frankfurt (match 753423885) Double Chance. 1st half 1X @ 1.57
+
+2026-09-16 18:10:44
+SETTLED — Nice vs Eintracht Frankfurt: LOST (Double Chance. 1st half 1X total 8)
+
+2026-09-16 18:30:17
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 6]
+
+2026-09-16 18:31:35
+BET PLACED — 90 on Heart of Midlothian vs Villarreal (match 753432009) Total. 1st half Over 6.5 @ 1.60
+
+2026-09-16 18:39:36
+SETTLED — Heart of Midlothian vs Villarreal: LOST (Total. 1st half Over 6.5 total 4)
+
+2026-09-16 19:01:14
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 19:01:19
+BET PLACED — 90 on Fiorentina vs Basel (match 753438146) Double Chance. 1st half 1X @ 1.26
+
+2026-09-16 19:11:01
+SETTLED — Fiorentina vs Basel: WON (Double Chance. 1st half 1X total 9)
+
+2026-09-16 19:40:31
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 19:40:45
+BET PLACED — 90 on Fenerbahce vs West Ham United (match 753449231) Double Chance. 1st half 1X @ 1.55
+
+2026-09-16 19:49:14
+SETTLED — Fenerbahce vs West Ham United: WON (Double Chance. 1st half 1X total 3)
+
+2026-09-16 20:19:54
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 6]
+
+2026-09-16 20:20:01
+BET FAILED [Total. 1st half Over 6.5] — match 753458952: odds lookup failed: Server disconnected without 
+sending a response.
+
+2026-09-16 20:51:16
+PATTERN ARMED — Double Chance. 1st half 1X — streak ['2X', '2X']
+
+2026-09-16 20:51:20
+BET PLACED — 90 on Villarreal vs Nice (match 753466610) Double Chance. 1st half 1X @ 1.48
+
+2026-09-16 20:59:34
+SETTLED — Villarreal vs Nice: WON (Double Chance. 1st half 1X total 4)
+
+2026-09-16 21:59:51
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-16 22:00:00
+BET PLACED — 90 on Red Bull vs Olympiacos (match 753479700) Total. 1st half Over 6.5 @ 1.55
+
