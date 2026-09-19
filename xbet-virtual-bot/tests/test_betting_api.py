@@ -465,6 +465,219 @@ def test_min_odds_none_never_sleeps(monkeypatch):
     assert result.reason == "market not open (stale-fire guard)"
 
 
+def test_odds_lookup_transient_network_error_is_retried_and_recovers(monkeypatch):
+    # Real 1xbet.cm service-api behavior observed both live in production
+    # (2026-09-16/17 Pattern 4 bet failures) and during a 2026-09-17
+    # isolation test: GetGameZip intermittently drops the connection
+    # (httpx.ConnectError / RemoteProtocolError) with no retry anywhere in
+    # this client. A transient failure should not sink an otherwise-good
+    # odds lookup.
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    calls = {"odds": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            calls["odds"] += 1
+            if calls["odds"] < 3:
+                raise httpx.ConnectError("connection reset")
+            return httpx.Response(200, json=_game_zip_response([_matching_event()]))
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90, line=6.5))
+    asyncio.run(executor.aclose())
+
+    assert calls["odds"] == 3
+    assert result.success is True
+
+
+def test_odds_lookup_transient_network_error_exhausts_retries_and_reports_failure(monkeypatch):
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    calls = {"odds": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["odds"] += 1
+        raise httpx.ConnectError("connection reset")
+
+    from services.bettor.betting_api import GETGAMEZIP_RETRY_ATTEMPTS
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90, line=6.5))
+    asyncio.run(executor.aclose())
+
+    assert calls["odds"] == GETGAMEZIP_RETRY_ATTEMPTS
+    assert result.success is False
+    assert "odds lookup failed" in result.reason
+
+
+def test_odds_lookup_http_status_error_is_not_retried():
+    # A genuine 4xx/5xx (not a transport-level drop) is not the observed
+    # failure mode and shouldn't burn the caller's poll budget retrying a
+    # response that already came back -- test_odds_lookup_http_error_is_reported
+    # already covers the single-shot behavior; this locks in that retrying
+    # is scoped to transport errors only.
+    calls = {"odds": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["odds"] += 1
+        return httpx.Response(500)
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90))
+    asyncio.run(executor.aclose())
+
+    assert calls["odds"] == 1
+    assert result.success is False
+
+
+def test_max_wait_seconds_default_is_capped_to_real_match_round_length():
+    # Real 3x3 FIFA rounds run ~5 minutes end to end (up to "6+ minutes
+    # observed" per README) -- the old 1200s/20min default let place_bet()
+    # sit in its odds-wait loop for more than 3x a full match's length
+    # against a match that had almost certainly already finished.
+    import inspect
+
+    sig = inspect.signature(BetExecutor.place_bet)
+    assert sig.parameters["max_wait_seconds"].default == 360.0
+
+
+def test_temporarily_blocked_bet_waits_then_retries_and_succeeds(monkeypatch):
+    # Confirmed live during the 2026-09-17 Pattern 4 isolation test
+    # (scratch/test_pattern4_isolated_bet.py): MakeBetWeb can reject a
+    # request with Success=false and an Error of "Selected odds for event
+    # '...' are temporarily blocked for betting!" -- a brief real trading
+    # freeze (e.g. right after a goal), not a bad request or auth problem.
+    # place_bet() should wait for the freeze to lift and retry with a
+    # fresh price instead of failing the whole pattern fire.
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    attempts = {"post": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            coef = 1.9 if attempts["post"] == 0 else 2.1
+            return httpx.Response(200, json=_game_zip_response([_matching_event(coef=coef)]))
+        attempts["post"] += 1
+        if attempts["post"] == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "Value": None,
+                    "Success": False,
+                    "Error": "Selected odds for event 'Chelsea - Braga' are temporarily blocked for betting!",
+                    "ErrorCode": 9,
+                },
+            )
+        return httpx.Response(
+            200, json={"Value": {"Id": 1, "Balance": 910.0}, "Success": True, "Error": "", "ErrorCode": 0}
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90, line=6.5))
+    asyncio.run(executor.aclose())
+
+    assert attempts["post"] == 2
+    assert result.success is True
+    assert result.odds == 2.1  # re-fetched after the block cleared, not the stale first price
+
+
+def test_temporarily_blocked_bet_gives_up_once_stale(monkeypatch):
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    attempts = {"post": 0}
+    stale_after = 2
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event(coef=1.9)]))
+        attempts["post"] += 1
+        return httpx.Response(
+            200,
+            json={
+                "Value": None,
+                "Success": False,
+                "Error": "Selected odds for event 'X' are temporarily blocked for betting!",
+                "ErrorCode": 9,
+            },
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(
+            match_id=1, home="A", away="B", stake=90, line=6.5,
+            is_stale=lambda: attempts["post"] >= stale_after,
+        )
+    )
+    asyncio.run(executor.aclose())
+
+    assert attempts["post"] == stale_after
+    assert result.success is False
+    assert "blocked" in result.reason.lower()
+    assert "stale" in result.reason.lower()
+
+
+def test_temporarily_blocked_bet_gives_up_after_max_wait_seconds(monkeypatch):
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _instant_sleep)
+    clock = {"t": 0.0}
+
+    def fake_monotonic() -> float:
+        clock["t"] += 100.0
+        return clock["t"]
+
+    monkeypatch.setattr("services.bettor.betting_api.time.monotonic", fake_monotonic)
+    attempts = {"post": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event(coef=1.9)]))
+        attempts["post"] += 1
+        return httpx.Response(
+            200,
+            json={"Value": None, "Success": False, "Error": "temporarily blocked for betting!", "ErrorCode": 9},
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(
+        executor.place_bet(match_id=1, home="A", away="B", stake=90, line=6.5, max_wait_seconds=250.0)
+    )
+    asyncio.run(executor.aclose())
+
+    # deadline = 100 (1st fake_monotonic call) + 250 = 350. Each blocked
+    # retry spends one POST then one more fake_monotonic call on the
+    # deadline check (200, then 300, then 400) -- gives up on the 3rd.
+    assert attempts["post"] == 3
+    assert result.success is False
+    assert "blocked" in result.reason.lower()
+    assert "250.0s" in result.reason
+
+
+def test_non_blocked_rejection_still_fails_immediately(monkeypatch):
+    # A real, permanent rejection (not the "temporarily blocked" freeze)
+    # must not be swept into the new retry-on-block path -- locks in that
+    # the match is exact, not a generic "not Success" catch-all.
+    async def _sleep_that_fails(_seconds: float) -> None:
+        raise AssertionError("must not wait on a non-blocked rejection")
+
+    monkeypatch.setattr("services.bettor.betting_api.asyncio.sleep", _sleep_that_fails)
+    attempts = {"post": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/GetGameZip"):
+            return httpx.Response(200, json=_game_zip_response([_matching_event()]))
+        attempts["post"] += 1
+        return httpx.Response(
+            200, json={"Value": None, "Success": False, "Error": "Insufficient funds", "ErrorCode": 42},
+        )
+
+    executor = _executor(handler)
+    result = asyncio.run(executor.place_bet(match_id=1, home="A", away="B", stake=90))
+    asyncio.run(executor.aclose())
+
+    assert attempts["post"] == 1
+    assert result.success is False
+    assert result.reason == "Insufficient funds"
+
+
 def test_min_odds_max_wait_seconds_caps_the_loop_without_is_stale(monkeypatch):
     # No is_stale at all (and odds that never clear 1.5) -- without an
     # internal deadline this would poll forever. monkeypatch both

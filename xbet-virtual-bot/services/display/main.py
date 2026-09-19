@@ -70,7 +70,7 @@ async def run() -> None:
     render_legend()
 
     history = ResultsHistory(config.results_log_path)
-    recent = history.load_recent(BACKFILL_COUNT)
+    recent = history.load_recent(BACKFILL_COUNT, logger=log)
     render_backfill_header(len(recent))
     for event in recent:
         render_finished(event, earlier=True)

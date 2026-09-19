@@ -134,6 +134,32 @@ DOUBLE_CHANCE_1X_T = 4
 DOUBLE_CHANCE_12_T = 5
 DOUBLE_CHANCE_2X_T = 6
 
+# GetGameZip against the real 1xbet.cm service-api intermittently drops the
+# connection mid-request -- httpx.ConnectError / httpx.RemoteProtocolError
+# ("Server disconnected without sending a response"), observed live in
+# production (two real Pattern 4 bets lost to this on 2026-09-16/17) and
+# reproduced during a 2026-09-17 isolation test of Pattern 4
+# (scratch/test_pattern4_isolated_bet.py). Neither failure correlates with
+# anything about the request itself (same match, same params, retried
+# seconds later and worked) -- it reads as edge/network flakiness on this
+# box's path to the site, not a real error to surface. Scoped to
+# httpx.TransportError specifically (not httpx.HTTPStatusError): a real
+# 4xx/5xx came back from the server and retrying it blindly would just
+# burn the caller's own poll budget on a response that already arrived.
+GETGAMEZIP_RETRY_ATTEMPTS = 3
+GETGAMEZIP_RETRY_BASE_DELAY_SECONDS = 0.5
+
+
+def _is_temporarily_blocked(reason: str) -> bool:
+    """MakeBetWeb's own trading engine briefly freezes a specific market
+    (e.g. right around a goal) and rejects a bet against it with Success:
+    false and an Error like "Selected odds for event '...' are temporarily
+    blocked for betting!" -- confirmed live during the same 2026-09-17
+    Pattern 4 isolation test. Distinct from every other Success:false
+    reason (bad request, insufficient funds, ...), which are real and
+    should fail immediately -- only this one is worth waiting out."""
+    return "temporarily blocked" in (reason or "").lower()
+
 
 @dataclass(frozen=True)
 class BetResult:
@@ -220,7 +246,7 @@ class BetExecutor:
         min_odds: float | None = None,
         poll_interval_seconds: float = 5.0,
         is_stale: Callable[[], bool] | None = None,
-        max_wait_seconds: float = 1200.0,
+        max_wait_seconds: float = 360.0,
     ) -> BetResult:
         """`bet_type`/`group` default to Pattern 1/2's Total-market shape,
         derived from `over` exactly as before. Pass both explicitly (as
@@ -237,18 +263,33 @@ class BetExecutor:
         single-shot behavior: a single odds fetch, bailing immediately if
         it's None.
 
-        `max_wait_seconds` (default 1200s / 20 minutes -- generous relative
-        to this bot's own match rounds, which run a few minutes at most, but
-        a real, finite ceiling) is an absolute wall-clock cap on that same
-        wait loop, independent of `is_stale`. It exists because `is_stale`
-        depends on an upstream event (e.g. `MatchFinished`) that can itself
-        go silently missing -- this repo had a real ~4.7h incident of
-        exactly that shape on 2026-09-16 -- which would otherwise leave this
-        loop polling the live betting site forever. It also protects a
-        hypothetical future caller that passes `min_odds` without
-        `is_stale` at all. It has no effect when `min_odds` is None: that
-        path always returns on the first iteration, before the deadline
-        check or `asyncio.sleep()` are ever reached."""
+        `max_wait_seconds` (default 360s / 6 minutes -- this league's real
+        rounds run ~5 minutes end to end, up to "6+ minutes observed" per
+        README; a prior 1200s/20min default let this sit in the wait loop
+        below for more than 3x a full round's length against a match that
+        had almost certainly already finished) is an absolute wall-clock
+        cap on that same wait loop, independent of `is_stale`. It exists
+        because `is_stale` depends on an upstream event (e.g.
+        `MatchFinished`) that can itself go silently missing -- this repo
+        had a real ~4.7h incident of exactly that shape on 2026-09-16 --
+        which would otherwise leave this loop polling the live betting site
+        forever. It also protects a hypothetical future caller that passes
+        `min_odds` without `is_stale` at all. It has no effect when
+        `min_odds` is None *and* the market is never reported as
+        temporarily blocked (see below): that path always returns on the
+        first iteration, before the deadline check or `asyncio.sleep()` are
+        ever reached.
+
+        A `MakeBetWeb` rejection whose `Error` says the market is
+        "temporarily blocked for betting" (the site's own trading engine
+        briefly freezing a market, e.g. right around a goal -- confirmed
+        live during a 2026-09-17 isolation test of Pattern 4) is not
+        treated as a final failure the way every other rejection reason is:
+        this waits (bounded by the same `is_stale`/`max_wait_seconds` guards
+        as the odds-wait loop above), re-fetches a fresh price once the
+        freeze should have lifted, and retries -- for every caller, not
+        just Pattern 4, since any live pattern can fire right as a market
+        freezes."""
         if period == 0:
             offset = MAIN_GAME_ID_OFFSET
         elif period == 1:
@@ -266,106 +307,122 @@ class BetExecutor:
 
         deadline = time.monotonic() + max_wait_seconds
         while True:
+            while True:
+                try:
+                    coef = await self._current_odds(game_id, line, bet_type, group)
+                except Exception as exc:
+                    return BetResult(success=False, reason=f"odds lookup failed: {exc}")
+                if coef is not None and (min_odds is None or coef >= min_odds):
+                    break
+                if min_odds is None:
+                    return BetResult(success=False, reason="market not open (stale-fire guard)")
+                if is_stale is not None and is_stale():
+                    return BetResult(
+                        success=False,
+                        reason=f"market closed before odds reached {min_odds} (last seen: {coef})",
+                    )
+                if time.monotonic() >= deadline:
+                    return BetResult(
+                        success=False,
+                        reason=f"odds never reached {min_odds} within {max_wait_seconds}s (last seen: {coef})",
+                    )
+                await asyncio.sleep(poll_interval_seconds)
+
+            headers = {
+                "x-auth": f"Bearer {auth.access_token}",
+                "x-hd": auth.hd_token,
+                "content-type": "application/json",
+                "accept": "application/json, text/plain, */*",
+                "x-requested-with": "XMLHttpRequest",
+                "x-svc-source": "__BETTING_APP__",
+                "x-app-n": "__BETTING_APP__",
+            }
+            body = {
+                "UserId": auth.user_id,
+                "Events": [
+                    {
+                        "GameId": game_id,
+                        "Type": bet_type,
+                        "Coef": coef,
+                        # MakeBetWeb wants 0, not null, for a lineless market
+                        # (Double Chance) -- see the module-level comment above
+                        # DOUBLE_CHANCE_GROUP for how this was confirmed live.
+                        "Param": line if line is not None else 0,
+                        "PV": None,
+                        "PlayerId": 0,
+                        "Kind": 1,
+                        "InstrumentId": 0,
+                        "Seconds": 0,
+                        "Price": 0,
+                        "Expired": 0,
+                        "PlayersDuel": [],
+                    }
+                ],
+                "Vid": 0,
+                "partner": 55,
+                "Group": 654,
+                "live": True,
+                "CheckCf": 2,
+                "Lng": "en",
+                "notWait": True,
+                "IsPowerBet": False,
+                "Summ": stake,
+                "isAutoBet": True,
+                "autoBetCf": 0,
+                "TransformEventKind": True,
+                "autoBetCfView": 0,
+                "Source": 55,
+                "OneClickBet": 2,
+            }
+
             try:
-                coef = await self._current_odds(game_id, line, bet_type, group)
+                resp = await self._client.post(
+                    "/LiveBet/Secure/MakeBetWeb", json=body, headers=headers
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            except httpx.HTTPStatusError as exc:
+                # The site's own error body (e.g. an invalid-market or invalid-
+                # coefficient message) is the one piece of evidence that
+                # distinguishes a bad request shape from a session/auth problem
+                # -- exc's default str() only carries the status code and URL,
+                # discarding exactly that. Surfaced here instead of only on
+                # success so a future non-2xx is self-diagnosing without needing
+                # a fresh manual capture.
+                return BetResult(
+                    success=False,
+                    reason=f"request failed: {exc} — response body: {exc.response.text!r}",
+                )
             except Exception as exc:
-                return BetResult(success=False, reason=f"odds lookup failed: {exc}")
-            if coef is not None and (min_odds is None or coef >= min_odds):
-                break
-            if min_odds is None:
-                return BetResult(success=False, reason="market not open (stale-fire guard)")
+                return BetResult(success=False, reason=f"request failed: {exc}")
+
+            if data.get("Success"):
+                return BetResult(success=True, odds=coef)
+
+            reason = data.get("Error") or f"errorCode={data.get('ErrorCode')}"
+            if not _is_temporarily_blocked(reason):
+                return BetResult(success=False, reason=reason, odds=coef)
+
+            # See the "temporarily blocked" section of this method's
+            # docstring -- wait for the freeze to lift (same is_stale/
+            # deadline guards as the odds-wait loop above), then loop back
+            # to re-acquire a fresh price and retry placement.
             if is_stale is not None and is_stale():
                 return BetResult(
                     success=False,
-                    reason=f"market closed before odds reached {min_odds} (last seen: {coef})",
+                    reason=f"market went stale while blocked for betting (last message: {reason!r})",
+                    odds=coef,
                 )
             if time.monotonic() >= deadline:
                 return BetResult(
                     success=False,
-                    reason=f"odds never reached {min_odds} within {max_wait_seconds}s (last seen: {coef})",
+                    reason=f"market stayed blocked for betting past {max_wait_seconds}s (last message: {reason!r})",
+                    odds=coef,
                 )
             await asyncio.sleep(poll_interval_seconds)
 
-        headers = {
-            "x-auth": f"Bearer {auth.access_token}",
-            "x-hd": auth.hd_token,
-            "content-type": "application/json",
-            "accept": "application/json, text/plain, */*",
-            "x-requested-with": "XMLHttpRequest",
-            "x-svc-source": "__BETTING_APP__",
-            "x-app-n": "__BETTING_APP__",
-        }
-        body = {
-            "UserId": auth.user_id,
-            "Events": [
-                {
-                    "GameId": game_id,
-                    "Type": bet_type,
-                    "Coef": coef,
-                    # MakeBetWeb wants 0, not null, for a lineless market
-                    # (Double Chance) -- see the module-level comment above
-                    # DOUBLE_CHANCE_GROUP for how this was confirmed live.
-                    "Param": line if line is not None else 0,
-                    "PV": None,
-                    "PlayerId": 0,
-                    "Kind": 1,
-                    "InstrumentId": 0,
-                    "Seconds": 0,
-                    "Price": 0,
-                    "Expired": 0,
-                    "PlayersDuel": [],
-                }
-            ],
-            "Vid": 0,
-            "partner": 55,
-            "Group": 654,
-            "live": True,
-            "CheckCf": 2,
-            "Lng": "en",
-            "notWait": True,
-            "IsPowerBet": False,
-            "Summ": stake,
-            "isAutoBet": True,
-            "autoBetCf": 0,
-            "TransformEventKind": True,
-            "autoBetCfView": 0,
-            "Source": 55,
-            "OneClickBet": 2,
-        }
-
-        try:
-            resp = await self._client.post(
-                "/LiveBet/Secure/MakeBetWeb", json=body, headers=headers
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        except httpx.HTTPStatusError as exc:
-            # The site's own error body (e.g. an invalid-market or invalid-
-            # coefficient message) is the one piece of evidence that
-            # distinguishes a bad request shape from a session/auth problem
-            # -- exc's default str() only carries the status code and URL,
-            # discarding exactly that. Surfaced here instead of only on
-            # success so a future non-2xx is self-diagnosing without needing
-            # a fresh manual capture.
-            return BetResult(
-                success=False,
-                reason=f"request failed: {exc} — response body: {exc.response.text!r}",
-            )
-        except Exception as exc:
-            return BetResult(success=False, reason=f"request failed: {exc}")
-
-        if not data.get("Success"):
-            reason = data.get("Error") or f"errorCode={data.get('ErrorCode')}"
-            return BetResult(success=False, reason=reason, odds=coef)
-
-        return BetResult(success=True, odds=coef)
-
     async def _current_odds(self, game_id: int, line: float | None, bet_type: int, group: int = TOTALS_GROUP) -> float | None:
-        resp = await self._client.get(
-            "/LiveFeed/GetGameZip", params={"id": game_id, "lng": "en"}
-        )
-        resp.raise_for_status()
-        detail = resp.json().get("Value")
+        detail = await self._get_game_zip(game_id)
         if not detail:
             return None
         for event in detail.get("E") or []:
@@ -376,3 +433,21 @@ class BetExecutor:
             ):
                 return event.get("C")
         return None
+
+    async def _get_game_zip(self, game_id: int) -> dict | None:
+        """See GETGAMEZIP_RETRY_ATTEMPTS above for why this retries on a
+        transport-level failure specifically, with a short exponential
+        backoff between attempts."""
+        last_exc: httpx.TransportError | None = None
+        for attempt in range(GETGAMEZIP_RETRY_ATTEMPTS):
+            try:
+                resp = await self._client.get(
+                    "/LiveFeed/GetGameZip", params={"id": game_id, "lng": "en"}
+                )
+                resp.raise_for_status()
+                return resp.json().get("Value")
+            except httpx.TransportError as exc:
+                last_exc = exc
+                if attempt < GETGAMEZIP_RETRY_ATTEMPTS - 1:
+                    await asyncio.sleep(GETGAMEZIP_RETRY_BASE_DELAY_SECONDS * (2**attempt))
+        raise last_exc

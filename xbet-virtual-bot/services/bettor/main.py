@@ -59,6 +59,11 @@ PATTERN3_NAME = "1st_half_winner_2x_streak"
 PATTERN4_NAME = "main_game_under_16.5_streak"
 PATTERN4_MIN_ODDS = 1.5
 PATTERN4_ODDS_POLL_INTERVAL_SECONDS = 5.0
+# Matches BetExecutor.place_bet()'s own default (see its docstring) --
+# named here anyway, alongside PATTERN4_MIN_ODDS/PATTERN4_ODDS_POLL_INTERVAL_SECONDS
+# above, so Pattern 4's actual wait budget is visible at its call sites
+# without needing to go read betting_api.py's default.
+PATTERN4_MAX_WAIT_SECONDS = 360.0
 
 
 def _market_label(period: int, over: bool, line: float) -> str:
@@ -151,6 +156,7 @@ async def run() -> None:
     log.info(
         f"starting Pattern 4 — half_threshold=9 required_count=3(of 4) "
         f"bet_line={config.pattern4_bet_line} min_odds={PATTERN4_MIN_ODDS} "
+        f"max_wait_seconds={PATTERN4_MAX_WAIT_SECONDS} "
         f"stake={config.pattern4_bet_stake_amount} "
         f"{'ENABLED' if config.pattern4_enabled else 'DISABLED (PATTERN4_ENABLED=false) — tracking only, will not bet'}"
     )
@@ -328,6 +334,7 @@ async def run() -> None:
                                     over=False,
                                     min_odds=PATTERN4_MIN_ODDS,
                                     poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
+                                    max_wait_seconds=PATTERN4_MAX_WAIT_SECONDS,
                                     is_stale=lambda t=t: targets4.is_stale(t.match_id),
                                 ),
                             )
@@ -621,6 +628,7 @@ async def run() -> None:
                                             over=False,
                                             min_odds=PATTERN4_MIN_ODDS,
                                             poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
+                                            max_wait_seconds=PATTERN4_MAX_WAIT_SECONDS,
                                             is_stale=lambda t=t: targets4.is_stale(t.match_id),
                                         ),
                                     )
