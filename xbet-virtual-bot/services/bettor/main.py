@@ -34,7 +34,7 @@ from services.bettor.betting_api import (
     DOUBLE_CHANCE_1X_T,
     DOUBLE_CHANCE_GROUP,
 )
-from services.bettor.pattern import PatternTracker, RoundPairStreakTracker
+from services.bettor.pattern import PatternTracker, RoundPairStreakTracker, SecondHalfLiveConfirmTracker
 from services.bettor.session_watchdog import watchdog_loop
 from services.bettor.targeting import TargetTracker, mutual_exclusion_reason
 from shared.bus import EventBus
@@ -46,6 +46,7 @@ from shared.events import (
     MatchDiscovered,
     MatchFinished,
     MatchHalfTime,
+    MatchScoreChanged,
     MatchStarted,
     PatternArmed,
     PatternProgress,
@@ -64,6 +65,11 @@ PATTERN4_ODDS_POLL_INTERVAL_SECONDS = 5.0
 # above, so Pattern 4's actual wait budget is visible at its call sites
 # without needing to go read betting_api.py's default.
 PATTERN4_MAX_WAIT_SECONDS = 360.0
+PATTERN5_NAME = "live_half_pair_confirm_main_game_under"
+PATTERN5_HALF_THRESHOLD = 9
+PATTERN5_MIN_ODDS = 1.5
+PATTERN5_ODDS_POLL_INTERVAL_SECONDS = 5.0
+PATTERN5_MAX_WAIT_SECONDS = 360.0
 
 
 def _market_label(period: int, over: bool, line: float) -> str:
@@ -89,6 +95,10 @@ def _winner_condition_label(streak_length: int) -> str:
 
 def _pair_condition_label() -> str:
     return "2-round pair with >=3 of 4 half-totals >= 9"
+
+
+def _live_confirm_condition_label() -> str:
+    return "1 round with 1st half AND 2nd half totals both >= 9 (2nd half checked live)"
 
 
 async def run() -> None:
@@ -135,6 +145,12 @@ async def run() -> None:
     # requirement, not optional bookkeeping).
     pattern4_tasks: list[asyncio.Task] = []
 
+    tracker5 = SecondHalfLiveConfirmTracker(threshold=PATTERN5_HALF_THRESHOLD)
+    targets5 = TargetTracker(stale_statuses={"finished"})
+    placed_matches5: set[int] = set()
+    # Same odds-wait-can-span-a-match reasoning as Pattern 4 above.
+    pattern5_tasks: list[asyncio.Task] = []
+
     executor = BetExecutor(config.api_base, config.cdp_url, config.http_timeout_seconds)
 
     log.info(
@@ -155,10 +171,19 @@ async def run() -> None:
     )
     log.info(
         f"starting Pattern 4 — half_threshold=9 required_count=3(of 4) "
+        f"(fires live, mid-round, the instant 3 of 4 half-totals qualify) "
         f"bet_line={config.pattern4_bet_line} min_odds={PATTERN4_MIN_ODDS} "
         f"max_wait_seconds={PATTERN4_MAX_WAIT_SECONDS} "
         f"stake={config.pattern4_bet_stake_amount} "
         f"{'ENABLED' if config.pattern4_enabled else 'DISABLED (PATTERN4_ENABLED=false) — tracking only, will not bet'}"
+    )
+    log.info(
+        f"starting Pattern 5 — half_threshold={PATTERN5_HALF_THRESHOLD} "
+        f"(1st AND 2nd half, 2nd half checked live) "
+        f"bet_line={config.pattern5_bet_line} min_odds={PATTERN5_MIN_ODDS} "
+        f"max_wait_seconds={PATTERN5_MAX_WAIT_SECONDS} "
+        f"stake={config.pattern5_bet_stake_amount} "
+        f"{'ENABLED' if config.pattern5_enabled else 'DISABLED (PATTERN5_ENABLED=false) — tracking only, will not bet'}"
     )
     log.info(
         f"starting session watchdog — check_interval={config.auth_watchdog_check_interval_seconds:g}s "
@@ -181,6 +206,18 @@ async def run() -> None:
         exc = task.exception()
         if exc is not None:
             log.error(f"pattern4 placement task failed: {exc}")
+
+    def _log_pattern5_task_exception(task: asyncio.Task) -> None:
+        """Same reasoning as _log_pattern4_task_exception above."""
+        try:
+            pattern5_tasks.remove(task)
+        except ValueError:
+            pass
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            log.error(f"pattern5 placement task failed: {exc}")
 
     async def place(
         target: MatchDiscovered,
@@ -243,6 +280,156 @@ async def run() -> None:
                 config.channel_match_events,
                 BetFailed(match_id=target.match_id, reason=result.reason, market_label=market_label),
             )
+
+    async def handle_pattern4_result(fired4: bool | None, match_id: int) -> None:
+        """Pattern 4's fire/no-event/pending three-way result (see
+        RoundPairStreakTracker's docstring) can now arrive from any of
+        three call sites -- MatchHalfTime, MatchScoreChanged, or
+        MatchFinished -- since the tracker can fire mid-round instead of
+        only at MatchFinished, so the ARMED/PatternProgress handling
+        lives here once instead of being duplicated at each one. Mirrors
+        handle_pattern5_result's shape."""
+        if fired4 is None:
+            return
+        if not fired4:
+            await bus.publish(
+                config.channel_match_events,
+                PatternProgress(
+                    match_id=match_id,
+                    pattern_name=PATTERN4_NAME,
+                    direction="pair_count",
+                    streak=tracker4.rounds_in_pair,
+                    streak_length=2,
+                    threshold=9,
+                    total=tracker4.last_qualifying_count,
+                    outcome=tracker4.last_outcome,
+                ),
+            )
+            return
+
+        if not config.pattern4_enabled:
+            log.warning(
+                f"PATTERN 4 ARMED — pair values {tracker4.last_pair_values} "
+                "— but PATTERN4_ENABLED=false, suppressing bet placement"
+            )
+            return
+
+        log.info(f"PATTERN 4 ARMED — pair values {tracker4.last_pair_values}")
+        await bus.publish(
+            config.channel_match_events,
+            PatternArmed(
+                pattern_name=PATTERN4_NAME,
+                qualifying_totals=list(tracker4.last_pair_values),
+                market_label=_market_label(0, False, config.pattern4_bet_line),
+                condition_label=_pair_condition_label(),
+            ),
+        )
+        target4 = targets4.arm()
+        if target4 is None:
+            log.info(f"PATTERN 4 fired but no target yet — {targets4.debug_state()}")
+            return
+
+        task = asyncio.create_task(
+            place(
+                target4,
+                targets=targets4,
+                other_patterns=[],
+                placed_matches=placed_matches4,
+                market_label=_market_label(0, False, config.pattern4_bet_line),
+                stale_period_label="match end",
+                line=config.pattern4_bet_line,
+                stake=config.pattern4_bet_stake_amount,
+                place_call=lambda t=target4: executor.place_bet(
+                    match_id=t.match_id,
+                    home=t.home,
+                    away=t.away,
+                    stake=config.pattern4_bet_stake_amount,
+                    line=config.pattern4_bet_line,
+                    period=0,
+                    over=False,
+                    min_odds=PATTERN4_MIN_ODDS,
+                    poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
+                    max_wait_seconds=PATTERN4_MAX_WAIT_SECONDS,
+                    is_stale=lambda t=t: targets4.is_stale(t.match_id),
+                ),
+            )
+        )
+        pattern4_tasks.append(task)
+        task.add_done_callback(_log_pattern4_task_exception)
+
+    async def handle_pattern5_result(fired5: bool | None, match_id: int) -> None:
+        """Pattern 5's fire/no-event/pending three-way result (see
+        SecondHalfLiveConfirmTracker's docstring) can arrive from any of
+        three call sites -- MatchHalfTime, MatchScoreChanged, or
+        MatchFinished -- so the ARMED/PatternProgress handling lives here
+        once instead of being duplicated at each one."""
+        if fired5 is None:
+            return
+        if not fired5:
+            await bus.publish(
+                config.channel_match_events,
+                PatternProgress(
+                    match_id=match_id,
+                    pattern_name=PATTERN5_NAME,
+                    direction="at_or_over",
+                    streak=tracker5.streak,
+                    streak_length=1,
+                    threshold=PATTERN5_HALF_THRESHOLD,
+                    total=tracker5.last_total,
+                    outcome=tracker5.last_outcome,
+                ),
+            )
+            return
+
+        if not config.pattern5_enabled:
+            log.warning(
+                f"PATTERN 5 ARMED — total {tracker5.last_total} "
+                "— but PATTERN5_ENABLED=false, suppressing bet placement"
+            )
+            return
+
+        log.info(f"PATTERN 5 ARMED — total {tracker5.last_total}")
+        await bus.publish(
+            config.channel_match_events,
+            PatternArmed(
+                pattern_name=PATTERN5_NAME,
+                qualifying_totals=[tracker5.last_total] if tracker5.last_total is not None else [],
+                market_label=_market_label(0, False, config.pattern5_bet_line),
+                condition_label=_live_confirm_condition_label(),
+            ),
+        )
+        target5 = targets5.arm()
+        if target5 is None:
+            log.info(f"PATTERN 5 fired but no target yet — {targets5.debug_state()}")
+            return
+
+        task = asyncio.create_task(
+            place(
+                target5,
+                targets=targets5,
+                other_patterns=[],
+                placed_matches=placed_matches5,
+                market_label=_market_label(0, False, config.pattern5_bet_line),
+                stale_period_label="match end",
+                line=config.pattern5_bet_line,
+                stake=config.pattern5_bet_stake_amount,
+                place_call=lambda t=target5: executor.place_bet(
+                    match_id=t.match_id,
+                    home=t.home,
+                    away=t.away,
+                    stake=config.pattern5_bet_stake_amount,
+                    line=config.pattern5_bet_line,
+                    period=0,
+                    over=False,
+                    min_odds=PATTERN5_MIN_ODDS,
+                    poll_interval_seconds=PATTERN5_ODDS_POLL_INTERVAL_SECONDS,
+                    max_wait_seconds=PATTERN5_MAX_WAIT_SECONDS,
+                    is_stale=lambda t=t: targets5.is_stale(t.match_id),
+                ),
+            )
+        )
+        pattern5_tasks.append(task)
+        task.add_done_callback(_log_pattern5_task_exception)
 
     async def consume() -> None:
         async for event in bus.subscribe_match_events(config.channel_match_events):
@@ -341,16 +528,47 @@ async def run() -> None:
                         )
                         pattern4_tasks.append(task)
                         task.add_done_callback(_log_pattern4_task_exception)
+                    target5 = targets5.on_discovered(event)
+                    if target5 is not None and config.pattern5_enabled:
+                        task = asyncio.create_task(
+                            place(
+                                target5,
+                                targets=targets5,
+                                other_patterns=[],
+                                placed_matches=placed_matches5,
+                                market_label=_market_label(0, False, config.pattern5_bet_line),
+                                stale_period_label="match end",
+                                line=config.pattern5_bet_line,
+                                stake=config.pattern5_bet_stake_amount,
+                                place_call=lambda t=target5: executor.place_bet(
+                                    match_id=t.match_id,
+                                    home=t.home,
+                                    away=t.away,
+                                    stake=config.pattern5_bet_stake_amount,
+                                    line=config.pattern5_bet_line,
+                                    period=0,
+                                    over=False,
+                                    min_odds=PATTERN5_MIN_ODDS,
+                                    poll_interval_seconds=PATTERN5_ODDS_POLL_INTERVAL_SECONDS,
+                                    max_wait_seconds=PATTERN5_MAX_WAIT_SECONDS,
+                                    is_stale=lambda t=t: targets5.is_stale(t.match_id),
+                                ),
+                            )
+                        )
+                        pattern5_tasks.append(task)
+                        task.add_done_callback(_log_pattern5_task_exception)
                 elif isinstance(event, MatchStarted):
                     targets.on_started(event.match_id)
                     targets2.on_started(event.match_id)
                     targets3.on_started(event.match_id)
                     targets4.on_started(event.match_id)
+                    targets5.on_started(event.match_id)
                 elif isinstance(event, MatchHalfTime):
                     targets.on_half_time(event.match_id)
                     targets2.on_half_time(event.match_id)
                     targets3.on_half_time(event.match_id)
                     targets4.on_half_time(event.match_id)
+                    targets5.on_half_time(event.match_id)
 
                     first_half_total = event.first_half.home_goals + event.first_half.away_goals
                     winner_1h = double_chance_winner(event.first_half.home_goals, event.first_half.away_goals)
@@ -489,11 +707,28 @@ async def run() -> None:
                                 outcome=tracker3.last_outcome,
                             ),
                         )
+
+                    fired4 = tracker4.on_half_time(event.match_id, first_half_total)
+                    await handle_pattern4_result(fired4, event.match_id)
+
+                    fired5 = tracker5.on_half_time(event.match_id, first_half_total)
+                    await handle_pattern5_result(fired5, event.match_id)
+                elif isinstance(event, MatchScoreChanged):
+                    fired4 = tracker4.on_score_changed(
+                        event.match_id, event.period_label, event.home_goals, event.away_goals
+                    )
+                    await handle_pattern4_result(fired4, event.match_id)
+
+                    fired5 = tracker5.on_score_changed(
+                        event.match_id, event.period_label, event.home_goals, event.away_goals
+                    )
+                    await handle_pattern5_result(fired5, event.match_id)
                 elif isinstance(event, MatchFinished):
                     targets.on_finished(event.match_id)
                     targets2.on_finished(event.match_id)
                     targets3.on_finished(event.match_id)
                     targets4.on_finished(event.match_id)
+                    targets5.on_finished(event.match_id)
 
                     second_half_total = (
                         None if event.second_half is None
@@ -588,69 +823,31 @@ async def run() -> None:
                             ),
                         )
 
-                    fired4 = tracker4.process(first_half_total, second_half_total)
-                    if fired4:
-                        if not config.pattern4_enabled:
-                            log.warning(
-                                f"PATTERN 4 ARMED — pair values {tracker4.last_pair_values} "
-                                "— but PATTERN4_ENABLED=false, suppressing bet placement"
-                            )
-                        else:
-                            log.info(f"PATTERN 4 ARMED — pair values {tracker4.last_pair_values}")
-                            await bus.publish(
-                                config.channel_match_events,
-                                PatternArmed(
-                                    pattern_name=PATTERN4_NAME,
-                                    qualifying_totals=list(tracker4.last_pair_values),
-                                    market_label=_market_label(0, False, config.pattern4_bet_line),
-                                    condition_label=_pair_condition_label(),
-                                ),
-                            )
-                            target4 = targets4.arm()
-                            if target4 is not None:
-                                task = asyncio.create_task(
-                                    place(
-                                        target4,
-                                        targets=targets4,
-                                        other_patterns=[],
-                                        placed_matches=placed_matches4,
-                                        market_label=_market_label(0, False, config.pattern4_bet_line),
-                                        stale_period_label="match end",
-                                        line=config.pattern4_bet_line,
-                                        stake=config.pattern4_bet_stake_amount,
-                                        place_call=lambda t=target4: executor.place_bet(
-                                            match_id=t.match_id,
-                                            home=t.home,
-                                            away=t.away,
-                                            stake=config.pattern4_bet_stake_amount,
-                                            line=config.pattern4_bet_line,
-                                            period=0,
-                                            over=False,
-                                            min_odds=PATTERN4_MIN_ODDS,
-                                            poll_interval_seconds=PATTERN4_ODDS_POLL_INTERVAL_SECONDS,
-                                            max_wait_seconds=PATTERN4_MAX_WAIT_SECONDS,
-                                            is_stale=lambda t=t: targets4.is_stale(t.match_id),
-                                        ),
-                                    )
-                                )
-                                pattern4_tasks.append(task)
-                                task.add_done_callback(_log_pattern4_task_exception)
-                            else:
-                                log.info(f"PATTERN 4 fired but no target yet — {targets4.debug_state()}")
-                    else:
+                    # Safety net only -- on_half_time/on_score_changed have
+                    # already resolved this round's slots unless a live
+                    # update was missed (see RoundPairStreakTracker's
+                    # docstring).
+                    fired4 = tracker4.on_finished(event.match_id, first_half_total, second_half_total)
+                    await handle_pattern4_result(fired4, event.match_id)
+
+                    if event.match_id in placed_matches5:
                         await bus.publish(
                             config.channel_match_events,
-                            PatternProgress(
+                            BetSettled(
                                 match_id=event.match_id,
-                                pattern_name=PATTERN4_NAME,
-                                direction="pair_count",
-                                streak=tracker4.rounds_in_pair,
-                                streak_length=2,
-                                threshold=9,
-                                total=tracker4.last_qualifying_count,
-                                outcome=tracker4.last_outcome,
+                                home=event.home,
+                                away=event.away,
+                                won=event.total_goals < config.pattern5_bet_line,
+                                period_total=event.total_goals,
+                                market_label=_market_label(0, False, config.pattern5_bet_line),
                             ),
                         )
+
+                    # Safety net only -- on_half_time/on_score_changed have
+                    # already resolved this round unless a live update was
+                    # missed (see SecondHalfLiveConfirmTracker's docstring).
+                    fired5 = tracker5.on_finished(event.match_id, first_half_total, second_half_total)
+                    await handle_pattern5_result(fired5, event.match_id)
             except Exception as err:  # noqa: BLE001 — one bad event must not kill the subscription
                 log.error(f"failed to process {event.kind}: {err}")
 
@@ -682,6 +879,9 @@ async def run() -> None:
     if watchdog_task is not None:
         watchdog_task.cancel()
     for task in pattern4_tasks:
+        if not task.done():
+            task.cancel()
+    for task in pattern5_tasks:
         if not task.done():
             task.cancel()
     await executor.aclose()

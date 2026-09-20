@@ -16,9 +16,22 @@ This same module also holds `RoundPairStreakTracker`, below, for Pattern 4
 groups rounds into pairs and counts qualifying values across both halves
 of each pair, rather than a single scalar per round) that doesn't fit
 `PatternTracker`'s per-round model, so it's a separate class rather than
-a fourth `direction`. See docs/superpowers/plans/2026-09-16-main-game-
-under-16.5-pair-streak-pattern.md and that class's own docstring for its
-exact mechanics.
+a fourth `direction`. Like `SecondHalfLiveConfirmTracker` below, it isn't
+fed one already-known value per round either -- each of the pair's up to
+4 half-totals is fed the moment it's known (1st half at half-time, 2nd
+half live during the 2nd half or as a safety net at full time), and it
+fires the instant the running qualifying count hits `required_count`,
+which can happen mid-round. See docs/superpowers/plans/2026-09-16-main-
+game-under-16.5-pair-streak-pattern.md and that class's own docstring for
+its exact mechanics.
+
+Also holds `SecondHalfLiveConfirmTracker`, below, for Pattern 5 ("Main
+Game Under" on a single round whose 1st-half AND 2nd-half totals are
+BOTH >= a threshold) -- unlike every tracker above, it isn't fed one
+already-known value per round; it's fed a live, still-changing goal
+stream during the 2nd half and decides mid-round, the moment both halves
+have independently reached the threshold, instead of waiting for the
+round to finish. See that class's own docstring for the exact mechanics.
 
 Life cycle: `streak_length` consecutive qualifying rounds fire the pattern
 (bet on the *next* round). "Qualifying" depends on `direction`:
@@ -108,84 +121,311 @@ class PatternTracker:
 @dataclass
 class RoundPairStreakTracker:
     """Pattern 4's counter — fires when >= required_count of the 4
-    (1st-half-total, 2nd-half-total) values across 2 consecutive finished
-    rounds are >= half_threshold. See docs/superpowers/specs/2026-09-16-
-    main-game-under-16.5-pair-streak-pattern-design.md for the full
-    rationale; this class only encodes the mechanics.
+    (1st-half-total, 2nd-half-total) values across 2 consecutive rounds
+    are >= half_threshold. See docs/superpowers/specs/2026-09-16-
+    main-game-under-16.5-pair-streak-pattern-design.md for the original
+    rationale; this class encodes the mechanics, now live.
 
     Doesn't fit PatternTracker's shape as a parameterization:
     PatternTracker.process() takes one scalar and asks "does it
     individually qualify," accumulating a streak of *consecutive*
-    qualifying rounds. This tracker instead buffers exactly 2 rounds'
+    qualifying rounds. This tracker instead buffers up to 2 rounds'
     worth of *raw values* and evaluates a *count threshold* across all 4
     at once -- a genuinely different shape, not a different direction.
 
-    Non-overlapping pairs: after 2 rounds are evaluated (fire or not),
-    the pair buffer clears and a fresh pair starts counting from the
-    very next round. On fire, the round immediately following is
+    Unlike a batch-fed tracker, this one isn't handed a round's two
+    half-totals together once the round is done. Each of the pair's up
+    to 4 slots is fed the moment it's individually known -- a round's
+    1st half at MatchHalfTime, its 2nd half either live during the 2nd
+    half (the moment the running total first reaches half_threshold, via
+    on_score_changed) or, if that never happens, as a safety net at
+    MatchFinished (on_finished) -- and the qualifying count is
+    rechecked after every single slot. The pattern fires the instant
+    that count reaches required_count, which can happen before all 4
+    slots are known: e.g. a pair whose first round already qualified on
+    both halves fires the moment the second round's 1st half alone also
+    qualifies, without waiting for that round's 2nd half to even start;
+    or, if only 2 of the first 3 known values qualify, fires mid-2nd-half
+    the instant the live-running total crosses half_threshold, without
+    waiting for MatchFinished. `on_score_changed`'s live-running total
+    is derived the same way SecondHalfLiveConfirmTracker's is: cumulative
+    goals at this moment minus the 1st-half baseline recorded at
+    MatchHalfTime (MatchScoreChanged carries cumulative goals, not a
+    half-scoped count).
+
+    Non-overlapping pairs: after a pair's 4 slots are known (fire or
+    not), the pair buffer clears and a fresh pair starts counting from
+    the very next round's 1st half. On fire, the round immediately
+    following the one that supplied the fire's last qualifying slot is
     skipped entirely (not added to the next pair) before counting
     resumes -- same fire -> skip-one-round -> restart life cycle
-    PatternTracker already has. A round with either half's total unknown
-    (None) resets the pair buffer without counting, the same
-    conservative stance PatternTracker takes for a None total.
+    PatternTracker already has, unchanged by fires now being able to
+    happen mid-round. A round whose 1st- or 2nd-half total is unknown
+    (None) resets the whole pending pair, the same conservative stance
+    PatternTracker takes for a None total.
 
     `last_qualifying_count`/`last_outcome`/`rounds_in_pair` are read-only
-    reporting of what the most recent process() call did -- they don't
-    change process()'s behavior or its bool return contract. On a
-    "skipped" outcome, last_qualifying_count is left at its previous
-    value (the just-completed pair's count) rather than recomputed --
-    there's no meaningful qualifying-count for a single skipped round in
-    this pair-based rule.
+    reporting of what the most recent on_half_time/on_score_changed/
+    on_finished call did -- they don't change that call's return
+    contract. On a "skipped" outcome, last_qualifying_count is left at
+    its previous value (the just-fired pair's count) rather than
+    recomputed -- there's no meaningful qualifying-count for a single
+    skipped round in this pair-based rule.
+
+    `on_half_time`/`on_score_changed`/`on_finished` each return `True`
+    the moment a pair is confirmed to fire (bet the *next* round),
+    `False` if this call conclusively resolved something without firing
+    (a None-total reset, a skip consumed, or a pair completing its 4th
+    slot without reaching required_count), and `None` if this call
+    didn't change anything reportable -- a 2nd-half score change that
+    hasn't yet reached half_threshold, one for a round whose own
+    MatchHalfTime hasn't arrived yet, a 1st-half score change (never
+    watched), or a round already resolved by an earlier call.
     """
 
     half_threshold: int = 9
     required_count: int = 3
 
-    _pending: list[tuple[int, int]] = field(default_factory=list, init=False, repr=False)
+    _pair_match_ids: list[int] = field(default_factory=list, init=False, repr=False)
+    _pair_h1: dict[int, int] = field(default_factory=dict, init=False, repr=False)
+    _pair_h2: dict[int, int] = field(default_factory=dict, init=False, repr=False)
+    _live_baseline: dict[int, int] = field(default_factory=dict, init=False, repr=False)
+    _resolved: set[int] = field(default_factory=set, init=False, repr=False)
     _skip_next: bool = field(default=False, init=False, repr=False)
+
     last_pair_values: list[int] = field(default_factory=list, init=False)
     last_qualifying_count: int = field(default=0, init=False)
     last_outcome: Literal["counting", "reset", "skipped", "armed"] | None = field(default=None, init=False)
 
     @property
     def rounds_in_pair(self) -> int:
-        """0 or 1 -- how many rounds of the current pair have been
-        counted so far. Reads as 0 right after a reset, a skip, or a
-        fire (the fire's own pair is in last_pair_values, not here)."""
-        return len(self._pending)
+        """0 or 1 -- how many rounds of the current pair have at least
+        their 1st half recorded so far. Reads as 0 right after a reset,
+        a skip, or a fire (the fire's own pair is in last_pair_values,
+        not here)."""
+        return len(self._pair_match_ids)
 
-    def process(self, first_half_total: int | None, second_half_total: int | None) -> bool:
-        """Feed one more finished round's two half-totals, in finish
-        order. Returns True the moment this round completes a pair that
-        meets required_count -- the caller should bet on the *next*
-        round when this returns True."""
+    def _pair_values(self) -> list[int]:
+        values: list[int] = []
+        for match_id in self._pair_match_ids:
+            if match_id in self._pair_h1:
+                values.append(self._pair_h1[match_id])
+            if match_id in self._pair_h2:
+                values.append(self._pair_h2[match_id])
+        return values
+
+    def _reset_pair(self) -> None:
+        self._pair_match_ids = []
+        self._pair_h1 = {}
+        self._pair_h2 = {}
+
+    def _check_and_fire(self) -> bool:
+        values = self._pair_values()
+        qualifying = sum(1 for v in values if v >= self.half_threshold)
+        self.last_pair_values = values
+        self.last_qualifying_count = qualifying
+        if qualifying >= self.required_count:
+            self._reset_pair()
+            self._skip_next = True
+            self.last_outcome = "armed"
+            return True
+        return False
+
+    def _record_h2(self, match_id: int, value: int) -> bool:
+        self._pair_h2[match_id] = value
+        self._live_baseline.pop(match_id, None)
+        self._resolved.add(match_id)
+
+        if self._check_and_fire():
+            return True
+        if len(self._pair_values()) >= 4:
+            self._reset_pair()
+            self.last_outcome = "reset"
+        else:
+            self.last_outcome = "counting"
+        return False
+
+    def on_half_time(self, match_id: int, first_half_total: int | None) -> bool | None:
+        """Feed a round's 1st-half total the moment it's known. Records
+        it as the pair's next slot and checks immediately whether that
+        alone is enough to fire -- returns True without waiting for this
+        round's own 2nd half if so."""
         if self._skip_next:
             self._skip_next = False
+            self._resolved.add(match_id)
             self.last_outcome = "skipped"
             return False
 
-        if first_half_total is None or second_half_total is None:
-            self._pending = []
+        if match_id in self._resolved:
+            return None
+
+        if first_half_total is None:
+            self._reset_pair()
+            self._resolved.add(match_id)
             self.last_qualifying_count = 0
             self.last_outcome = "reset"
             return False
 
-        self._pending.append((first_half_total, second_half_total))
-        if len(self._pending) < 2:
-            self.last_qualifying_count = sum(
-                1 for pair in self._pending for v in pair if v >= self.half_threshold
-            )
-            self.last_outcome = "counting"
+        self._pair_match_ids.append(match_id)
+        self._pair_h1[match_id] = first_half_total
+
+        if self._check_and_fire():
+            self._resolved.add(match_id)
+            return True
+
+        self._live_baseline[match_id] = first_half_total
+        self.last_outcome = "counting"
+        return False
+
+    def on_score_changed(
+        self, match_id: int, period_label: str, home_goals: int, away_goals: int
+    ) -> bool | None:
+        """Feed a live goal update. Only acts while this round's 1st
+        half is already recorded and it's currently in its 2nd half --
+        the moment the derived 2nd-half-so-far count first reaches
+        half_threshold, that slot resolves right there, mid-round."""
+        if match_id in self._resolved or period_label != "2nd half":
+            return None
+        baseline = self._live_baseline.get(match_id)
+        if baseline is None:
+            return None
+        running = (home_goals + away_goals) - baseline
+        if running < self.half_threshold:
+            return None
+        return self._record_h2(match_id, running)
+
+    def on_finished(
+        self, match_id: int, first_half_total: int | None, second_half_total: int | None
+    ) -> bool | None:
+        """Safety net: resolves this round's 1st half (if MatchHalfTime
+        was somehow never seen for it) and/or 2nd half (if no live score
+        change ever crossed half_threshold) using the final settled
+        totals. A no-op for a round already resolved -- fired, skipped,
+        reset, or resolved live."""
+        if match_id in self._resolved:
+            return None
+
+        if match_id not in self._pair_h1:
+            if first_half_total is None:
+                self._reset_pair()
+                self._resolved.add(match_id)
+                self.last_qualifying_count = 0
+                self.last_outcome = "reset"
+                return False
+            self._pair_match_ids.append(match_id)
+            self._pair_h1[match_id] = first_half_total
+
+        if second_half_total is None:
+            self._reset_pair()
+            self._live_baseline.pop(match_id, None)
+            self._resolved.add(match_id)
+            self.last_qualifying_count = 0
+            self.last_outcome = "reset"
             return False
 
-        values = [v for pair in self._pending for v in pair]
-        qualifying = sum(1 for v in values if v >= self.half_threshold)
-        self.last_pair_values = values
-        self.last_qualifying_count = qualifying
-        self._pending = []
-        if qualifying >= self.required_count:
-            self._skip_next = True
-            self.last_outcome = "armed"
-            return True
-        self.last_outcome = "reset"
-        return False
+        return self._record_h2(match_id, second_half_total)
+
+
+@dataclass
+class SecondHalfLiveConfirmTracker:
+    """Pattern 5's counter -- fires when a single round's 1st-half total
+    AND 2nd-half total are BOTH >= threshold, checked live during the 2nd
+    half so a qualifying round can fire mid-round instead of waiting for
+    MatchFinished.
+
+    This is an AND across the two halves of *one* round -- not
+    RoundPairStreakTracker's shape (a count across two consecutive
+    rounds). The 1st half's total is only knowable once, at half-time, so
+    it's only ever checked there: if it's already < threshold at that
+    point the round is dead -- it can never qualify no matter what the
+    2nd half does -- and this stops watching it. Only when the 1st half
+    is already >= threshold does the 2nd half's live, still-climbing goal
+    count get watched at all. shared.events.MatchScoreChanged carries the
+    match's running *cumulative* goals plus which half is in progress,
+    not a half-scoped count, so the 2nd-half-so-far count is derived as
+    (cumulative goals at this moment) - (the 1st-half baseline recorded
+    off MatchHalfTime). The instant that derived count first reaches
+    threshold, the round fires right there -- it does not wait for that
+    2nd half, or the round, to actually finish playing out.
+
+    Reuses PatternTracker internally for the fire -> skip-one-round ->
+    restart life cycle (streak_length is fixed at 1: this pattern's own
+    definition is "1 round" qualifying, not a run of several) -- what
+    differs here is only *when* a round's qualifying decision is made;
+    it's fed into that inner tracker exactly once per round, in round
+    order, the same contract PatternTracker itself already requires.
+
+    `on_half_time`/`on_score_changed`/`on_finished` each return `True` the
+    moment this round is confirmed to fire (bet the *next* round), `False`
+    if this round was just conclusively resolved without firing (dead at
+    half-time, a reset at full time, or a skip consumed), and `None` if
+    this call didn't change anything reportable -- still pending on the
+    2nd half, a 2nd-half score change for a round whose own MatchHalfTime
+    hasn't arrived yet (the aggregator can emit those in that order for
+    the same snapshot -- see MatchStateMachine.process()), a 1st-half
+    score change (never watched -- only MatchHalfTime settles the 1st
+    half), or a round already resolved by an earlier call.
+    """
+
+    threshold: int = 9
+
+    _inner: PatternTracker = field(init=False, repr=False)
+    _pending_baseline: dict[int, int] = field(default_factory=dict, init=False, repr=False)
+    _resolved: set[int] = field(default_factory=set, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self._inner = PatternTracker(threshold=self.threshold, streak_length=1, direction="at_or_over")
+
+    @property
+    def streak(self) -> int:
+        return self._inner.streak
+
+    @property
+    def last_total(self) -> int | str | None:
+        return self._inner.last_total
+
+    @property
+    def last_outcome(self) -> PatternOutcome | None:
+        return self._inner.last_outcome
+
+    def _resolve(self, match_id: int, total: int | None) -> bool:
+        self._resolved.add(match_id)
+        self._pending_baseline.pop(match_id, None)
+        return self._inner.process(total)
+
+    def on_half_time(self, match_id: int, first_half_total: int | None) -> bool | None:
+        """Feed a round's 1st-half total the moment it's known. Resolves
+        the round immediately (dead) if it's below threshold; otherwise
+        leaves it pending on the 2nd half."""
+        if match_id in self._resolved:
+            return None
+        if first_half_total is None or first_half_total < self.threshold:
+            return self._resolve(match_id, first_half_total)
+        self._pending_baseline[match_id] = first_half_total
+        return None
+
+    def on_score_changed(
+        self, match_id: int, period_label: str, home_goals: int, away_goals: int
+    ) -> bool | None:
+        """Feed a live goal update. Only acts while this round is pending
+        (1st half already >= threshold) and currently in its 2nd half."""
+        if match_id in self._resolved or period_label != "2nd half":
+            return None
+        baseline = self._pending_baseline.get(match_id)
+        if baseline is None:
+            return None
+        running = (home_goals + away_goals) - baseline
+        if running < self.threshold:
+            return None
+        return self._resolve(match_id, running)
+
+    def on_finished(
+        self, match_id: int, first_half_total: int | None, second_half_total: int | None
+    ) -> bool | None:
+        """Safety net: resolves any round the live path never got to --
+        e.g. a missed MatchScoreChanged -- using the final settled
+        totals. A no-op for a round already resolved live."""
+        if match_id in self._resolved:
+            return None
+        value = first_half_total if (first_half_total is None or first_half_total < self.threshold) else second_half_total
+        return self._resolve(match_id, value)

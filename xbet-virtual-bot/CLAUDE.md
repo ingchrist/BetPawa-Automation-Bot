@@ -1,4 +1,4 @@
-# CLAUDE.md — Betting patterns on 1xbet virtual 3x3 FIFA (3 patterns + automatic session recovery, all live)
+# CLAUDE.md — Betting patterns on 1xbet virtual 3x3 FIFA (5 patterns + automatic session recovery, all live)
 
 This file exists so a fresh session can pick up this feature without
 re-deriving context. It is scoped to this feature, not a general project
@@ -6,7 +6,7 @@ guide — see `README.md` for the bot's overall architecture
 (collector/aggregator/bettor/display, event bus, config conventions).
 
 **If you're picking this up cold: read this file fully before touching
-anything.** This feature places real money automatically. Three betting
+anything.** This feature places real money automatically. Five betting
 patterns and automatic session recovery are all implemented and live.
 Check `./run.sh status` and `tail logs/bettor.log` before assuming
 anything about current live state, since both go stale the moment anyone
@@ -28,6 +28,41 @@ finishes.
   where a Double-Chance-1X win via a draw was being misreported as a
   loss) — see `.superpowers/sdd/2026-09-13-first-half-winner-2x-streak-pattern-bettor/progress.md`
   if you need that history; it's no longer active work.
+- **Pattern 4** — "Main Game Under 16.5" pair streak (Totals market,
+  `period=0`/raw `match_id`, not a half-scoped sub-game id). Watches **2
+  consecutive rounds'** 1st-half + 2nd-half totals (4 values); fires when
+  >= 3 of those 4 are >= 9. Odds-gated placement (unique among Patterns
+  1-3): waits for live odds >= 1.5 before submitting, runs as a
+  background task since that wait can span a whole match. No mutual
+  exclusion with Patterns 1-3 (different market). Live since around
+  2026-09-16/17, `PATTERN4_ENABLED=true` by default. (This bullet was
+  missing from this file until 2026-09-20 despite already being live —
+  README's "Pattern 4" section stayed the maintained reference
+  throughout.) **Made live on 2026-09-20** (same day, follow-up change):
+  originally batch-evaluated the pair's 4 values only at the second
+  round's `MatchFinished`; now each of the 4 slots is fed the moment it's
+  individually known (1st half at `MatchHalfTime`, 2nd half live via
+  `MatchScoreChanged` using the same cumulative-minus-baseline technique
+  as Pattern 5, or as a `MatchFinished` safety net if it never crosses
+  live) and the pattern fires the instant the running qualifying count
+  hits 3 — which can now be mid-round, before a round (or even the pair)
+  has actually finished. See `RoundPairStreakTracker`'s docstring in
+  `services/bettor/pattern.py` for the exact mechanics.
+- **Pattern 5** — "Live Half-Pair Confirm" Main Game Under (same Totals
+  market/line as Pattern 4, `period=0`). Watches a **single round's**
+  1st-half total AND 2nd-half total — both must be >= 9 (an AND across
+  one round's two halves, not Pattern 4's across-two-rounds count). The
+  1st half is only checked once, at `MatchHalfTime` — below 9 there and
+  the round is dead, its 2nd half never watched. If the 1st half already
+  qualifies, the 2nd half's *live* running goal count is watched via
+  `MatchScoreChanged` and the round fires the instant that also reaches
+  9 — mid-round, not waiting for `MatchFinished`. Same odds-gated
+  (>=1.5) background-task placement as Pattern 4; no mutual exclusion
+  with any other pattern, including Pattern 4 itself (they share the
+  same market). Shipped and gone live 2026-09-20,
+  `PATTERN5_ENABLED=true` by default. See
+  `services/bettor/pattern.py`'s `SecondHalfLiveConfirmTracker` and
+  README's "Pattern 5" section for the full mechanics.
 - **Automatic session recovery** — a background watchdog
   (`services/bettor/session_watchdog.py`) that detects when the
   browser's 1xbet.cm session has died and logs back in automatically, so
@@ -149,7 +184,7 @@ the last known build).
 
 ## Constraints that still apply
 
-- Bets go live from the first run for all three patterns — no dry-run
+- Bets go live from the first run for all five patterns — no dry-run
   gate (explicit prior product decision).
 - This is real money on the user's real account — treat every new *kind*
   of live action as needing explicit confirmation. The user has
