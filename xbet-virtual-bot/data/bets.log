@@ -1403,3 +1403,41 @@ PATTERN ARMED — Total. Main game Under 15.5 — streak [9]
 2026-09-20 13:15:48
 BET PLACED — 90 on Basel vs Lille OSC (match 754590066) Total. Main game Under 15.5 @ 1.70
 
+2026-09-20 13:35:28
+SETTLED — Basel vs Lille OSC: LOST (Total. Main game Under 15.5 total 17)
+
+2026-09-20 13:45:22
+PATTERN ARMED — Total. Main game Under 15.5 — streak [11, 6, 9, 9]
+
+2026-09-20 13:45:22
+PATTERN ARMED — Total. Main game Under 15.5 — streak [9]
+
+2026-09-20 13:45:31
+BET PLACED — 90 on Lille OSC vs Fenerbahce (match 754598994) Total. Main game Under 15.5 @ 1.64
+
+2026-09-20 13:45:31
+BET FAILED [Total. Main game Under 15.5] — match 754598994: The bet limit on this outcome has been reached. 
+Please try again later
+
+2026-09-20 14:03:43
+SETTLED — Lille OSC vs Fenerbahce: WON (Total. Main game Under 15.5 total 8)
+
+2026-09-20 15:29:50
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-20 15:36:05
+BET FAILED [Total. 1st half Over 6.5] — match 754629978: auth read failed: BrowserType.connect_over_cdp: 
+Timeout 180000ms exceeded.
+Call log:
+  - <ws preparing> retrieving websocket url from http://127.0.0.1:9222
+  - <ws connecting> ws://127.0.0.1:9222/devtools/browser/cb1b22b2-863e-49df-bfa5-82abfbc16410
+  - <ws connected> ws://127.0.0.1:9222/devtools/browser/cb1b22b2-863e-49df-bfa5-82abfbc16410
+
+
+2026-09-20 15:36:12
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [9, 12]
+
+2026-09-20 15:36:12
+BET FAILED [Total. 2nd half Under 7.5] — match 754629978: mutual exclusion: match 754629978 already targeted 
+by 1st_half_over_6.5_streak
+

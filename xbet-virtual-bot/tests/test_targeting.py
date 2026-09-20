@@ -129,6 +129,61 @@ def test_custom_stale_statuses_arm_targets_a_match_already_at_half_time():
     assert 13 in tracker.bet_targets
 
 
+def test_arm_targets_the_actual_next_round_not_a_later_announcement():
+    # Reproduces a live incident: Pattern 4/5 fire well after the real
+    # "next round" (20) has already kicked off, by which point the
+    # aggregator's soonest-upcoming announcement has already moved on to
+    # the round after that (21) -- see _update_upcoming_queue in
+    # services/aggregator/state.py, which re-announces the instant the
+    # previously-announced match stops being "upcoming". arm() must still
+    # resolve to 20 (the real next round, merely live, not stale for this
+    # tracker's definition), never to 21.
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(20, "Anderlecht", "Red Bull"))
+    tracker.on_started(20)  # real next round already kicked off live
+    tracker.on_discovered(_discovered(21, "Lille OSC", "Fenerbahce"))  # aggregator moved on
+
+    target = tracker.arm()
+    assert target is not None
+    assert target.match_id == 20
+    assert 20 in tracker.bet_targets
+    assert 21 not in tracker.bet_targets
+
+
+def test_arm_skips_a_stale_earlier_announcement_and_falls_through_to_the_next():
+    # If the real next round *did* go fully stale (finished) before arm()
+    # ran, it's genuinely too late for it -- arm() should fall through to
+    # the next still-viable announcement instead of pending forever.
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(30))
+    tracker.on_finished(30)  # genuinely too late, not just live
+    tracker.on_discovered(_discovered(31))
+
+    target = tracker.arm()
+    assert target is not None
+    assert target.match_id == 31
+
+
+def test_pending_arm_resolves_to_the_first_discovery_not_a_later_one():
+    tracker = TargetTracker(stale_statuses={"finished"})
+    target = tracker.arm()
+    assert target is None  # nothing known yet -- pending
+
+    # Pending resolves synchronously on the very next discovery -- it
+    # must not sit waiting for a second one to pile up behind it.
+    handed = tracker.on_discovered(_discovered(40))
+    assert handed is not None
+    assert handed.match_id == 40
+    assert 40 in tracker.bet_targets
+
+    tracker.on_started(40)
+    # A further-out match discovered afterward must not retarget or
+    # otherwise disturb the already-resolved match 40.
+    further = tracker.on_discovered(_discovered(41))
+    assert further is None
+    assert 41 not in tracker.bet_targets
+
+
 def test_mutual_exclusion_reason_none_when_match_not_claimed_by_other():
     assert mutual_exclusion_reason(1, "pattern2", set()) is None
     assert mutual_exclusion_reason(1, "pattern2", {2, 3}) is None
