@@ -157,6 +157,19 @@ def test_at_or_over_direction_progress_reporting():
     assert (tracker.streak, tracker.last_total, tracker.last_outcome) == (0, 2, "skipped")
 
 
+def test_pattern2_retuned_defaults_fire_on_two_consecutive_high_2nd_halves():
+    """Regression for the 2026-09-20 Pattern 2 retune (threshold 8->9,
+    streak_length 3->2). Replays a real observed sequence: Heart of
+    Midlothian vs Red Bull (2nd-half total 10) and Braga vs Borussia
+    Monchengladbach (2nd-half total 12) fire on the second round, betting
+    the next round -- which in the real sequence was Olympiacos vs
+    Villarreal, 2nd-half total 6 (an Under 7.5 win)."""
+    tracker = PatternTracker(threshold=9, streak_length=2, direction="at_or_over")
+    assert tracker.process(10) is False
+    assert tracker.process(12) is True
+    assert tracker.last_streak_totals == [10, 12]
+
+
 def test_at_or_under_direction_is_the_class_default():
     # PatternTracker()'s own generic defaults (streak_length=3, threshold=6,
     # direction="at_or_under") -- not necessarily Pattern 1's production

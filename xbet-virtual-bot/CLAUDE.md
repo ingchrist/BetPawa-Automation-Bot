@@ -20,7 +20,14 @@ finishes.
 - **Pattern 2** — "2nd Half Under 7.5" streak. Live, but currently
   **paused via `.env`'s `PATTERN2_ENABLED=false`** (set 2026-09-11 on
   request — keeps tracking/logging, does not bet; flip back to `true` or
-  delete the line to resume).
+  delete the line to resume). **Trigger retuned 2026-09-20**: now fires
+  on 2 consecutive finished rounds each with a 2nd-half total >= 9 (was
+  3 consecutive rounds each >= 8) — `PATTERN2_HIGH_THRESHOLD=9`,
+  `PATTERN2_STREAK_LENGTH=2` in `shared/config.py`/`.env.example`. Pure
+  config-value change; the underlying `PatternTracker` mechanics
+  (`direction="at_or_over"`, evaluated at each round's `MatchFinished`)
+  were already generic enough to express this rule — see README's
+  Pattern 2 section.
 - **Pattern 3** — "1st Half Winner 2X" streak (Double Chance market, not
   Totals). Shipped and gone live 2026-09-13, `PATTERN3_ENABLED=true` by
   default. Full 8-task SDD execution (including recovering from a

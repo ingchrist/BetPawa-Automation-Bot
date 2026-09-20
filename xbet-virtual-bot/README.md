@@ -283,8 +283,10 @@ correct by directly matching a live UI price against the raw feed — see
 The mirror image of Pattern 1, run as a second, independent pattern in
 the same `services/bettor/` process — no separate service, no separate
 CDP session. It watches every finished round's **2nd-half** combined
-goal total instead of the 1st-half's. 3 consecutive rounds at or above
-`PATTERN2_HIGH_THRESHOLD` (default 8) fire a real bet —
+goal total instead of the 1st-half's. 2 consecutive rounds at or above
+`PATTERN2_HIGH_THRESHOLD` (default 9, retuned 2026-09-20 from 3
+consecutive rounds at or above 8 — see `.env.example`'s Pattern 2
+section for the live-observed rationale) fire a real bet —
 `PATTERN2_BET_STAKE_AMOUNT` (default 90, FCFA, independently
 configurable from Pattern 1's stake) on the *next* round's `Total. 2nd
 half` market, `Under PATTERN2_BET_LINE` (default 7.5). Same fire → skip
