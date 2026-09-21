@@ -2,13 +2,13 @@ from shared.events import MatchDiscovered
 from services.bettor.targeting import TargetTracker, mutual_exclusion_reason
 
 
-def _discovered(match_id: int, home: str = "A", away: str = "B") -> MatchDiscovered:
+def _discovered(match_id: int, home: str = "A", away: str = "B", kickoff_ts: int = 0) -> MatchDiscovered:
     return MatchDiscovered(
         match_id=match_id,
         league_name="FC 25. 3x3. Conference League",
         home=home,
         away=away,
-        kickoff_ts=0,
+        kickoff_ts=kickoff_ts,
         starting_in_label="Starting in 1 minute",
     )
 
@@ -148,6 +148,39 @@ def test_arm_targets_the_actual_next_round_not_a_later_announcement():
     assert target.match_id == 20
     assert 20 in tracker.bet_targets
     assert 21 not in tracker.bet_targets
+
+
+def test_arm_prefers_the_earlier_kickoff_over_the_earlier_announcement():
+    # Reproduces the live incident on 2026-09-20 23:00:59: Braga vs
+    # Anderlecht was announced first (a wrong early kickoff estimate),
+    # then West Ham vs Lille OSC was announced as the actual sooner
+    # match -- but neither had kicked off yet at fire time, so a naive
+    # oldest-discovered-first FIFO picked the stale Braga announcement.
+    # arm() must pick West Ham (the earlier kickoff_ts), not Braga (the
+    # earlier discovery).
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(754743472, "Braga", "Anderlecht", kickoff_ts=2000))
+    tracker.on_discovered(_discovered(754741055, "West Ham United", "Lille OSC", kickoff_ts=1000))
+
+    target = tracker.arm()
+    assert target is not None
+    assert target.match_id == 754741055
+    assert 754741055 in tracker.bet_targets
+    assert 754743472 not in tracker.bet_targets
+
+
+def test_arm_still_prefers_an_already_started_match_over_an_earlier_kickoff_estimate():
+    # An already-started match is a fact, not an estimate -- it must
+    # outrank a still-upcoming match even if that upcoming match's
+    # kickoff_ts estimate looks earlier (a stale/overtaken estimate).
+    tracker = TargetTracker(stale_statuses={"finished"})
+    tracker.on_discovered(_discovered(50, "Started", "Match", kickoff_ts=5000))
+    tracker.on_started(50)
+    tracker.on_discovered(_discovered(51, "Upcoming", "Match", kickoff_ts=1000))
+
+    target = tracker.arm()
+    assert target is not None
+    assert target.match_id == 50
 
 
 def test_arm_skips_a_stale_earlier_announcement_and_falls_through_to_the_next():

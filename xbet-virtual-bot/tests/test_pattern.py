@@ -281,13 +281,39 @@ def test_pair_fires_live_mid_second_half_without_waiting_for_finish():
     assert tracker.last_qualifying_count == 3
 
 
-def test_pair_one_round_entirely_under_threshold_prevents_fire():
+def test_pair_one_round_entirely_under_threshold_resets_immediately():
+    # Round 1 fails both its own halves (0 of 2 qualify). With only 2
+    # slots left in the pair, required_count=3 is now mathematically
+    # unreachable -- the pair must reset right there instead of
+    # dragging the dead round into a wasted round 2.
     tracker = RoundPairStreakTracker()
     tracker.on_half_time(match_id=1, first_half_total=5)
     assert tracker.on_finished(match_id=1, first_half_total=5, second_half_total=5) is False  # 0 of 2 qualify
+    assert tracker.last_outcome == "reset"
+    assert tracker.last_pair_values == [5, 5]
+    assert tracker.rounds_in_pair == 0  # round 1 discarded, not carried forward
+
+    # round 2 starts a brand-new pair, unaffected by round 1's dead values
     tracker.on_half_time(match_id=2, first_half_total=10)
-    assert tracker.on_finished(match_id=2, first_half_total=10, second_half_total=12) is False  # values [5,5,10,12] -- only 2 of 4 qualify
-    assert tracker.last_pair_values == [5, 5, 10, 12]
+    assert tracker.on_finished(match_id=2, first_half_total=10, second_half_total=12) is False
+    assert tracker.last_pair_values == [10, 12]  # round 1 is gone, not [5, 5, 10, 12]
+
+
+def test_pair_second_known_failure_kills_it_before_the_fourth_slot():
+    # Round 1: 1st half fails (1 known failure) -- still alive, since the
+    # remaining 3 slots (this round's 2nd half + round 2's two halves)
+    # could still reach required_count=3.
+    tracker = RoundPairStreakTracker()
+    assert tracker.on_half_time(match_id=1, first_half_total=3) is False
+    assert tracker.last_outcome == "counting"
+    assert tracker.rounds_in_pair == 1
+
+    # Round 1's 2nd half also fails -- 2 known failures, only 2 slots
+    # left (round 2's two halves), one short of required_count=3. Dead:
+    # resets right at this call, without waiting for round 2 at all.
+    assert tracker.on_finished(match_id=1, first_half_total=3, second_half_total=4) is False
+    assert tracker.last_outcome == "reset"
+    assert tracker.rounds_in_pair == 0
 
 
 def test_pair_fires_when_the_fourth_value_is_needed_to_reach_three():

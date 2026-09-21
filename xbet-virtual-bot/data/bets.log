@@ -1441,3 +1441,142 @@ PATTERN ARMED — Total. 2nd half Under 7.5 — streak [9, 12]
 BET FAILED [Total. 2nd half Under 7.5] — match 754629978: mutual exclusion: match 754629978 already targeted 
 by 1st_half_over_6.5_streak
 
+2026-09-20 22:55:45
+PATTERN ARMED — Total. Main game Under 15.5 — streak [9]
+
+2026-09-20 22:55:46
+BET FAILED [Total. Main game Under 15.5] — match 754743472: auth read failed: no access_token cookie -- is the
+browser logged in?
+
+2026-09-20 23:00:59
+PATTERN ARMED — Total. Main game Under 15.5 — streak [10, 9, 10]
+
+2026-09-20 23:01:05
+BET PLACED — 90 on Braga vs Anderlecht (match 754743472) Total. Main game Under 15.5 @ 2.00
+
+2026-09-20 23:25:45
+SETTLED — Braga vs Anderlecht: LOST (Total. Main game Under 15.5 total 16)
+
+2026-09-21 00:18:52
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 2]
+
+2026-09-21 00:18:57
+BET PLACED — 90 on Borussia Monchengladbach vs Fiorentina (match 754753963) Total. 1st half Over 6.5 @ 1.49
+
+2026-09-21 00:29:38
+SETTLED — Borussia Monchengladbach vs Fiorentina: LOST (Total. 1st half Over 6.5 total 5)
+
+2026-09-21 00:55:20
+PATTERN ARMED — Total. Main game Under 15.5 — streak [9]
+
+2026-09-21 00:56:32
+BET FAILED [Total. Main game Under 15.5] — match 754757425: market closed before odds reached 1.5 (last seen: 
+None)
+
+2026-09-21 02:39:20
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 3]
+
+2026-09-21 02:39:43
+BET PLACED — 90 on Basel vs Celta (match 754775208) Total. 1st half Over 6.5 @ 1.54
+
+2026-09-21 02:49:58
+SETTLED — Basel vs Celta: LOST (Total. 1st half Over 6.5 total 6)
+
+2026-09-21 09:28:02
+PATTERN ARMED — Total. Main game Under 15.5 — streak [13]
+
+2026-09-21 09:28:04
+BET FAILED [Total. Main game Under 15.5] — match 754832420: auth read failed: no access_token cookie -- is the
+browser logged in?
+
+2026-09-21 09:45:03
+PATTERN ARMED — Total. Main game Under 15.5 — streak [9]
+
+2026-09-21 09:45:08
+BET PLACED — 90 on Nice vs Lille OSC (match 754833660) Total. Main game Under 15.5 @ 1.61
+
+2026-09-21 09:50:37
+PATTERN ARMED — Total. Main game Under 15.5 — streak [10, 9, 9]
+
+2026-09-21 09:50:45
+BET PLACED — 90 on Nice vs Lille OSC (match 754833660) Total. Main game Under 15.5 @ 2.17
+
+2026-09-21 09:57:46
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [10, 16]
+
+2026-09-21 09:57:50
+BET PLACED — 90 on Borussia Monchengladbach vs Heart of Midlothian (match 754836200) Total. 2nd half Under 7.5
+@ 2.03
+
+2026-09-21 09:57:50
+SETTLED — Nice vs Lille OSC: LOST (Total. Main game Under 15.5 total 25)
+
+2026-09-21 09:57:50
+SETTLED — Nice vs Lille OSC: LOST (Total. Main game Under 15.5 total 25)
+
+2026-09-21 10:06:11
+SETTLED — Borussia Monchengladbach vs Heart of Midlothian: LOST (Total. 2nd half Under 7.5 total 9)
+
+2026-09-21 10:40:02
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [3, 5]
+
+2026-09-21 10:40:08
+BET PLACED — 90 on Chelsea vs Red Bull (match 754845316) Total. 1st half Over 6.5 @ 1.63
+
+2026-09-21 10:49:34
+SETTLED — Chelsea vs Red Bull: LOST (Total. 1st half Over 6.5 total 3)
+
+2026-09-21 11:05:42
+PATTERN ARMED — Total. Main game Under 16.5 — streak [9]
+
+2026-09-21 11:06:45
+BET FAILED [Total. Main game Under 16.5] — match 754846143: market closed before odds reached 1.5 (last seen: 
+None)
+
+2026-09-21 11:19:44
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [5, 4]
+
+2026-09-21 11:20:03
+BET FAILED [Total. 1st half Over 6.5] — match 754851784: Not enough funds in the account
+
+2026-09-21 11:45:08
+PATTERN ARMED — Total. Main game Under 16.5 — streak [9]
+
+2026-09-21 11:46:50
+BET FAILED [Total. Main game Under 16.5] — match 754853521: market closed before odds reached 1.5 (last seen: 
+None)
+
+2026-09-21 11:54:42
+PATTERN ARMED — Total. 2nd half Under 7.5 — streak [12, 9]
+
+2026-09-21 11:54:49
+BET FAILED [Total. 2nd half Under 7.5] — match 754857498: Not enough funds in the account
+
+2026-09-21 13:41:30
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [6, 5]
+
+2026-09-21 13:46:12
+BET FAILED [Total. 1st half Over 6.5] — match 754867100: market not open (stale-fire guard)
+
+2026-09-21 14:39:48
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 5]
+
+2026-09-21 14:41:57
+BET FAILED [Total. 1st half Over 6.5] — match 754868330: market not open (stale-fire guard)
+
+2026-09-21 15:05:23
+PATTERN ARMED — Total. Main game Under 16.5 — streak [9]
+
+2026-09-21 15:13:22
+BET FAILED [Total. Main game Under 16.5] — match 754867100: odds never reached 1.5 within 360.0s (last seen: 
+None)
+
+2026-09-21 15:20:05
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 6]
+
+2026-09-21 15:49:34
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 5]
+
+2026-09-21 16:19:32
+PATTERN ARMED — Total. 1st half Over 6.5 — streak [4, 4]
+

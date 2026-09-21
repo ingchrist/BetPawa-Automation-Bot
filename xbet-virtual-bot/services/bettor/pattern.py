@@ -164,6 +164,18 @@ class RoundPairStreakTracker:
     (None) resets the whole pending pair, the same conservative stance
     PatternTracker takes for a None total.
 
+    Early dead-pair reset: the pair also resets the moment required_count
+    becomes mathematically unreachable, without waiting for all 4 slots to
+    be known -- e.g. a round whose own two halves both come in under
+    half_threshold (0 of its 2 slots qualify) already leaves at most 2 of
+    the remaining 2 slots reachable, one short of required_count=3, so the
+    pair resets right there instead of dragging that dead round into a
+    wasted round 2. Checked after every new slot (`_is_pair_dead`, off
+    `required_count - last_qualifying_count > remaining slots out of 4`);
+    the round supplying the slot that kills the pair is discarded the same
+    way a None total discards one -- the next fresh pair starts counting
+    from the round after it, not from it.
+
     `last_qualifying_count`/`last_outcome`/`rounds_in_pair` are read-only
     reporting of what the most recent on_half_time/on_score_changed/
     on_finished call did -- they don't change that call's return
@@ -175,8 +187,9 @@ class RoundPairStreakTracker:
     `on_half_time`/`on_score_changed`/`on_finished` each return `True`
     the moment a pair is confirmed to fire (bet the *next* round),
     `False` if this call conclusively resolved something without firing
-    (a None-total reset, a skip consumed, or a pair completing its 4th
-    slot without reaching required_count), and `None` if this call
+    (a None-total reset, a skip consumed, a pair completing its 4th
+    slot without reaching required_count, or the pair going
+    mathematically dead earlier than that), and `None` if this call
     didn't change anything reportable -- a 2nd-half score change that
     hasn't yet reached half_threshold, one for a round whose own
     MatchHalfTime hasn't arrived yet, a 1st-half score change (never
@@ -231,6 +244,16 @@ class RoundPairStreakTracker:
             return True
         return False
 
+    def _is_pair_dead(self) -> bool:
+        """True once the known values already make required_count
+        unreachable -- i.e. even if every still-unknown slot in this
+        pair (out of 4 total) went on to qualify, the qualifying count
+        couldn't reach required_count. Must be called right after
+        _check_and_fire() (which populates last_qualifying_count off the
+        current _pair_values()) and before any reset of the pair."""
+        remaining_slots = 4 - len(self._pair_values())
+        return self.last_qualifying_count + remaining_slots < self.required_count
+
     def _record_h2(self, match_id: int, value: int) -> bool:
         self._pair_h2[match_id] = value
         self._live_baseline.pop(match_id, None)
@@ -238,7 +261,7 @@ class RoundPairStreakTracker:
 
         if self._check_and_fire():
             return True
-        if len(self._pair_values()) >= 4:
+        if self._is_pair_dead():
             self._reset_pair()
             self.last_outcome = "reset"
         else:
@@ -272,6 +295,12 @@ class RoundPairStreakTracker:
         if self._check_and_fire():
             self._resolved.add(match_id)
             return True
+
+        if self._is_pair_dead():
+            self._reset_pair()
+            self._resolved.add(match_id)
+            self.last_outcome = "reset"
+            return False
 
         self._live_baseline[match_id] = first_half_total
         self.last_outcome = "counting"
